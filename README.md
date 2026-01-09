@@ -1,184 +1,159 @@
-# Dynamous Kiro Hackathon Quickstart Template
+# 👻 Phantom Trail
 
-🚀 **Your starting point for the Dynamous and Kiro Hackathon** - A comprehensive template with pre-configured Kiro CLI setup, development workflows, and submission guidelines.
+**An AI-native Chrome extension that makes invisible data collection visible in real-time.**
 
-> **📖 New to Kiro?** Check out [kiro-guide.md](kiro-guide.md) to quickly get accustomed to how Kiro works and understand its unique features for the hackathon.
+Every time you browse the web, dozens of companies silently track your clicks, read your behavior, and sell your data—but you never see it happening. Phantom Trail changes that by acting as a privacy guardian that narrates what's really going on behind the scenes, in plain English.
 
-## About the Hackathon
+## 🎯 What It Does
 
-The **Kiro Hackathon** is a coding competition where developers build real-world applications using the Kiro CLI. Show off your AI-powered development skills and compete for **$17,000 in prizes**.
+- **Live AI Narrative**: Real-time explanations of tracking as it happens ("Amazon just tracked your mouse movements on this product page")
+- **Proactive Risk Assessment**: AI scores each tracking event and alerts to suspicious activity ("⚠️ High Risk: This banking site is leaking data to advertising networks")
+- **Natural Language Interface**: Ask questions like "What did Google learn about me today?" or "Is this website trustworthy?"
+- **Pattern Detection**: Identifies cross-site tracking patterns and catches new tracking techniques
+- **Visual Network Map**: See exactly where your data flows—from sites through ad networks to data brokers
 
-- **📅 Dates**: January 5-23, 2026
-- **💰 Prize Pool**: $17,000 across 10 winners
-- **🎯 Theme**: Open - build anything that solves a real problem
-- **🔗 More Info**: [dynamous.ai/kiro-hackathon](https://dynamous.ai/kiro-hackathon)
+## 🚀 Quick Start
 
-## What's Included
+### Prerequisites
+- Node.js 18+
+- Chrome browser with Developer Mode enabled
+- pnpm (recommended) or npm
 
-This template provides everything you need to get started:
+### Installation
 
-- **📋 Steering Documents**: Pre-configured project templates (product.md, tech.md, structure.md)
-- **⚡ Custom Prompts**: 11 powerful development workflow prompts
-- **📖 Examples**: Sample README and DEVLOG showing best practices
-- **🏆 Hackathon Tools**: Specialized code review prompt for submission evaluation
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/phantom-trail.git
+   cd phantom-trail
+   ```
 
-## Quick Start
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
 
-### 1. Clone This Template
-```bash
-git clone https://github.com/coleam00/dynamous-kiro-hackathon
-cd dynamous-kiro-hackathon
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   # Add your OpenRouter API key (optional - extension works without AI features)
+   ```
+
+4. **Start development**
+   ```bash
+   pnpm dev
+   ```
+
+5. **Load extension in Chrome**
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked" and select the `.output/chrome-mv3` folder
+
+## 🏗️ Tech Stack
+
+- **Framework**: WXT (Vite-based, Manifest V3)
+- **UI**: React 18 + TypeScript + Tailwind CSS
+- **State**: Zustand
+- **Visualization**: Vis.js (network graphs), Chart.js (metrics)
+- **AI**: OpenRouter API (Claude Haiku primary, GPT-4o-mini backup)
+- **Data Sources**: EasyList/EasyPrivacy, Disconnect.me, ipapi.co
+
+## 📁 Project Structure
+
+```
+phantom-trail/
+├── entrypoints/               # Extension entry points
+│   ├── background.ts          # Service worker
+│   ├── content.ts             # Content scripts
+│   ├── popup/                 # Main UI
+│   └── sidepanel/             # Optional side panel
+├── components/                # React components (feature-based)
+│   ├── LiveNarrative/
+│   ├── NetworkGraph/
+│   ├── ChatInterface/
+│   └── RiskDashboard/
+├── lib/                       # Core utilities
+│   ├── ai-engine.ts           # OpenRouter integration
+│   ├── tracker-db.ts          # Tracker classification
+│   └── storage-manager.ts     # Chrome storage wrapper
+└── assets/                    # Static assets
 ```
 
-### 2. Run the Setup Wizard
+## 🛠️ Development
+
+### Available Scripts
+
 ```bash
-@quickstart
+pnpm dev          # Start development server with HMR
+pnpm build        # Build for production
+pnpm build:firefox # Build for Firefox
+pnpm zip          # Create distribution package
+pnpm typecheck    # Run TypeScript checks
 ```
 
-This assumes you already have Kiro CLI installed and that you started with the `kiro-cli` command in your terminal.
+### Development Workflow
 
-This interactive wizard will:
-- ✅ Fill out your steering documents with project details
-- ✅ Configure your development workflow
-- ✅ Set up Kiro CLI for your specific project
-- ✅ Explain all available prompts and features
+1. **Load project context**: Use `@prime` prompt to understand codebase
+2. **Plan features**: Use `@plan-feature` for structured implementation
+3. **Execute**: Use `@execute` for systematic development
+4. **Review**: Use `@code-review` before committing
+5. **Test**: Load extension in Chrome and verify functionality
 
-### 3. Start Building
-Your project is now configured! Use these core prompts:
-- **`@prime`** - Load project context
-- **`@plan-feature`** - Plan new features
-- **`@execute`** - Implement plans systematically
-- **`@code-review`** - Review code quality
+### Code Standards
 
-**Note:** Your typical workflow will be `@prime` → `@plan-feature` → `@execute` → `@code-review`, but feel free to change it however you want. These commands may require additional details (like what feature to plan or which plan file to execute), but Kiro will ask for these parameters after you invoke the command.
+- TypeScript strict mode (zero `any` types)
+- 500-line file limit (split into modules)
+- Feature-based component structure
+- Comprehensive error handling
+- Chrome API isolation in `lib/` utilities
 
-## Development Workflow (Customize this However You Want!)
+## 🎯 Success Criteria
 
-### Initial Setup (One-Time)
-1. **Complete setup**: Run `@quickstart` to configure your project
+### Functional Requirements
+- ✅ Detect trackers on 90%+ of top 100 websites
+- ✅ AI narrative generates within 3 seconds
+- ✅ Network graph renders 50+ nodes smoothly
+- ✅ Chat responses return within 5 seconds
 
-### Core Development Cycle (Every Feature/Session)
+### Performance Requirements
+- ✅ CPU overhead <5% during browsing
+- ✅ Memory usage <100MB
+- ✅ Extension bundle <5MB
+- ✅ No impact on page load times
 
-### Phase 1: Setup & Planning
-1. **Load context**: Use `@prime` to understand your codebase
-2. **Plan features**: Use `@plan-feature` for comprehensive planning
+### User Experience
+- ✅ Non-technical users understand narratives
+- ✅ Works offline (basic features without AI)
+- ✅ Setup complete in <2 minutes
+- ✅ Graceful degradation when AI unavailable
 
-### Phase 2: Build & Iterate
-1. **Implement**: Use `@execute` to build features systematically
-2. **Review**: Use `@code-review` to maintain code quality
-3. **Document**: Update your DEVLOG.md as you work
-4. **Optimize**: Customize your `.kiro/` configuration for your workflow
+## 🔒 Privacy & Security
 
-### Phase 3: Submission Preparation
-1. **Final review**: Run `@code-review-hackathon` for submission evaluation
-2. **Polish documentation**: Ensure README.md and DEVLOG.md are complete
-3. **Verify requirements**: Check all submission criteria are met
+- **Local-first**: All data processing happens locally
+- **Optional AI**: Extension works without API key
+- **Minimal permissions**: Only necessary Chrome APIs
+- **No remote code**: Manifest V3 compliant
+- **User-controlled**: OpenRouter API key stored locally
 
-## Submission Requirements
+## 🤝 Contributing
 
-Your submission will be judged on these criteria (100 points total):
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Follow the coding standards in `.kiro/steering/coding-rules.md`
+4. Commit changes (`git commit -m 'feat(component): add amazing feature'`)
+5. Push to branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
-### Application Quality (40 points)
-- **Functionality & Completeness** (15 pts): Does it work as intended?
-- **Real-World Value** (15 pts): Does it solve a genuine problem?
-- **Code Quality** (10 pts): Is the code well-structured and maintainable?
+## 📄 License
 
-### Kiro CLI Usage (20 points)
-- **Effective Use of Features** (10 pts): How well did you leverage Kiro CLI?
-- **Custom Commands Quality** (7 pts): Quality of your custom prompts
-- **Workflow Innovation** (3 pts): Creative use of Kiro CLI features
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Documentation (20 points)
-- **Completeness** (9 pts): All required documentation present
-- **Clarity** (7 pts): Easy to understand and follow
-- **Process Transparency** (4 pts): Clear development process documentation
+## 🙏 Acknowledgments
 
-### Innovation (15 points)
-- **Uniqueness** (8 pts): Original approach or solution
-- **Creative Problem-Solving** (7 pts): Novel technical solutions
-
-### Presentation (5 points)
-- **Demo Video** (3 pts): Clear demonstration of your project
-- **README** (2 pts): Professional project overview
-
-## Required Documentation
-
-Ensure these files are complete and high-quality:
-
-### README.md
-- Clear project description and value proposition
-- Prerequisites and setup instructions
-- Architecture overview and key components
-- Usage examples and troubleshooting
-
-*There's a lot of freedom for how you can structure this. Just make sure that it's easy for someone viewing this to know exactly what your project is about and how to run it themselves. This is the main criteria that explains the project clearly and how to test it in a local environment.*
-
-### DEVLOG.md
-- Development timeline with key milestones
-- Technical decisions and rationale
-- Challenges faced and solutions implemented
-- Time tracking and Kiro CLI usage statistics
-
-*There's a lot of freedom in how you structure this too. It's up to you how you want to document your timeline, milestones, decisions made, challenges you encounter, and all those kinds of things. Feel free to use Kiro to help you maintain your devlog as you're working on the project. Hint: create a Kiro prompt to help you update your log based on what's happening.*
-
-### .kiro/ Directory
-- **Steering documents**: Customized for your project
-- **Custom prompts**: Workflow-specific commands
-- **Configuration**: Optimized for your development process
-
-*This template provides a good starting point with prompts, and the wizard helps you set up your initial steering documents. However, it's encouraged for you to continue to customize things and refine it as you're working on your project.*
-
-## Available Prompts
-
-This template includes 11 powerful development prompts:
-
-### Core Development
-- **`@prime`** - Load comprehensive project context
-- **`@plan-feature`** - Create detailed implementation plans
-- **`@execute`** - Execute plans with systematic task management
-- **`@quickstart`** - Interactive project setup wizard
-
-### Quality Assurance
-- **`@code-review`** - Technical code review for quality and bugs
-- **`@code-review-hackathon`** - Hackathon submission evaluation
-- **`@code-review-fix`** - Fix issues found in code reviews
-- **`@system-review`** - Analyze implementation vs plan
-
-### Documentation & Planning
-- **`@create-prd`** - Generate Product Requirements Documents
-- **`@execution-report`** - Generate implementation reports
-- **`@rca`** - Root cause analysis for issues
-- **`@implement-fix`** - Implement fixes based on analysis
-
-## Examples
-
-Check the `examples/` folder for:
-- **README.md**: Professional project documentation example
-- **DEVLOG.md**: Comprehensive development log example
-
-These examples show the level of detail and professionalism expected for hackathon submissions.
-
-## Tips for Success
-
-### Maximize Your Score
-1. **Use Kiro CLI extensively** - It's 20% of your score
-2. **Document everything** - Process documentation is 20% of your score
-3. **Build something useful** - Real-world value is heavily weighted
-4. **Optimize your workflow** - Custom prompts and steering documents matter
-
-### Development Best Practices
-- **Start with `@quickstart`** to set up your foundation properly
-- **Use `@prime`** at the start of every new conversation to quickly catch the coding assistant up to speed on what has been built in the project already
-- **Update your DEVLOG.md** continuously, not just at the end
-- **Customize your `.kiro/` configuration** as you learn your workflow
-- **Run `@code-review-hackathon`** periodically to compare your project against the judging rubric and before submitting
-
-## Getting Help
-
-- **Kiro CLI Documentation**: [kiro.dev/docs/cli](https://kiro.dev/docs/cli)
-- **Hackathon Community**: Join the Dynamous community for support
-- **Built-in Help**: Use `/help` in Kiro CLI for command assistance
+- [WXT Framework](https://wxt.dev/) for modern extension development
+- [OpenRouter](https://openrouter.ai/) for AI API access
+- [EasyList](https://easylist.to/) for tracker databases
+- Privacy community for inspiration and feedback
 
 ---
 
-**Ready to build something amazing?** Run `@quickstart` and let's get started! 🚀
+**Built with ❤️ for digital privacy awareness**
