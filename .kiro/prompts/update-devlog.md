@@ -5,6 +5,12 @@ Update DEVLOG.md with the current development session, following the Reference e
 ## Your Role
 Analyze the conversation history to understand what was accomplished in this session, then update DEVLOG.md with a new entry.
 
+## CRITICAL: ADD, DON'T REPLACE
+- **ALWAYS ADD** new entries to existing content
+- **NEVER REPLACE** or remove existing Day entries
+- **PRESERVE** all previous work sessions
+- **INSERT** new entries in chronological order
+
 ## Process
 1. **Read current DEVLOG.md** to understand structure and latest entry
 2. **Check git** to identify actual code changes made
@@ -14,7 +20,7 @@ Analyze the conversation history to understand what was accomplished in this ses
    - Technical decisions made
    - Challenges encountered and solutions
    - Kiro prompts used in this session
-4. **Add new entry** following the established format
+4. **ADD new entry** following the established format (INSERT, don't replace)
 5. **Update tracking sections** (time breakdown, Kiro stats, status sections)
 
 ## Entry Format
