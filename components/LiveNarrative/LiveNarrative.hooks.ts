@@ -8,11 +8,14 @@ import type { NarrativeState } from './LiveNarrative.types';
  * Hook for managing tracking events with real-time updates
  */
 export function useTrackingEvents() {
-  const [events, , eventsLoading] = useStorage<TrackingEvent[]>('phantom_trail_events', []);
-  
+  const [events, , eventsLoading] = useStorage<TrackingEvent[]>(
+    'phantom_trail_events',
+    []
+  );
+
   return {
     events: events.slice(-10), // Show last 10 events
-    loading: eventsLoading
+    loading: eventsLoading,
   };
 }
 
@@ -56,7 +59,7 @@ export function useAIAnalysis(events: TrackingEvent[]) {
     analysis,
     loading,
     error,
-    regenerate: generateAnalysis
+    regenerate: generateAnalysis,
   };
 }
 
@@ -71,6 +74,6 @@ export function useLiveNarrative(): NarrativeState {
     events,
     analysis,
     loading: eventsLoading || analysisLoading,
-    error
+    error,
   };
 }

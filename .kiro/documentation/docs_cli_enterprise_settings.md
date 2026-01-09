@@ -1,4 +1,5 @@
 # Settings
+
 An administrator can control the following settings in a [Kiro profile](https://kiro.dev/docs/cli/enterprise/concepts/#kiro-profile).
 Setting | Description  
 ---|---  

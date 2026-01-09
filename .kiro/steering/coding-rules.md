@@ -5,6 +5,7 @@ These rules MUST be followed when writing code. No exceptions.
 ## Code Quality
 
 **500-Line Limit** - No file may exceed 500 lines. Split into:
+
 - Separate components
 - Custom hooks
 - Utility modules
@@ -33,6 +34,7 @@ These rules MUST be followed when writing code. No exceptions.
 ## Architecture
 
 **Feature-Based Structure**:
+
 ```
 components/
   LiveNarrative/
@@ -43,6 +45,7 @@ components/
 ```
 
 **Separation of Concerns**:
+
 - `entrypoints/` - Chrome extension entry points only
 - `components/` - React UI components
 - `lib/` - Business logic, utilities, API clients
@@ -71,6 +74,7 @@ components/
 ## Git Workflow
 
 **Descriptive Commits** - Format: `type(scope): description`
+
 - `feat(narrative): add real-time tracking feed`
 - `fix(ai-engine): handle API timeout errors`
 - `refactor(storage): extract chrome.storage wrapper`

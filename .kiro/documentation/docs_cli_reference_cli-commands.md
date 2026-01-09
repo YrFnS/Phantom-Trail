@@ -1,6 +1,9 @@
 # CLI commands
+
 This page provides a comprehensive reference for all Kiro CLI commands and their arguments.
+
 ## Global arguments[](https://kiro.dev/docs/cli/reference/cli-commands/#global-arguments)
+
 These arguments work with any Kiro CLI command:
 Argument | Short | Description  
 ---|---|---  
@@ -8,12 +11,16 @@ Argument | Short | Description
 `--agent` | `-v` | Start a conversation using a specific custom agent configuration  
 `--help` | `-h` | Show help information  
 `--version` | `-V` | Show version information  
-`--help-all` |  | Print help for all subcommands  
+`--help-all` | | Print help for all subcommands
+
 ## Commands[](https://kiro.dev/docs/cli/reference/cli-commands/#commands)
+
 ### kiro-cli agent[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-agent)
+
 Manage agent configurations.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli agent [SUBCOMMAND] [OPTIONS]
@@ -32,6 +39,7 @@ Subcommand | Description
 `set-default` | Define a default agent to use when starting a session  
 **Examples:**
 bash
+
 ```
 
 kiro-cli agent list
@@ -44,9 +52,11 @@ kiro-cli agent set-default my-agent
 ```
 
 ### kiro-cli chat[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-chat)
+
 Start an interactive chat session with Kiro. When no subcommand is specified, `kiro` defaults to `kiro-cli chat`.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli chat [OPTIONS] [INPUT]
@@ -68,10 +78,11 @@ Argument | Description
 `INPUT` | The first question to ask (positional argument)  
 **Examples:**
 bash
+
 ```
 
 # Start interactive chat
-kiro-cli 
+kiro-cli
 
 # Ask a question directly
 kiro-cli chat "How do I list files in Linux?"
@@ -95,9 +106,11 @@ kiro-cli chat --agent my-agent "Help me with AWS CLI"
 ```
 
 ### kiro-cli translate[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-translate)
+
 Translate natural language instructions to executable shell commands using AI.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli translate [OPTIONS] [INPUT...]
@@ -109,9 +122,10 @@ kiro-cli translate [OPTIONS] [INPUT...]
 Argument | Short | Description  
 ---|---|---  
 `--n` | `-n` | Number of completions to generate (max 5)  
-`INPUT` |  | Natural language description (positional arguments)  
+`INPUT` | | Natural language description (positional arguments)  
 **Examples:**
 bash
+
 ```
 
 kiro-cli translate "list all files in the current directory"
@@ -123,9 +137,11 @@ kiro-cli translate -n 3 "search for text in files"
 ```
 
 ### kiro-cli doctor[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-doctor)
+
 Diagnose and fix common installation and configuration issues.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli doctor [OPTIONS]
@@ -141,6 +157,7 @@ Argument | Short | Description
 `--format` | `-f` | Output format: `plain`, `json`, `json-pretty`  
 **Examples:**
 bash
+
 ```
 
 kiro-cli doctor
@@ -151,9 +168,11 @@ kiro-cli doctor --strict
 ```
 
 ### kiro-cli update[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-update)
+
 Update Kiro CLI to the latest version.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli update [OPTIONS]
@@ -165,9 +184,10 @@ kiro-cli update [OPTIONS]
 Argument | Short | Description  
 ---|---|---  
 `--non-interactive` | `-y` | Don't prompt for confirmation  
-`--relaunch-dashboard` |  | Relaunch dashboard after update (default: true)  
+`--relaunch-dashboard` | | Relaunch dashboard after update (default: true)  
 **Examples:**
 bash
+
 ```
 
 kiro-cli update
@@ -177,9 +197,11 @@ kiro-cli update --non-interactive
 ```
 
 ### kiro-cli theme[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-theme)
+
 Get or set the visual theme for the autocomplete dropdown menu.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli theme [OPTIONS] [THEME]
@@ -195,6 +217,7 @@ Argument | Description
 `THEME` | Theme name: `dark`, `light`, `system`  
 **Examples:**
 bash
+
 ```
 
 kiro-cli theme --list
@@ -206,9 +229,11 @@ kiro-cli theme system
 ```
 
 ### kiro-cli integrations[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-integrations)
+
 Manage system integrations for Kiro.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli integrations [SUBCOMMAND] [OPTIONS]
@@ -224,12 +249,13 @@ Subcommand | Description
 `reinstall` | Reinstall an integration  
 `status` | Check integration status  
 **Options:**
-  * `--silent` / `-s`: Suppress status messages
-  * `--format` / `-f`: Output format (for status command)
 
+- `--silent` / `-s`: Suppress status messages
+- `--format` / `-f`: Output format (for status command)
 
 **Examples:**
 bash
+
 ```
 
 kiro-cli integrations install
@@ -240,9 +266,11 @@ kiro-cli integrations uninstall --silent
 ```
 
 ### kiro-cli inline[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-inline)
+
 Manage inline suggestions (ghost text) that appear as you type.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli inline [SUBCOMMAND] [OPTIONS]
@@ -260,6 +288,7 @@ Subcommand | Description
 `show-customizations` | Show available customizations  
 **Examples:**
 bash
+
 ```
 
 kiro-cli inline enable
@@ -272,9 +301,11 @@ kiro-cli inline show-customizations --format json
 ```
 
 ### kiro-cli login[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-login)
+
 Authenticate with Kiro.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli login [OPTIONS]
@@ -288,6 +319,7 @@ Argument | Description
 `--use-device-flow` | Use OAuth device flow for authentication  
 **Examples:**
 bash
+
 ```
 
 kiro-cli login
@@ -297,9 +329,11 @@ kiro-cli login --use-device-flow
 ```
 
 ### kiro-cli logout[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-logout)
+
 Sign out of your kiro-cli session.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli logout
@@ -308,9 +342,11 @@ kiro-cli logout
 ```
 
 ### kiro-cli whoami[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-whoami)
+
 Display information about the current user and authentication status.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli whoami [OPTIONS]
@@ -324,6 +360,7 @@ Argument | Short | Description
 `--format` | `-f` | Output format: `plain`, `json`, `json-pretty`  
 **Examples:**
 bash
+
 ```
 
 kiro-cli whoami
@@ -333,9 +370,11 @@ kiro-cli whoami --format json
 ```
 
 ### kiro-cli settings[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-settings)
+
 Manage kiro-cli configuration settings.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli settings [SUBCOMMAND] [OPTIONS] [KEY] [VALUE]
@@ -348,8 +387,8 @@ Argument | Short | Description
 ---|---|---  
 `--delete` | `-d` | Delete a setting  
 `--format` | `-f` | Output format: `plain`, `json`, `json-pretty`  
-`KEY` |  | Setting key (positional)  
-`VALUE` |  | Setting value (positional)  
+`KEY` | | Setting key (positional)  
+`VALUE` | | Setting value (positional)  
 **Subcommands:**
 Subcommand | Description  
 ---|---  
@@ -358,6 +397,7 @@ Subcommand | Description
 `list --all` | List all available settings with descriptions  
 **Examples:**
 bash
+
 ```
 
 # View all settings
@@ -385,9 +425,11 @@ kiro-cli settings list --format json-pretty
 ```
 
 ### kiro-cli diagnostic[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-diagnostic)
+
 Run diagnostic tests to troubleshoot issues.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli diagnostic [OPTIONS]
@@ -399,11 +441,14 @@ kiro-cli diagnostic [OPTIONS]
 Argument | Short | Description  
 ---|---|---  
 `--format` | `-f` | Output format: `plain`, `json`, `json-pretty`  
-`--force` |  | Force limited diagnostic output  
+`--force` | | Force limited diagnostic output
+
 ### kiro-cli issue[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-issue)
+
 Create a GitHub issue for feedback or bug reports.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli issue [OPTIONS] [DESCRIPTION...]
@@ -415,9 +460,10 @@ kiro-cli issue [OPTIONS] [DESCRIPTION...]
 Argument | Short | Description  
 ---|---|---  
 `--force` | `-f` | Force issue creation  
-`DESCRIPTION` |  | Issue description (positional)  
+`DESCRIPTION` | | Issue description (positional)  
 **Examples:**
 bash
+
 ```
 
 kiro-cli issue
@@ -427,9 +473,11 @@ kiro-cli issue "Autocomplete not working in zsh"
 ```
 
 ### kiro-cli version[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-version)
+
 Display version information and changelog.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli version [OPTIONS]
@@ -445,6 +493,7 @@ Argument | Description
 `--changelog=x.x.x` | Show changelog for specific version  
 **Examples:**
 bash
+
 ```
 
 kiro-cli version
@@ -456,9 +505,11 @@ kiro-cli version --changelog=1.5.0
 ```
 
 ### kiro-cli mcp[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp)
+
 Manage Model Context Protocol (MCP) servers.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli mcp [SUBCOMMAND] [OPTIONS]
@@ -467,7 +518,9 @@ kiro-cli mcp [SUBCOMMAND] [OPTIONS]
 ```
 
 **Subcommands:**
+
 #### kiro-cli mcp add[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-add)
+
 Add or replace a configured MCP server.
 **Arguments:**
 Argument | Description  
@@ -480,6 +533,7 @@ Argument | Description
 `--force` | Overwrite existing server  
 **Example:**
 bash
+
 ```
 
 kiro-cli mcp add --name my-server --command "node server.js" --scope workspace
@@ -488,6 +542,7 @@ kiro-cli mcp add --name my-server --command "node server.js" --scope workspace
 ```
 
 #### kiro-cli mcp remove[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-remove)
+
 Remove an MCP server.
 **Arguments:**
 Argument | Description  
@@ -496,6 +551,7 @@ Argument | Description
 `--scope` | Scope: `workspace` or `global`  
 **Example:**
 bash
+
 ```
 
 kiro-cli mcp remove --name my-server --scope workspace
@@ -504,9 +560,11 @@ kiro-cli mcp remove --name my-server --scope workspace
 ```
 
 #### kiro-cli mcp list[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-list)
+
 List configured MCP servers.
 **Syntax:**
 bash
+
 ```
 
 kiro-cli mcp list [SCOPE]
@@ -516,6 +574,7 @@ kiro-cli mcp list [SCOPE]
 
 **Example:**
 bash
+
 ```
 
 kiro-cli mcp list
@@ -526,6 +585,7 @@ kiro-cli mcp list global
 ```
 
 #### kiro-cli mcp import[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-import)
+
 Import server configuration from a file.
 **Arguments:**
 Argument | Description  
@@ -535,6 +595,7 @@ Argument | Description
 `SCOPE` | Scope: `workspace` or `global`  
 **Example:**
 bash
+
 ```
 
 kiro-cli mcp import --file config.json workspace
@@ -543,6 +604,7 @@ kiro-cli mcp import --file config.json workspace
 ```
 
 #### kiro-cli mcp status[](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-status)
+
 Get the status of an MCP server.
 **Arguments:**
 Argument | Description  
@@ -550,6 +612,7 @@ Argument | Description
 `--name` | Server name (required)  
 **Example:**
 bash
+
 ```
 
 kiro-cli mcp status --name my-server
@@ -558,9 +621,13 @@ kiro-cli mcp status --name my-server
 ```
 
 ## Session management[](https://kiro.dev/docs/cli/reference/cli-commands/#session-management)
+
 Kiro CLI automatically saves all chat sessions on every conversation turn. You can resume from any previous chat session at any time.
+
 ### From the command line[](https://kiro.dev/docs/cli/reference/cli-commands/#from-the-command-line)
+
 bash
+
 ```
 
 # Resume the most recent chat session
@@ -579,8 +646,10 @@ kiro-cli chat --delete-session <SESSION_ID>
 ```
 
 ### From within a chat session[](https://kiro.dev/docs/cli/reference/cli-commands/#from-within-a-chat-session)
+
 Use the `/chat` command to manage sessions:
 bash
+
 ```
 
 # Resume a chat session (interactive selector)
@@ -596,9 +665,12 @@ bash
 ```
 
 The `.json` extension is optional when loading - Kiro will try both with and without the extension.
+
 ### Custom session storage[](https://kiro.dev/docs/cli/reference/cli-commands/#custom-session-storage)
+
 You can use custom scripts to control where chat sessions are saved to and loaded from. This allows you to store sessions in version control systems, cloud storage, databases, or any custom location.
 bash
+
 ```
 
 # Save session via custom script (receives JSON via stdin)
@@ -611,29 +683,31 @@ bash
 ```
 
 **Tips:**
-  * Session IDs are UUIDs that uniquely identify each chat session
-  * Sessions are stored per directory, so each project has its own set of sessions
-  * The most recently updated sessions appear first in the list
 
+- Session IDs are UUIDs that uniquely identify each chat session
+- Sessions are stored per directory, so each project has its own set of sessions
+- The most recently updated sessions appear first in the list
 
 ## Log files[](https://kiro.dev/docs/cli/reference/cli-commands/#log-files)
+
 Kiro CLI maintains log files for troubleshooting:
 **Locations:**
-  * **macOS** : `$TMPDIR/kiro-log/`
-  * **Linux** : `$XDG_RUNTIME_DIR` or `/tmp/kiro-log/`
 
+- **macOS** : `$TMPDIR/kiro-log/`
+- **Linux** : `$XDG_RUNTIME_DIR` or `/tmp/kiro-log/`
 
 **Log Levels:**
 Set via `KIRO_LOG_LEVEL` environment variable:
-  * `error`: Only errors (default)
-  * `warn`: Warnings and errors
-  * `info`: Info, warnings, and errors
-  * `debug`: Debug info and above
-  * `trace`: All messages including detailed traces
 
+- `error`: Only errors (default)
+- `warn`: Warnings and errors
+- `info`: Info, warnings, and errors
+- `debug`: Debug info and above
+- `trace`: All messages including detailed traces
 
 **Example:**
 bash
+
 ```
 
 # Enable debug logging
@@ -648,42 +722,44 @@ kiro-cli chat
 ```
 
 **Warning:** Log files may contain sensitive information including file paths, code snippets, and command outputs. Be cautious when sharing logs.
-## Next steps[](https://kiro.dev/docs/cli/reference/cli-commands/#next-steps)
-  * [Slash Commands Reference](https://kiro.dev/docs/cli/reference/slash-commands)
-  * [Settings Configuration](https://kiro.dev/docs/cli/settings)
-  * [Troubleshooting Guide](https://kiro.dev/docs/cli/reference/troubleshooting)
 
+## Next steps[](https://kiro.dev/docs/cli/reference/cli-commands/#next-steps)
+
+- [Slash Commands Reference](https://kiro.dev/docs/cli/reference/slash-commands)
+- [Settings Configuration](https://kiro.dev/docs/cli/settings)
+- [Troubleshooting Guide](https://kiro.dev/docs/cli/reference/troubleshooting)
 
 Page updated: December 18, 2025
 [VPC endpoints (AWS PrivateLink)](https://kiro.dev/docs/cli/privacy-and-security/vpc-endpoints/)
 [Slash commands](https://kiro.dev/docs/cli/reference/slash-commands/)
 On this page
-  * [Global arguments](https://kiro.dev/docs/cli/reference/cli-commands/#global-arguments)
-  * [Commands](https://kiro.dev/docs/cli/reference/cli-commands/#commands)
-  * [kiro-cli agent](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-agent)
-  * [kiro-cli chat](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-chat)
-  * [kiro-cli translate](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-translate)
-  * [kiro-cli doctor](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-doctor)
-  * [kiro-cli update](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-update)
-  * [kiro-cli theme](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-theme)
-  * [kiro-cli integrations](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-integrations)
-  * [kiro-cli inline](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-inline)
-  * [kiro-cli login](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-login)
-  * [kiro-cli logout](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-logout)
-  * [kiro-cli whoami](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-whoami)
-  * [kiro-cli settings](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-settings)
-  * [kiro-cli diagnostic](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-diagnostic)
-  * [kiro-cli issue](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-issue)
-  * [kiro-cli version](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-version)
-  * [kiro-cli mcp](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp)
-  * [kiro-cli mcp add](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-add)
-  * [kiro-cli mcp remove](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-remove)
-  * [kiro-cli mcp list](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-list)
-  * [kiro-cli mcp import](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-import)
-  * [kiro-cli mcp status](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-status)
-  * [Session management](https://kiro.dev/docs/cli/reference/cli-commands/#session-management)
-  * [From the command line](https://kiro.dev/docs/cli/reference/cli-commands/#from-the-command-line)
-  * [From within a chat session](https://kiro.dev/docs/cli/reference/cli-commands/#from-within-a-chat-session)
-  * [Custom session storage](https://kiro.dev/docs/cli/reference/cli-commands/#custom-session-storage)
-  * [Log files](https://kiro.dev/docs/cli/reference/cli-commands/#log-files)
-  * [Next steps](https://kiro.dev/docs/cli/reference/cli-commands/#next-steps)
+
+- [Global arguments](https://kiro.dev/docs/cli/reference/cli-commands/#global-arguments)
+- [Commands](https://kiro.dev/docs/cli/reference/cli-commands/#commands)
+- [kiro-cli agent](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-agent)
+- [kiro-cli chat](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-chat)
+- [kiro-cli translate](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-translate)
+- [kiro-cli doctor](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-doctor)
+- [kiro-cli update](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-update)
+- [kiro-cli theme](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-theme)
+- [kiro-cli integrations](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-integrations)
+- [kiro-cli inline](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-inline)
+- [kiro-cli login](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-login)
+- [kiro-cli logout](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-logout)
+- [kiro-cli whoami](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-whoami)
+- [kiro-cli settings](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-settings)
+- [kiro-cli diagnostic](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-diagnostic)
+- [kiro-cli issue](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-issue)
+- [kiro-cli version](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-version)
+- [kiro-cli mcp](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp)
+- [kiro-cli mcp add](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-add)
+- [kiro-cli mcp remove](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-remove)
+- [kiro-cli mcp list](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-list)
+- [kiro-cli mcp import](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-import)
+- [kiro-cli mcp status](https://kiro.dev/docs/cli/reference/cli-commands/#kiro-cli-mcp-status)
+- [Session management](https://kiro.dev/docs/cli/reference/cli-commands/#session-management)
+- [From the command line](https://kiro.dev/docs/cli/reference/cli-commands/#from-the-command-line)
+- [From within a chat session](https://kiro.dev/docs/cli/reference/cli-commands/#from-within-a-chat-session)
+- [Custom session storage](https://kiro.dev/docs/cli/reference/cli-commands/#custom-session-storage)
+- [Log files](https://kiro.dev/docs/cli/reference/cli-commands/#log-files)
+- [Next steps](https://kiro.dev/docs/cli/reference/cli-commands/#next-steps)

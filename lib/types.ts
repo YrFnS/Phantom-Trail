@@ -27,7 +27,7 @@ export interface AIAnalysis {
   confidence: number;
 }
 
-export type TrackerType = 
+export type TrackerType =
   | 'advertising'
   | 'analytics'
   | 'social'
@@ -35,7 +35,7 @@ export type TrackerType =
   | 'cryptomining'
   | 'unknown';
 
-export type TrackerCategory = 
+export type TrackerCategory =
   | 'Advertising'
   | 'Analytics'
   | 'Social Media'

@@ -1,5 +1,5 @@
-**1. Project Name:** 
-**"Phantom Trail"** 
+**1. Project Name:**
+**"Phantom Trail"**
 
 **2. Project Description:**
 **We are building Phantom Trail, an AI-native Chrome extension that makes invisible data collection visible in real-time.**
@@ -37,12 +37,14 @@ Built as a Chrome extension using `chrome.webRequest` API to intercept network t
 In a world where your data is constantly being collected, Phantom Trail gives you eyes to see it happening and the intelligence to understand what it means. It's like having a privacy expert whispering in your ear as you browse.
 
 **3. Target Users:**
+
 - **Primary**: Privacy-conscious everyday internet users (18-45 years old) who want to understand what's happening behind the scenes when they browse
 - **Secondary**: Tech-savvy users, security researchers, and developers who want deep insights into tracking mechanisms
 - **Need**: Most people know they're being tracked but have no idea by whom, for what, or where their data goes. They want **awareness without overwhelm**—clear, actionable information, not technical jargon.
 
 **4. Main Technology:**
 **WXT Framework** (Next-gen browser extension framework)
+
 - **Why WXT over Plasmo**: Based on 2026 research, WXT has established itself as the leading framework with active maintenance, while Plasmo "appears to be in maintenance mode with little to no maintainers or feature development"
 - Built on **Vite** for lightning-fast HMR and modern dev experience
 - Framework-agnostic with "Nuxt-like auto-imports"
@@ -54,15 +56,17 @@ In a world where your data is constantly being collected, Phantom Trail gives yo
 **5. Architecture:**
 
 **Frontend Stack:**
+
 - **Framework**: WXT (Vite-based, Manifest V3)
 - **UI Library**: React 18 with TypeScript
 - **Styling**: Tailwind CSS
-- **Visualization**: 
+- **Visualization**:
   - Vis.js for network graphs (data flow visualization)
   - Chart.js for risk scores and metrics
 - **State Management**: Zustand (lightweight, React-native)
 
 **Backend/Core:**
+
 - **Service Worker**: Vanilla TypeScript (background processing)
 - **Chrome APIs**:
   - `chrome.webRequest` - Intercept network requests
@@ -72,22 +76,25 @@ In a world where your data is constantly being collected, Phantom Trail gives yo
   - `chrome.declarativeNetRequest` - Optional request blocking
 
 **AI Integration:**
+
 - **API Provider**: OpenRouter (unified AI access)
 - **Primary Models**:
   - Claude Haiku via OpenRouter - Fast, cost-effective real-time analysis (~$0.25 per 1M input tokens)
   - GPT-4o-mini - Backup for pattern detection
-- **Features**: 
+- **Features**:
   - Streaming responses via Server-Sent Events (SSE)
   - Real-time AI narration
   - Context-aware analysis
   - Natural language query interface
 
 **Data Sources (Free):**
+
 - EasyList/EasyPrivacy (tracker databases)
 - Disconnect.me lists (tracker categorization)
 - ipapi.co (IP geolocation - 1000/day free)
 
 **Project Structure (WXT):**
+
 ```
 phantom-trail/
 ├── wxt.config.ts              # WXT configuration
@@ -115,12 +122,14 @@ phantom-trail/
 **6. Special Requirements:**
 
 **Performance:**
+
 - Keep extension under 5MB total size
 - Lazy-load AI analysis (only call API on user demand or significant events)
 - Cache AI responses locally to avoid redundant API calls
 - Throttle network monitoring to prevent performance impact
 
 **Privacy & Security:**
+
 - No remote code execution (Manifest V3 requirement)
 - All data processing happens locally
 - Optional: User brings their own OpenRouter API key

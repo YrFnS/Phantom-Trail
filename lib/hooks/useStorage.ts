@@ -10,7 +10,13 @@ export function useStorage<T>(
 ): [T, (value: T) => Promise<void>, boolean] {
   const [data, setData] = useState<T>(defaultValue);
   const [loading, setLoading] = useState(true);
-  const listenerRef = useRef<((changes: {[key: string]: chrome.storage.StorageChange}, areaName: string) => void) | null>(null);
+  const listenerRef = useRef<
+    | ((
+        changes: { [key: string]: chrome.storage.StorageChange },
+        areaName: string
+      ) => void)
+    | null
+  >(null);
 
   // Load initial data
   useEffect(() => {
@@ -31,7 +37,10 @@ export function useStorage<T>(
 
   // Set up real-time listener
   useEffect(() => {
-    const listener = (changes: {[key: string]: chrome.storage.StorageChange}, areaName: string) => {
+    const listener = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      areaName: string
+    ) => {
       if (areaName === 'local' && changes[key]) {
         setData(changes[key].newValue ?? defaultValue);
       }
@@ -50,14 +59,17 @@ export function useStorage<T>(
   }, [key, defaultValue]);
 
   // Update storage function
-  const updateStorage = useCallback(async (value: T) => {
-    try {
-      await chrome.storage.local.set({ [key]: value });
-    } catch (error) {
-      console.error(`Failed to update storage key ${key}:`, error);
-      throw new Error(`Failed to update storage`);
-    }
-  }, [key]);
+  const updateStorage = useCallback(
+    async (value: T) => {
+      try {
+        await chrome.storage.local.set({ [key]: value });
+      } catch (error) {
+        console.error(`Failed to update storage key ${key}:`, error);
+        throw new Error(`Failed to update storage`);
+      }
+    },
+    [key]
+  );
 
   return [data, updateStorage, loading];
 }

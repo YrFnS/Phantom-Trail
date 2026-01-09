@@ -10,36 +10,36 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     name: 'Google Analytics',
     category: 'Analytics',
     description: 'Website analytics and user behavior tracking',
-    riskLevel: 'low'
+    riskLevel: 'low',
   },
   'googletagmanager.com': {
     domain: 'googletagmanager.com',
     name: 'Google Tag Manager',
     category: 'Analytics',
     description: 'Tag management system for tracking codes',
-    riskLevel: 'low'
+    riskLevel: 'low',
   },
   'facebook.com': {
     domain: 'facebook.com',
     name: 'Facebook Pixel',
     category: 'Social Media',
     description: 'Social media tracking and advertising',
-    riskLevel: 'medium'
+    riskLevel: 'medium',
   },
   'doubleclick.net': {
     domain: 'doubleclick.net',
     name: 'DoubleClick',
     category: 'Advertising',
     description: 'Google advertising network',
-    riskLevel: 'medium'
+    riskLevel: 'medium',
   },
   'amazon-adsystem.com': {
     domain: 'amazon-adsystem.com',
     name: 'Amazon DSP',
     category: 'Advertising',
     description: 'Amazon advertising platform',
-    riskLevel: 'medium'
-  }
+    riskLevel: 'medium',
+  },
 };
 
 /**
@@ -53,19 +53,19 @@ export class TrackerDatabase {
     try {
       const urlObj = new URL(url);
       const domain = urlObj.hostname.toLowerCase();
-      
+
       // Check exact domain match
       if (KNOWN_TRACKERS[domain]) {
         return KNOWN_TRACKERS[domain];
       }
-      
+
       // Check subdomain matches
       for (const [trackerDomain, info] of Object.entries(KNOWN_TRACKERS)) {
         if (domain.endsWith(`.${trackerDomain}`) || domain === trackerDomain) {
           return info;
         }
       }
-      
+
       // Heuristic detection for unknown trackers
       return this.detectByHeuristics(url, domain);
     } catch (error) {
@@ -77,7 +77,10 @@ export class TrackerDatabase {
   /**
    * Detect trackers using heuristic patterns
    */
-  private static detectByHeuristics(url: string, domain: string): TrackerInfo | null {
+  private static detectByHeuristics(
+    url: string,
+    domain: string
+  ): TrackerInfo | null {
     const suspiciousPatterns = [
       /analytics?/i,
       /tracking?/i,
@@ -85,7 +88,7 @@ export class TrackerDatabase {
       /beacon/i,
       /collect/i,
       /metrics?/i,
-      /stats?/i
+      /stats?/i,
     ];
 
     const advertisingPatterns = [
@@ -94,7 +97,7 @@ export class TrackerDatabase {
       /adsystem/i,
       /advertising/i,
       /adnxs/i,
-      /googlesyndication/i
+      /googlesyndication/i,
     ];
 
     const socialPatterns = [
@@ -102,19 +105,19 @@ export class TrackerDatabase {
       /twitter/i,
       /linkedin/i,
       /instagram/i,
-      /tiktok/i
+      /tiktok/i,
     ];
 
     // Check URL path and query parameters
     const fullUrl = url.toLowerCase();
-    
+
     if (advertisingPatterns.some(pattern => pattern.test(fullUrl))) {
       return {
         domain,
         name: `Unknown Advertising Tracker (${domain})`,
         category: 'Advertising',
         description: 'Detected advertising tracker',
-        riskLevel: 'medium'
+        riskLevel: 'medium',
       };
     }
 
@@ -124,7 +127,7 @@ export class TrackerDatabase {
         name: `Social Media Tracker (${domain})`,
         category: 'Social Media',
         description: 'Social media tracking detected',
-        riskLevel: 'medium'
+        riskLevel: 'medium',
       };
     }
 
@@ -134,7 +137,7 @@ export class TrackerDatabase {
         name: `Analytics Tracker (${domain})`,
         category: 'Analytics',
         description: 'Analytics tracking detected',
-        riskLevel: 'low'
+        riskLevel: 'low',
       };
     }
 

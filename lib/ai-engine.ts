@@ -14,7 +14,9 @@ export class AIEngine {
   /**
    * Generate AI narrative for tracking events
    */
-  static async generateNarrative(events: TrackingEvent[]): Promise<AIAnalysis | null> {
+  static async generateNarrative(
+    events: TrackingEvent[]
+  ): Promise<AIAnalysis | null> {
     try {
       if (!(await this.canMakeRequest())) {
         console.warn('Rate limit exceeded, skipping AI analysis');
@@ -28,7 +30,7 @@ export class AIEngine {
 
       const prompt = this.buildPrompt(events);
       const response = await this.callOpenRouter(settings.apiKey, prompt);
-      
+
       if (response) {
         await this.incrementRequestCount();
         return this.parseResponse(response);
@@ -47,15 +49,18 @@ export class AIEngine {
   private static async canMakeRequest(): Promise<boolean> {
     try {
       const result = await chrome.storage.session.get(this.RATE_LIMIT_KEY);
-      const rateData = result[this.RATE_LIMIT_KEY] || { count: 0, resetTime: Date.now() };
+      const rateData = result[this.RATE_LIMIT_KEY] || {
+        count: 0,
+        resetTime: Date.now(),
+      };
       const now = Date.now();
-      
+
       // Reset counter every minute
       if (now - rateData.resetTime > 60000) {
         rateData.count = 0;
         rateData.resetTime = now;
       }
-      
+
       return rateData.count < this.MAX_REQUESTS_PER_MINUTE;
     } catch (error) {
       console.error('Rate limit check failed:', error);
@@ -69,11 +74,14 @@ export class AIEngine {
   private static async incrementRequestCount(): Promise<void> {
     try {
       const result = await chrome.storage.session.get(this.RATE_LIMIT_KEY);
-      const rateData = result[this.RATE_LIMIT_KEY] || { count: 0, resetTime: Date.now() };
+      const rateData = result[this.RATE_LIMIT_KEY] || {
+        count: 0,
+        resetTime: Date.now(),
+      };
       rateData.count++;
-      
+
       await chrome.storage.session.set({
-        [this.RATE_LIMIT_KEY]: rateData
+        [this.RATE_LIMIT_KEY]: rateData,
       });
     } catch (error) {
       console.error('Failed to increment request count:', error);
@@ -85,10 +93,13 @@ export class AIEngine {
    */
   private static buildPrompt(events: TrackingEvent[]): string {
     const recentEvents = events.slice(-10); // Last 10 events for context
-    
-    const eventSummary = recentEvents.map(event => 
-      `- ${event.domain} (${event.trackerType}): ${event.description}`
-    ).join('\n');
+
+    const eventSummary = recentEvents
+      .map(
+        event =>
+          `- ${event.domain} (${event.trackerType}): ${event.description}`
+      )
+      .join('\n');
 
     return `You are a privacy expert analyzing web tracking activity. Based on these recent tracking events, provide a brief, user-friendly analysis:
 
@@ -106,7 +117,10 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
   /**
    * Call OpenRouter API with fallback
    */
-  private static async callOpenRouter(apiKey: string, prompt: string): Promise<string | null> {
+  private static async callOpenRouter(
+    apiKey: string,
+    prompt: string
+  ): Promise<string | null> {
     try {
       // Try primary model first
       let response = await this.makeAPICall(apiKey, prompt, this.PRIMARY_MODEL);
@@ -125,30 +139,30 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
    * Make actual API call to OpenRouter
    */
   private static async makeAPICall(
-    apiKey: string, 
-    prompt: string, 
+    apiKey: string,
+    prompt: string,
     model: string
   ): Promise<string | null> {
     try {
       const response = await fetch(`${this.API_BASE}/chat/completions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': chrome.runtime.getURL(''),
-          'X-Title': 'Phantom Trail'
+          'X-Title': 'Phantom Trail',
         },
         body: JSON.stringify({
           model,
           messages: [
             {
               role: 'user',
-              content: prompt
-            }
+              content: prompt,
+            },
           ],
           max_tokens: 500,
-          temperature: 0.3
-        })
+          temperature: 0.3,
+        }),
       });
 
       if (!response.ok) {
@@ -169,26 +183,28 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
   private static parseResponse(response: string): AIAnalysis {
     try {
       const parsed = JSON.parse(response);
-      
+
       return {
         narrative: parsed.narrative || 'Tracking activity detected',
-        riskAssessment: this.validateRiskLevel(parsed.riskAssessment) || 'medium',
-        recommendations: Array.isArray(parsed.recommendations) 
-          ? parsed.recommendations.slice(0, 3) 
+        riskAssessment:
+          this.validateRiskLevel(parsed.riskAssessment) || 'medium',
+        recommendations: Array.isArray(parsed.recommendations)
+          ? parsed.recommendations.slice(0, 3)
           : ['Review your privacy settings'],
-        confidence: typeof parsed.confidence === 'number' 
-          ? Math.max(0, Math.min(1, parsed.confidence))
-          : 0.5
+        confidence:
+          typeof parsed.confidence === 'number'
+            ? Math.max(0, Math.min(1, parsed.confidence))
+            : 0.5,
       };
     } catch (error) {
       console.error('Failed to parse AI response:', error);
-      
+
       // Fallback analysis
       return {
         narrative: 'Multiple trackers detected on this page',
         riskAssessment: 'medium',
         recommendations: ['Consider using privacy-focused browser settings'],
-        confidence: 0.3
+        confidence: 0.3,
       };
     }
   }
@@ -199,7 +215,7 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
   private static validateRiskLevel(level: unknown): RiskLevel | null {
     const validLevels: RiskLevel[] = ['low', 'medium', 'high', 'critical'];
     return typeof level === 'string' && validLevels.includes(level as RiskLevel)
-      ? level as RiskLevel
+      ? (level as RiskLevel)
       : null;
   }
 }

@@ -1,11 +1,13 @@
 # React Architecture Analysis - Phantom Trail
 
 ## Overview
+
 Phantom Trail uses React 19.2.3 with TypeScript in a WXT-based Chrome extension architecture. The project follows modern React patterns with Tailwind CSS for styling and Zustand for state management.
 
 ## WXT Framework Integration
 
 ### Configuration (`wxt.config.ts`)
+
 ```typescript
 import { defineConfig } from 'wxt';
 
@@ -15,17 +17,19 @@ export default defineConfig({
   manifest: {
     name: 'Phantom Trail',
     permissions: ['webRequest', 'storage', 'activeTab', 'tabs'],
-    host_permissions: ['<all_urls>']
-  }
+    host_permissions: ['<all_urls>'],
+  },
 });
 ```
 
 **Key Points:**
+
 - Uses `@wxt-dev/module-react` for seamless React integration
 - Manifest V3 compliant configuration
 - TypeScript support built-in
 
 ### Entry Point Structure (`entrypoints/popup/`)
+
 ```
 entrypoints/popup/
 ├── main.tsx          # React root mounting
@@ -37,6 +41,7 @@ entrypoints/popup/
 ## React Component Architecture
 
 ### Main Entry Point (`main.tsx`)
+
 ```typescript
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -51,11 +56,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 ```
 
 **Patterns:**
+
 - Uses React 18+ `createRoot` API
 - Strict Mode enabled for development checks
 - Clean separation of concerns
 
 ### Root Component (`App.tsx`)
+
 ```typescript
 function App() {
   return (
@@ -64,13 +71,13 @@ function App() {
         <h1 className="text-xl font-bold text-gray-900">Phantom Trail</h1>
         <p className="text-sm text-gray-600">Privacy tracking in real-time</p>
       </header>
-      
+
       <main className="space-y-4">
         <div className="bg-white p-3 rounded-lg shadow-sm border">
           <h2 className="font-medium text-gray-900 mb-2">Live Activity</h2>
           <p className="text-sm text-gray-500">No tracking detected yet...</p>
         </div>
-        
+
         <div className="bg-white p-3 rounded-lg shadow-sm border">
           <h2 className="font-medium text-gray-900 mb-2">Risk Level</h2>
           <div className="flex items-center space-x-2">
@@ -87,6 +94,7 @@ export default App;
 ```
 
 **Component Patterns:**
+
 - Functional component with JSX
 - Semantic HTML structure (`header`, `main`)
 - Consistent Tailwind class organization
@@ -95,25 +103,27 @@ export default App;
 ## Styling Architecture
 
 ### Tailwind CSS Integration (`style.css`)
+
 ```css
-@import "tailwindcss";
+@import 'tailwindcss';
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 ```
 
 ### Tailwind Configuration (`tailwind.config.js`)
+
 ```javascript
 export default {
   content: [
-    "./entrypoints/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
+    './entrypoints/**/*.{js,ts,jsx,tsx}',
+    './components/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
@@ -125,8 +135,8 @@ export default {
           600: '#0284c7',
           700: '#0369a1',
           900: '#0c4a6e',
-        }
-      }
+        },
+      },
     },
   },
   plugins: [],
@@ -134,6 +144,7 @@ export default {
 ```
 
 **Styling Patterns:**
+
 - Utility-first approach with Tailwind
 - Custom color palette (`phantom` theme)
 - Content paths include both entrypoints and components
@@ -142,12 +153,14 @@ export default {
 ## State Management Architecture
 
 ### Zustand Integration
+
 ```typescript
 // Available in package.json
 "zustand": "^5.0.2"
 ```
 
 **Planned Patterns:**
+
 - Lightweight state management with Zustand
 - Store-based architecture for extension state
 - TypeScript integration for type safety
@@ -155,11 +168,12 @@ export default {
 ## Project Structure Patterns
 
 ### Current Architecture
+
 ```
 phantom-trail/
 ├── entrypoints/           # WXT entry points
 │   ├── background.ts      # Service worker
-│   ├── content.ts         # Content scripts  
+│   ├── content.ts         # Content scripts
 │   └── popup/             # Popup UI
 │       ├── main.tsx       # React root
 │       ├── App.tsx        # Main component
@@ -174,6 +188,7 @@ phantom-trail/
 ```
 
 ### Recommended Component Organization
+
 ```
 components/
 ├── LiveNarrative/         # AI narrative display
@@ -189,6 +204,7 @@ components/
 ## TypeScript Integration
 
 ### Configuration (`tsconfig.json`)
+
 ```json
 {
   "compilerOptions": {
@@ -213,6 +229,7 @@ components/
 ```
 
 **TypeScript Patterns:**
+
 - Strict mode enabled
 - Modern ES2020 target
 - React JSX transform
@@ -221,18 +238,20 @@ components/
 ## Development Patterns
 
 ### Available Scripts
+
 ```json
 {
   "scripts": {
-    "dev": "wxt",              // Development server with HMR
-    "build": "wxt build",      // Production build
-    "zip": "wxt zip",          // Create extension package
+    "dev": "wxt", // Development server with HMR
+    "build": "wxt build", // Production build
+    "zip": "wxt zip", // Create extension package
     "type-check": "tsc --noEmit" // Type checking only
   }
 }
 ```
 
 ### Hot Module Replacement
+
 - WXT provides built-in HMR for React components
 - Changes reflect immediately in extension popup
 - Preserves extension state during development
@@ -240,6 +259,7 @@ components/
 ## Extension-Specific Patterns
 
 ### Chrome API Integration
+
 ```typescript
 // lib/storage-manager.ts pattern
 export class StorageManager {
@@ -251,19 +271,22 @@ export class StorageManager {
 ```
 
 ### Background Script Communication
+
 ```typescript
 // entrypoints/background.ts
 export default defineBackground(() => {
   // Service worker logic
-  chrome.webRequest.onBeforeRequest.addListener(
+  chrome.webRequest.onBeforeRequest
+    .addListener
     // Request interception
-  );
+    ();
 });
 ```
 
 ## Recommended Patterns for Future Development
 
 ### Component Structure
+
 ```typescript
 // components/LiveNarrative/LiveNarrative.tsx
 interface LiveNarrativeProps {
@@ -271,9 +294,9 @@ interface LiveNarrativeProps {
   isLoading: boolean;
 }
 
-export const LiveNarrative: React.FC<LiveNarrativeProps> = ({ 
-  events, 
-  isLoading 
+export const LiveNarrative: React.FC<LiveNarrativeProps> = ({
+  events,
+  isLoading
 }) => {
   return (
     <div className="space-y-2">
@@ -284,6 +307,7 @@ export const LiveNarrative: React.FC<LiveNarrativeProps> = ({
 ```
 
 ### State Management with Zustand
+
 ```typescript
 // lib/stores/tracking-store.ts
 interface TrackingState {
@@ -292,30 +316,32 @@ interface TrackingState {
   addEvent: (event: TrackingEvent) => void;
 }
 
-export const useTrackingStore = create<TrackingState>((set) => ({
+export const useTrackingStore = create<TrackingState>(set => ({
   events: [],
   riskLevel: 'low',
-  addEvent: (event) => set((state) => ({ 
-    events: [...state.events, event] 
-  })),
+  addEvent: event =>
+    set(state => ({
+      events: [...state.events, event],
+    })),
 }));
 ```
 
 ### Custom Hooks Pattern
+
 ```typescript
 // lib/hooks/useTrackingData.ts
 export const useTrackingData = () => {
   const [events, setEvents] = useState<TrackingEvent[]>([]);
-  
+
   useEffect(() => {
     // Chrome extension messaging
-    chrome.runtime.onMessage.addListener((message) => {
+    chrome.runtime.onMessage.addListener(message => {
       if (message.type === 'TRACKING_EVENT') {
         setEvents(prev => [...prev, message.data]);
       }
     });
   }, []);
-  
+
   return { events };
 };
 ```
@@ -323,11 +349,13 @@ export const useTrackingData = () => {
 ## Performance Considerations
 
 ### Bundle Size Optimization
+
 - WXT automatically optimizes React bundles
 - Tree shaking enabled for unused code elimination
 - Separate chunks for different entry points
 
 ### Extension-Specific Optimizations
+
 - Lazy loading for heavy components (vis-network, chart.js)
 - Efficient Chrome storage usage
 - Minimal background script footprint
@@ -335,11 +363,13 @@ export const useTrackingData = () => {
 ## Security Patterns
 
 ### Content Security Policy
+
 - Manifest V3 compliance
 - No inline scripts or eval()
 - Secure communication between components
 
 ### Data Handling
+
 - Local-first data processing
 - Encrypted storage for sensitive data
 - Minimal permissions principle

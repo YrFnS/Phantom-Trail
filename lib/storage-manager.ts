@@ -13,17 +13,19 @@ export class StorageManager {
   static async getSettings(): Promise<ExtensionSettings> {
     try {
       const result = await chrome.storage.local.get(this.SETTINGS_KEY);
-      return result[this.SETTINGS_KEY] || {
-        enableAI: true,
-        enableNotifications: true,
-        riskThreshold: 'medium' as const
-      };
+      return (
+        result[this.SETTINGS_KEY] || {
+          enableAI: true,
+          enableNotifications: true,
+          riskThreshold: 'medium' as const,
+        }
+      );
     } catch (error) {
       console.error('Failed to get settings:', error);
       return {
         enableAI: true,
         enableNotifications: true,
-        riskThreshold: 'medium' as const
+        riskThreshold: 'medium' as const,
       };
     }
   }
@@ -34,7 +36,7 @@ export class StorageManager {
   static async saveSettings(settings: ExtensionSettings): Promise<void> {
     try {
       await chrome.storage.local.set({
-        [this.SETTINGS_KEY]: settings
+        [this.SETTINGS_KEY]: settings,
       });
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -62,15 +64,15 @@ export class StorageManager {
   static async addEvent(event: TrackingEvent): Promise<void> {
     try {
       const events = await this.getRecentEvents(999); // Keep last 999 events
-      
+
       // Remove events older than 7 days
-      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       const filteredEvents = events.filter(e => e.timestamp > sevenDaysAgo);
-      
+
       filteredEvents.push(event);
-      
+
       await chrome.storage.local.set({
-        [this.EVENTS_KEY]: filteredEvents
+        [this.EVENTS_KEY]: filteredEvents,
       });
     } catch (error) {
       console.error('Failed to add event:', error);

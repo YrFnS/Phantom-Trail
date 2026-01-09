@@ -1,8 +1,12 @@
 # Agent Examples
+
 This page provides practical examples of custom agents you can use as starting points for your own workflows.
+
 ## AWS Specialist Agent[](https://kiro.dev/docs/cli/custom-agents/examples/#aws-specialist-agent)
+
 This custom agent is optimized for AWS infrastructure management and development tasks. It provides pre-approved access to AWS tools while including relevant documentation.
 json
+
 ```
 
 {
@@ -63,15 +67,17 @@ json
 ```
 
 Use cases:
-  * Deploying CloudFormation stacks
-  * Managing S3 buckets and Lambda functions
-  * Troubleshooting AWS service issues
-  * Reviewing and updating infrastructure as code
 
+- Deploying CloudFormation stacks
+- Managing S3 buckets and Lambda functions
+- Troubleshooting AWS service issues
+- Reviewing and updating infrastructure as code
 
 ## Development Workflow Agent[](https://kiro.dev/docs/cli/custom-agents/examples/#development-workflow-agent)
+
 This custom agent is designed for general software development tasks, including code review, testing, and Git operations.
 json
+
 ```
 
 {
@@ -140,16 +146,18 @@ json
 ```
 
 Use cases:
-  * Code review and analysis
-  * Writing and updating tests
-  * Git workflow management
-  * Documentation updates
-  * Dependency management
 
+- Code review and analysis
+- Writing and updating tests
+- Git workflow management
+- Documentation updates
+- Dependency management
 
 ## Code Review Agent[](https://kiro.dev/docs/cli/custom-agents/examples/#code-review-agent)
+
 This custom agent focuses specifically on code review tasks, with tools and context optimized for analyzing code quality, security, and best practices.
 json
+
 ```
 
 {
@@ -212,16 +220,18 @@ json
 ```
 
 Use cases:
-  * Reviewing pull requests for code quality
-  * Identifying security vulnerabilities
-  * Checking adherence to coding standards
-  * Analyzing code complexity and maintainability
-  * Suggesting improvements and refactoring opportunities
 
+- Reviewing pull requests for code quality
+- Identifying security vulnerabilities
+- Checking adherence to coding standards
+- Analyzing code complexity and maintainability
+- Suggesting improvements and refactoring opportunities
 
 ## Project-Specific Agent[](https://kiro.dev/docs/cli/custom-agents/examples/#project-specific-agent)
+
 This example shows how to create a custom agent tailored to a specific project, including project-specific tools, documentation, and build processes.
 json
+
 ```
 
 {
@@ -307,27 +317,29 @@ json
 ```
 
 Use cases:
-  * Managing Docker containers and services
-  * Running database queries and migrations
-  * Building and testing the application
-  * Debugging production issues
-  * Updating API documentation
 
+- Managing Docker containers and services
+- Running database queries and migrations
+- Building and testing the application
+- Debugging production issues
+- Updating API documentation
 
 ## Tips for Creating Effective Custom Agents[](https://kiro.dev/docs/cli/custom-agents/examples/#tips-for-creating-effective-custom-agents)
-  * **Start simple** - Begin with basic tool configurations and add complexity as needed
-  * **Use descriptive names** - Choose custom agent names that clearly indicate their purpose
-  * **Include relevant context** - Add project documentation and configuration files to resources
-  * **Pre-approve safe tools** - Include frequently used, low-risk tools in allowedTools
-  * **Use hooks for dynamic context** - Include current system state through command hooks
-  * **Limit tool scope** - Use toolsSettings to restrict tool access to relevant paths and services
-  * **Test thoroughly** - Verify that your custom agent configuration works as expected
-  * **Document your custom agents** - Use clear descriptions to help team members understand custom agent purposes
 
+- **Start simple** - Begin with basic tool configurations and add complexity as needed
+- **Use descriptive names** - Choose custom agent names that clearly indicate their purpose
+- **Include relevant context** - Add project documentation and configuration files to resources
+- **Pre-approve safe tools** - Include frequently used, low-risk tools in allowedTools
+- **Use hooks for dynamic context** - Include current system state through command hooks
+- **Limit tool scope** - Use toolsSettings to restrict tool access to relevant paths and services
+- **Test thoroughly** - Verify that your custom agent configuration works as expected
+- **Document your custom agents** - Use clear descriptions to help team members understand custom agent purposes
 
 ## Remote MCP Server Integration[](https://kiro.dev/docs/cli/custom-agents/examples/#remote-mcp-server-integration)
+
 This example shows an agent configured to use a remote MCP server:
 json
+
 ```
 
 {
@@ -352,9 +364,10 @@ Page updated: November 18, 2025
 [Configuration reference](https://kiro.dev/docs/cli/custom-agents/configuration-reference/)
 [Troubleshooting](https://kiro.dev/docs/cli/custom-agents/troubleshooting/)
 On this page
-  * [AWS Specialist Agent](https://kiro.dev/docs/cli/custom-agents/examples/#aws-specialist-agent)
-  * [Development Workflow Agent](https://kiro.dev/docs/cli/custom-agents/examples/#development-workflow-agent)
-  * [Code Review Agent](https://kiro.dev/docs/cli/custom-agents/examples/#code-review-agent)
-  * [Project-Specific Agent](https://kiro.dev/docs/cli/custom-agents/examples/#project-specific-agent)
-  * [Tips for Creating Effective Custom Agents](https://kiro.dev/docs/cli/custom-agents/examples/#tips-for-creating-effective-custom-agents)
-  * [Remote MCP Server Integration](https://kiro.dev/docs/cli/custom-agents/examples/#remote-mcp-server-integration)
+
+- [AWS Specialist Agent](https://kiro.dev/docs/cli/custom-agents/examples/#aws-specialist-agent)
+- [Development Workflow Agent](https://kiro.dev/docs/cli/custom-agents/examples/#development-workflow-agent)
+- [Code Review Agent](https://kiro.dev/docs/cli/custom-agents/examples/#code-review-agent)
+- [Project-Specific Agent](https://kiro.dev/docs/cli/custom-agents/examples/#project-specific-agent)
+- [Tips for Creating Effective Custom Agents](https://kiro.dev/docs/cli/custom-agents/examples/#tips-for-creating-effective-custom-agents)
+- [Remote MCP Server Integration](https://kiro.dev/docs/cli/custom-agents/examples/#remote-mcp-server-integration)

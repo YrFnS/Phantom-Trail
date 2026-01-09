@@ -1,27 +1,35 @@
 # Viewing per-user activity
+
 You can configure Kiro to collect user activity telemetry of individual Kiro subscribers in your organization and present that information in a report. The report gives you insights into how specific users are using Kiro.
+
 ## About the report[](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#about-the-report)
+
 Kiro generates the user activity report every day at midnight (00:00) Coordinated Universal Time (UTC), and saves it in a CSV file at the following path:
 `s3://bucketName/prefix/AWSLogs/accountId/KiroLogs/  by_user_analytic/Region/year/month/day/00/accountId_by_user_analytic_timestamp.csv` The CSV file is laid out as follows:
-  * Each row shows a user who interacted with Kiro that day.
-  * Each column shows a metric, as described in [User activity report metrics](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#user-activity-report-metrics). Metrics are calculated based on the user telemetry collected over the course of the day.
 
+- Each row shows a user who interacted with Kiro that day.
+- Each column shows a metric, as described in [User activity report metrics](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#user-activity-report-metrics). Metrics are calculated based on the user telemetry collected over the course of the day.
 
 If more than 1,000 users interact with Kiro during the day, Kiro splits the data into several CSV files containing 1,000 users each. Files are suffixed with `part_1`, `part_2`, and so on.
 **Info**
 When you enable user activity reports, Kiro collects user telemetry and stores it in the S3 bucket in your account. This is controlled at the administrator level and can't be configured by users.
-## Enable user activity reports[](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#enable-user-activity-reports)
-Use the following instructions to enable user activity reports.
-#### Prerequisite[](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#prerequisite)
-Create an Amazon S3 bucket to hold the user activity report CSV file. The bucket must:
-  * Be in the AWS Region where the Kiro profile was installed. This profile was installed when you subscribed IAM Identity Center workforce users to Kiro Pro for the first time. For more information about this profile and the Regions where it's supported, see [Kiro profile](https://kiro.dev/docs/cli/enterprise/concepts#kiro-profile) and [Supported Regions](https://kiro.dev/docs/cli/enterprise/supported-regions).
-  * Be in the AWS account where users are subscribed. If users are subscribed in multiple AWS accounts, then you must create buckets in each of those accounts. Cross-account buckets are not supported.
-  * (Optional but recommended) Be different from the bucket you might be using for [logging users' prompts](https://kiro.dev/docs/cli/enterprise/monitor-and-track/prompt-logging).
-  * Include a prefix, also known as a subfolder, where Kiro will save the CSV file. The CSV file cannot be saved in the root of the bucket.
-  * Have a bucket policy like the one that follows. Replace `bucketName`, `Region`, `accountId`, and `prefix` with your own information.
 
+## Enable user activity reports[](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#enable-user-activity-reports)
+
+Use the following instructions to enable user activity reports.
+
+#### Prerequisite[](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#prerequisite)
+
+Create an Amazon S3 bucket to hold the user activity report CSV file. The bucket must:
+
+- Be in the AWS Region where the Kiro profile was installed. This profile was installed when you subscribed IAM Identity Center workforce users to Kiro Pro for the first time. For more information about this profile and the Regions where it's supported, see [Kiro profile](https://kiro.dev/docs/cli/enterprise/concepts#kiro-profile) and [Supported Regions](https://kiro.dev/docs/cli/enterprise/supported-regions).
+- Be in the AWS account where users are subscribed. If users are subscribed in multiple AWS accounts, then you must create buckets in each of those accounts. Cross-account buckets are not supported.
+- (Optional but recommended) Be different from the bucket you might be using for [logging users' prompts](https://kiro.dev/docs/cli/enterprise/monitor-and-track/prompt-logging).
+- Include a prefix, also known as a subfolder, where Kiro will save the CSV file. The CSV file cannot be saved in the root of the bucket.
+- Have a bucket policy like the one that follows. Replace `bucketName`, `Region`, `accountId`, and `prefix` with your own information.
 
 json
+
 ```
 
 {
@@ -55,16 +63,18 @@ json
 ```
 
 To learn about protecting the data in your Amazon S3 bucket, see [Protecting data with encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html) in the _Amazon Simple Storage Service User Guide_.
-#### To enable user activity reports[](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#to-enable-user-activity-reports)
-  1. Sign in to the AWS console.
-  2. Switch to the Kiro console. To use the Kiro console, you must have the permissions defined in [Policy: Allow administrators to configure Kiro and subscribe users](https://kiro.dev/docs/cli/enterprise/iam/#policy-allow-administrators-to-configure-kiro-and-subscribe-users).
-  3. Choose **Settings**.
-  4. Under **Kiro user activity reports** , choose **Edit**.
-  5. Toggle **Collect granular metrics per user**.
-  6. Under **S3 location** , enter the Amazon S3 URI that you will use to hold the CSV reports. Example: `s3://amzn-s3-demo-bucket/user-activity-reports/`
 
+#### To enable user activity reports[](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#to-enable-user-activity-reports)
+
+1. Sign in to the AWS console.
+2. Switch to the Kiro console. To use the Kiro console, you must have the permissions defined in [Policy: Allow administrators to configure Kiro and subscribe users](https://kiro.dev/docs/cli/enterprise/iam/#policy-allow-administrators-to-configure-kiro-and-subscribe-users).
+3. Choose **Settings**.
+4. Under **Kiro user activity reports** , choose **Edit**.
+5. Toggle **Collect granular metrics per user**.
+6. Under **S3 location** , enter the Amazon S3 URI that you will use to hold the CSV reports. Example: `s3://amzn-s3-demo-bucket/user-activity-reports/`
 
 ## User activity report metrics[](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#user-activity-report-metrics)
+
 The following table describes the metrics that are included in the user activity reports generated by Kiro.
 Metric name | Description  
 ---|---  
@@ -116,8 +126,9 @@ Page updated: November 18, 2025
 [View usage (dashboard)](https://kiro.dev/docs/cli/enterprise/monitor-and-track/dashboard/)
 [Log user prompts](https://kiro.dev/docs/cli/enterprise/monitor-and-track/prompt-logging/)
 On this page
-  * [About the report](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#about-the-report)
-  * [Enable user activity reports](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#enable-user-activity-reports)
-  * [Prerequisite](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#prerequisite)
-  * [To enable user activity reports](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#to-enable-user-activity-reports)
-  * [User activity report metrics](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#user-activity-report-metrics)
+
+- [About the report](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#about-the-report)
+- [Enable user activity reports](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#enable-user-activity-reports)
+- [Prerequisite](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#prerequisite)
+- [To enable user activity reports](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#to-enable-user-activity-reports)
+- [User activity report metrics](https://kiro.dev/docs/cli/enterprise/monitor-and-track/user-activity/#user-activity-report-metrics)

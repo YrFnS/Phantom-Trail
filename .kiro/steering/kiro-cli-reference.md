@@ -5,11 +5,13 @@
 ### Installation
 
 **macOS:**
+
 ```bash
 curl -fsSL https://cli.kiro.dev/install | bash
 ```
 
 **Linux (Ubuntu):**
+
 ```bash
 # Download and install .deb package
 wget https://desktop-release.q.us-east-1.amazonaws.com/latest/kiro-cli.deb
@@ -18,6 +20,7 @@ sudo apt-get install -f
 ```
 
 **Windows:**
+
 1. Install Ubuntu through WSL (Windows Subsystem for Linux):
    - Open PowerShell as Administrator
    - Run: `wsl --install`
@@ -26,6 +29,7 @@ sudo apt-get install -f
 2. Once Ubuntu is set up, use the Linux installation method above
 
 ### Authentication
+
 ```bash
 # Authenticate (opens browser)
 kiro-cli login
@@ -35,10 +39,12 @@ kiro-cli
 ```
 
 **Authentication Options:**
+
 - AWS Builder ID (individual developers)
 - AWS IAM Identity Center (enterprise)
 
 ### First Steps
+
 ```bash
 # Basic chat
 kiro-cli
@@ -58,12 +64,14 @@ kiro-cli "List files in current directory"
 ### 1. Models & Selection
 
 **Available Models:**
+
 - **Auto** (recommended): Smart routing, 23% cheaper than Sonnet 4, best value
 - **Claude Haiku 4.5**: Fastest, near-frontier intelligence at 1/3 cost
 - **Claude Sonnet 4.0/4.5**: Consistent behavior, advanced coding
 - **Claude Opus 4.5**: Maximum intelligence for complex tasks
 
 **Model Management:**
+
 ```bash
 # Switch models in chat
 /model
@@ -80,15 +88,18 @@ kiro-cli settings chat.defaultModel claude-sonnet-4
 **Steering provides persistent project context through markdown files.**
 
 **Locations:**
+
 - Global: `~/.kiro/steering/`
 - Project: `.kiro/steering/`
 
 **Foundational Files:**
+
 - `product.md`: Product overview, goals, users
 - `tech.md`: Technology stack, frameworks, constraints
 - `structure.md`: File organization, naming conventions
 
 **Custom Steering Examples:**
+
 - `api-standards.md`: REST conventions, error formats
 - `testing-standards.md`: Unit test patterns, coverage
 - `security-policies.md`: Authentication, validation rules
@@ -96,11 +107,13 @@ kiro-cli settings chat.defaultModel claude-sonnet-4
 ### 3. Prompts System
 
 **Prompt Types:**
+
 - **Local**: Project-specific (`.kiro/prompts/`)
 - **Global**: User-wide (`~/.kiro/prompts/`)
 - **MCP**: From MCP servers with arguments
 
 **Prompt Commands:**
+
 ```bash
 # List prompts
 /prompts list
@@ -121,6 +134,7 @@ Since Kiro CLI local and global prompts don't support native argument passing (u
 3. **Use the arguments** once provided
 
 Example prompt behavior:
+
 ```
 User: @plan-feature
 Assistant: I need to know what feature to plan. Please specify the feature name or description.
@@ -135,10 +149,12 @@ This ensures all argument-dependent prompts work correctly even without native a
 **MCP enables external tools and services integration.**
 
 **Configuration Locations:**
+
 - Global: `~/.kiro/settings/mcp.json`
 - Project: `.kiro/settings/mcp.json`
 
 **MCP Configuration:**
+
 ```json
 {
   "mcpServers": {
@@ -158,6 +174,7 @@ This ensures all argument-dependent prompts work correctly even without native a
 ```
 
 **MCP Commands:**
+
 ```bash
 # Add MCP server
 kiro-cli mcp add --name my-server --command "node server.js"
@@ -172,6 +189,7 @@ kiro-cli mcp status --name my-server
 ### 5. Custom Agents
 
 **Agent Structure:**
+
 ```json
 {
   "name": "my-agent",
@@ -185,6 +203,7 @@ kiro-cli mcp status --name my-server
 ```
 
 **Agent Management:**
+
 ```bash
 # Create agent interactively
 /agent generate
@@ -200,6 +219,7 @@ kiro-cli settings chat.defaultAgent my-agent
 ```
 
 **Agent Locations:**
+
 - Global: `~/.kiro/agents/`
 - Project: `.kiro/agents/`
 
@@ -207,13 +227,14 @@ kiro-cli settings chat.defaultAgent my-agent
 
 **Three Context Approaches:**
 
-| Approach | Context Impact | Persistence | Best For |
-|----------|---------------|-------------|----------|
-| Agent Resources | Always active | Persistent | Essential files, standards |
-| Session Context | Always active | Current session | Temporary files |
-| Knowledge Bases | Only when searched | Persistent | Large codebases, docs |
+| Approach        | Context Impact     | Persistence     | Best For                   |
+| --------------- | ------------------ | --------------- | -------------------------- |
+| Agent Resources | Always active      | Persistent      | Essential files, standards |
+| Session Context | Always active      | Current session | Temporary files            |
+| Knowledge Bases | Only when searched | Persistent      | Large codebases, docs      |
 
 **Context Commands:**
+
 ```bash
 # View context usage
 /context show
@@ -228,6 +249,7 @@ kiro-cli settings chat.defaultAgent my-agent
 ```
 
 **Agent Resources (Persistent):**
+
 ```json
 {
   "resources": [
@@ -245,9 +267,7 @@ kiro-cli settings chat.defaultAgent my-agent
 ```json
 {
   "hooks": {
-    "agentSpawn": [
-      {"command": "git status"}
-    ],
+    "agentSpawn": [{ "command": "git status" }],
     "preToolUse": [
       {
         "matcher": "shell",
@@ -265,6 +285,7 @@ kiro-cli settings chat.defaultAgent my-agent
 ```
 
 **Hook Types:**
+
 - `agentSpawn`: When agent starts
 - `userPromptSubmit`: When user sends message
 - `preToolUse`: Before tool execution (can block)
@@ -274,6 +295,7 @@ kiro-cli settings chat.defaultAgent my-agent
 ## Essential Slash Commands
 
 ### Core Commands
+
 ```bash
 /help                    # Show available commands
 /quit                    # Exit chat
@@ -296,6 +318,7 @@ kiro-cli settings chat.defaultAgent my-agent
 ```
 
 ### Advanced Commands
+
 ```bash
 # Tool Management
 /tools                   # View tool permissions
@@ -321,22 +344,26 @@ kiro-cli settings chat.defaultAgent my-agent
 ## Built-in Tools
 
 ### File Operations
+
 - `read`: Read files, directories, images
 - `write`: Create and modify files
 - `glob`: Find files by pattern (respects .gitignore)
 - `grep`: Search file contents with regex
 
 ### Execution
+
 - `shell`: Execute bash commands
 - `aws`: Make AWS CLI calls
 - `use_subagent`: Delegate to specialized subagents
 
 ### Web & Research
+
 - `web_search`: Search the internet
 - `web_fetch`: Fetch content from URLs
 - `introspect`: Get Kiro CLI help and documentation
 
 ### Experimental Tools
+
 - `knowledge`: Persistent knowledge base with semantic search
 - `thinking`: Show AI reasoning process
 - `todo`: Create and manage TODO lists
@@ -344,6 +371,7 @@ kiro-cli settings chat.defaultAgent my-agent
 ## Configuration & Settings
 
 ### Key Settings
+
 ```bash
 # Enable experimental features
 kiro-cli settings chat.enableKnowledge true
@@ -361,6 +389,7 @@ kiro-cli settings knowledge.maxFiles 10000
 ```
 
 ### Configuration Hierarchy
+
 1. **Agent Config** (highest priority)
 2. **Project Config** (`.kiro/`)
 3. **Global Config** (`~/.kiro/`)
@@ -368,6 +397,7 @@ kiro-cli settings knowledge.maxFiles 10000
 ## Experimental Features
 
 ### Knowledge Management
+
 ```bash
 # Enable and use
 kiro-cli settings chat.enableKnowledge true
@@ -376,6 +406,7 @@ kiro-cli settings chat.enableKnowledge true
 ```
 
 ### Tangent Mode
+
 ```bash
 # Enable and use
 kiro-cli settings chat.enableTangentMode true
@@ -385,6 +416,7 @@ kiro-cli settings chat.enableTangentMode true
 ```
 
 ### Checkpointing
+
 ```bash
 # Enable and use
 kiro-cli settings chat.enableCheckpoint true
@@ -394,6 +426,7 @@ kiro-cli settings chat.enableCheckpoint true
 ```
 
 ### Subagents
+
 ```bash
 # Use subagents for parallel task execution
 > Use the backend agent to refactor the payment module
@@ -403,24 +436,28 @@ kiro-cli settings chat.enableCheckpoint true
 ## Best Practices
 
 ### Agent Design
+
 1. **Start restrictive**: Minimal tool access, expand as needed
 2. **Use descriptive names**: Clear purpose indication
 3. **Organize by workflow**: Different agents for different tasks
 4. **Version control**: Store local agents in project repository
 
 ### Context Management
+
 1. **Essential files in agent resources**: README, configs, standards
 2. **Large datasets in knowledge bases**: Semantic search without context consumption
 3. **Temporary files in session context**: Current task files only
 4. **Monitor usage**: Use `/context show` to track consumption
 
 ### Security
+
 1. **Review tool permissions**: Understand what agents can do
 2. **Use specific patterns**: Avoid wildcards in `allowedTools`
 3. **Configure tool settings**: Restrict paths and commands
 4. **Test in safe environments**: Try new agents on non-critical projects
 
 ### Workflow Integration
+
 1. **Plan Agent**: Use `Shift+Tab` for complex task planning
 2. **Subagents**: Delegate independent subtasks
 3. **Tangent Mode**: Explore alternatives without losing context
@@ -429,6 +466,7 @@ kiro-cli settings chat.enableCheckpoint true
 ## Common Workflows
 
 ### Setting Up a New Project
+
 ```bash
 # 1. Initialize in project directory
 cd my-project
@@ -450,6 +488,7 @@ mkdir -p .kiro/steering
 ```
 
 ### Code Review Workflow
+
 ```bash
 # 1. Create specialized agent
 {
@@ -466,6 +505,7 @@ kiro-cli --agent code-reviewer
 ```
 
 ### AWS Infrastructure Management
+
 ```bash
 # 1. Create AWS specialist agent
 {
@@ -487,12 +527,14 @@ kiro-cli --agent aws-specialist
 ## Troubleshooting
 
 ### Common Issues
+
 1. **Agent not found**: Check agent file location and JSON syntax
 2. **Tool permissions**: Review `allowedTools` and `toolsSettings`
 3. **Context not loading**: Verify file paths and glob patterns
 4. **MCP servers failing**: Check command paths and environment variables
 
 ### Debugging Commands
+
 ```bash
 kiro-cli doctor           # Diagnose common issues
 kiro-cli settings list    # View current configuration
@@ -502,6 +544,7 @@ kiro-cli settings list    # View current configuration
 ```
 
 ### Getting Help
+
 ```bash
 /help                     # In-chat help
 kiro-cli --help           # CLI help

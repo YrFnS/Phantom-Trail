@@ -1,0 +1,14 @@
+{
+  "name": "phantom-trail-dev",
+  "description": "Development agent for Phantom Trail Chrome extension with lint/format hooks",
+  "tools": ["fs_write", "fs_read", "execute_bash"],
+  "hooks": {
+    "postToolUse": [
+      {
+        "matcher": "fs_write",
+        "command": ".kiro/hooks/lint-format.sh",
+        "timeout_ms": 30000
+      }
+    ]
+  }
+}

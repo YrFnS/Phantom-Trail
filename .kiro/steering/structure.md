@@ -1,6 +1,7 @@
 # Project Structure
 
 ## Directory Layout
+
 ```
 phantom-trail/
 ├── wxt.config.ts              # WXT configuration
@@ -54,6 +55,7 @@ phantom-trail/
 ```
 
 ## File Naming Conventions
+
 - **Components**: PascalCase (`LiveNarrative.tsx`, `NetworkGraph.tsx`)
 - **Utilities/Services**: kebab-case (`ai-engine.ts`, `storage-manager.ts`)
 - **Types**: kebab-case with `.ts` extension (`types.ts`)
@@ -61,12 +63,14 @@ phantom-trail/
 - **Config files**: lowercase with appropriate extension (`wxt.config.ts`)
 
 ## Module Organization
+
 - `entrypoints/`: Chrome extension entry points (background, content, popup, sidepanel)
 - `components/`: Reusable React UI components
 - `lib/`: Core business logic, API integrations, utilities
 - `assets/`: Static resources (icons, images)
 
 ## Configuration Files
+
 - `wxt.config.ts`: WXT framework configuration
 - `tsconfig.json`: TypeScript compiler options
 - `tailwind.config.js`: Tailwind CSS customization
@@ -74,14 +78,17 @@ phantom-trail/
 - `.env.local`: Local environment variables (API keys - gitignored)
 
 ## Documentation Structure
+
 - `README.md`: Project overview, setup, usage
 - `DEVLOG.md`: Development timeline and decisions (hackathon requirement)
 - `docs/`: Additional documentation as needed
 
 ## Build Artifacts
+
 - `.output/`: WXT build output (gitignored)
 - `dist/`: Production build for Chrome Web Store
 
 ## Environment-Specific Files
+
 - `.env.local`: Local development (API keys)
 - `.env.example`: Template for required environment variables

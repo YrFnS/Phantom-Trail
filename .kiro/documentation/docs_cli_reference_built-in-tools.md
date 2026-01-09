@@ -1,9 +1,13 @@
 # Built-in tools
+
 Kiro CLI includes a collection of built-in tools that enhance your terminal experience with AI-powered assistance for common development tasks.
+
 ## File read[](https://kiro.dev/docs/cli/reference/built-in-tools/#file-read)
+
 **Tool name** : `read`
 **Description** : Reads files, folders and images
 bash
+
 ```
 
 > what dependencies does my application have
@@ -30,6 +34,7 @@ No external game libraries or frameworks.
 
 You can also configure the `read` tool in the agent configuration to have specific access to the files and folders in your project, giving you granular control over what the Kiro can read.
 json
+
 ```
 
 {
@@ -45,15 +50,20 @@ json
 ```
 
 ### Configuration options[](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options)
-Option | Type | Required | Description  
----|---|---|---  
-`allowedPaths` | array of paths | No | Paths that can read without prompting.  
-`deniedPaths` | array of paths | No | Paths that are denied.  
+
+| Option         | Type           | Required | Description                            |
+| -------------- | -------------- | -------- | -------------------------------------- |
+| `allowedPaths` | array of paths | No       | Paths that can read without prompting. |
+| `deniedPaths`  | array of paths | No       | Paths that are denied.                 |
+
 Path values can be glob patterns similar to the behavior as gitignore. For example, `~/temp` would match `~/temp/child` and `~/temp/child/grandchild`
+
 ## Glob[](https://kiro.dev/docs/cli/reference/built-in-tools/#glob)
+
 **Tool name** : `glob`
 **Description** : Fast file discovery using glob patterns. Respects `.gitignore`. Prefer this over `find` command in bash.
 bash
+
 ```
 
 > find all TypeScript test files in my project
@@ -79,6 +89,7 @@ src/hooks/useForm.test.ts
 
 You can configure the `glob` tool in the agent configuration to control which paths can be searched.
 json
+
 ```
 
 {
@@ -95,15 +106,19 @@ json
 ```
 
 ### Configuration options[](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-1)
-Option | Type | Default | Description  
----|---|---|---  
-`allowedPaths` | array of strings | `[]` | List of paths that can be searched without prompting. Supports glob patterns  
-`deniedPaths` | array of strings | `[]` | List of paths that are denied. Deny rules are evaluated before allow rules  
-`allowReadOnly` | boolean | `false` | Whether to allow searches anywhere without prompting  
+
+| Option          | Type             | Default | Description                                                                  |
+| --------------- | ---------------- | ------- | ---------------------------------------------------------------------------- |
+| `allowedPaths`  | array of strings | `[]`    | List of paths that can be searched without prompting. Supports glob patterns |
+| `deniedPaths`   | array of strings | `[]`    | List of paths that are denied. Deny rules are evaluated before allow rules   |
+| `allowReadOnly` | boolean          | `false` | Whether to allow searches anywhere without prompting                         |
+
 ## Grep[](https://kiro.dev/docs/cli/reference/built-in-tools/#grep)
+
 **Tool name** : `grep`
 **Description** : Fast content search using regex. Respects `.gitignore`. Use this instead of `grep`, `rg`, or `ag` commands in bash.
 bash
+
 ```
 
 > find all TODO comments in my project
@@ -135,6 +150,7 @@ src/services/auth.ts:78
 
 You can configure the `grep` tool in the agent configuration to control which paths can be searched.
 json
+
 ```
 
 {
@@ -151,15 +167,19 @@ json
 ```
 
 ### Configuration options[](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-2)
-Option | Type | Default | Description  
----|---|---|---  
-`allowedPaths` | array of strings | `[]` | List of paths that can be searched without prompting. Supports glob patterns  
-`deniedPaths` | array of strings | `[]` | List of paths that are denied. Deny rules are evaluated before allow rules  
-`allowReadOnly` | boolean | `false` | Whether to allow searches anywhere without prompting  
+
+| Option          | Type             | Default | Description                                                                  |
+| --------------- | ---------------- | ------- | ---------------------------------------------------------------------------- |
+| `allowedPaths`  | array of strings | `[]`    | List of paths that can be searched without prompting. Supports glob patterns |
+| `deniedPaths`   | array of strings | `[]`    | List of paths that are denied. Deny rules are evaluated before allow rules   |
+| `allowReadOnly` | boolean          | `false` | Whether to allow searches anywhere without prompting                         |
+
 ## File write[](https://kiro.dev/docs/cli/reference/built-in-tools/#file-write)
+
 **Tool name** : `write`
 **Description** : Tool for creating and editing files
 bash
+
 ```
 
 > collect best practices for writing typescript code and save it to the kiro steering folder as codingpractices.md
@@ -168,7 +188,7 @@ I'll create the following file: src/snake/.kiro/steering/codingpractices.md (usi
 Purpose: Create TypeScript coding best practices document
 
 +     1: # TypeScript Coding Best Practices
-+     2: 
++     2:
 +     3: ## Type Safety
 +     4: - Enable strict mode in `tsconfig.json` (`strict: true`)
 +     5: - Avoid `any` type - use `unknown` for truly dynamic types
@@ -176,7 +196,7 @@ Purpose: Create TypeScript coding best practices document
 +     7: - Leverage type inference where it improves readability
 +     8: - Use union types instead of enums when possible
 +     9: - Prefer `interface` for object shapes, `type` for unions/intersections
-+    10: 
++    10:
 +    11: ## Code Organization
 +    12: - One class/interface per file (exceptions for small related types)
 +    13: - Group related functionality into modules
@@ -189,6 +209,7 @@ Purpose: Create TypeScript coding best practices document
 
 You can also configure the `write` tool in the agent configuration to have specific access to the files and folders in your project, giving you granular control over what the Kiro can write to.
 json
+
 ```
 
 {
@@ -204,16 +225,21 @@ json
 ```
 
 ### Configuration options[](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-3)
-Option | Type | Required | Description  
----|---|---|---  
-`allowedPaths` | array of paths | No | Paths that can be written to without prompting.  
-`deniedPaths` | array of paths | No | Paths that are denied.  
+
+| Option         | Type           | Required | Description                                     |
+| -------------- | -------------- | -------- | ----------------------------------------------- |
+| `allowedPaths` | array of paths | No       | Paths that can be written to without prompting. |
+| `deniedPaths`  | array of paths | No       | Paths that are denied.                          |
+
 Path values can be glob patterns similar to the behavior as gitignore. For example, `~/temp` would match `~/temp/child` and `~/temp/child/grandchild`
+
 ## Execute shell commands[](https://kiro.dev/docs/cli/reference/built-in-tools/#execute-shell-commands)
+
 **Tool name** : `shell`
 **Description** : Tool for executing a specified bash command.
 You can also configure the `shell` tool in the agent configuration to control what commands Kiro can execute.
 json
+
 ```
 
 {
@@ -230,17 +256,22 @@ json
 ```
 
 ### Configuration Options[](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-4)
-Option | Type | Default | Description  
----|---|---|---  
-allowedCommands | array of strings | [] | List of commands that are allowed without prompting  
-deniedCommands | array of strings | [] | List of commands that are denied. Deny rules are evaluated before allow rules  
-autoAllowReadonly | boolean | false | When enabled, read-only commands are allowed without prompting. This parameter does not restrict write actions.  
-denyByDefault | boolean | false | When true, deny any command outside allowedCommands and not auto-approved by `autoAllowReadonly`, instead of prompting for approval  
+
+| Option            | Type             | Default | Description                                                                                                                         |
+| ----------------- | ---------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| allowedCommands   | array of strings | []      | List of commands that are allowed without prompting                                                                                 |
+| deniedCommands    | array of strings | []      | List of commands that are denied. Deny rules are evaluated before allow rules                                                       |
+| autoAllowReadonly | boolean          | false   | When enabled, read-only commands are allowed without prompting. This parameter does not restrict write actions.                     |
+| denyByDefault     | boolean          | false   | When true, deny any command outside allowedCommands and not auto-approved by `autoAllowReadonly`, instead of prompting for approval |
+
 **Note** : `allowedCommands` and `deniedCommands` support regex formatting. regex entered are anchored with \A and \z, and does NOT support look-around, including look-ahead and look-behind.
+
 ## Execute AWS commands[](https://kiro.dev/docs/cli/reference/built-in-tools/#execute-aws-commands)
+
 **Tool name** : `aws`
 **Description** : Tool for making AWS CLI calls with the specified service, operation, and parameters
 bash
+
 ```
 
  list my s3 buckets
@@ -249,7 +280,7 @@ Running aws cli command (using tool: aws):
 
 Service name: s3api
 Operation name: list-buckets
-Parameters: 
+Parameters:
 Region: us-east-1
 Label: List all S3 buckets
 
@@ -258,6 +289,7 @@ Label: List all S3 buckets
 
 You can also configure the `aws` tool in the agent configuration to only perform specific AWS operations.
 json
+
 ```
 
 {
@@ -274,6 +306,7 @@ json
 ```
 
 ## Web search and fetch[](https://kiro.dev/docs/cli/reference/built-in-tools/#web-search-and-fetch)
+
 Web access capabilities enable Kiro agent to access current information from the internet in real-time. This feature enables you to get up-to-date answers about topics that may have changed since the model's training data was created. These tools have been designed to not reproduce meaningful chunks of text and it should not be able to access webpages behind paywalls, authentication, and similar access restrictions. Search results may vary over time as internet content changes. Some content may not be accessible through web search due to various restrictions or the nature of the content.
 Tool | Description  
 ---|---  
@@ -282,6 +315,7 @@ Tool | Description
 **Important**
 You are responsible for your use of output that incorporates web search or grounded information. You will know when your output includes grounded information from citations or links to the source material. You must retain and display these citations and links in the output if you display the grounded output to a downstream user. If you don't want Kiro to use these tools, create a custom agent that [excludes](https://kiro.dev/docs/cli/custom-agents/configuration-reference/#tools-field) these tools. Citations are provided for output that incorporates web search or grounded information. You can follow a provided citation to the source page.
 bash
+
 ```
 
 
@@ -305,7 +339,7 @@ New Instance Families:
 
 - **X8g instances** - Powered by AWS Graviton4 processors, delivering up to 60% better performance than X2gd instances. Available in US East (Ohio).
 
-- **R8i and R8i-flex instances** - Intel-based memory-optimized instances offering up to 15% better price-performance and 2.5x more memory bandwidth compared to previous Intel generations. They deliver 20% better performance than R7i 
+- **R8i and R8i-flex instances** - Intel-based memory-optimized instances offering up to 15% better price-performance and 2.5x more memory bandwidth compared to previous Intel generations. They deliver 20% better performance than R7i
 instances.
 
 - **I7i instances** - Storage-optimized instances with 5th Gen Intel Xeon processors, delivering up to 23% better compute performance and 10% better price-performance over I4i instances.
@@ -318,7 +352,7 @@ Key Trend: AWS continues focusing on performance improvements (20-30% gains), be
 
 References:
 [1] Document history for the Amazon EC2 Instance Types Guide - https://docs.aws.amazon.com/ec2/latest/instancetypes/doc-history.html
-... 
+...
 [10] Amazon EC2 C7i-flex and C7i instances are now available in 2 additional regions - https://aws.amazon.com/about-aws/whats-new/2025/06/amazon-ec2-c7i-flex-c7i-instances-additional-...
  ▸ Time: 19s
 
@@ -353,6 +387,7 @@ AWS EC2 t3.medium Instance Pricing (2025):
 
 To optimize retrieving content from a URL and better manage your context window, `web_fetch` tool has "Selective" and "Truncated" modes.
 bash
+
 ```
 
 # Example - using truncated
@@ -393,9 +428,10 @@ The page continues beyond what was fetched. Would you like me to get a specific 
 
 In this case, since no specific pointers on the type of content to retrieve was provided, the tool automatically only retrieves part of the page (up to 8KB) to manage the context window.
 bash
+
 ```
 
-# Example - using selective 
+# Example - using selective
 
 > https://kiro.dev/blog/introducing-kiro-cli/ --> Can you get installation information from this page for me.
 
@@ -432,18 +468,21 @@ That's the single command you need to install Kiro CLI on macOS or Linux systems
 ```
 
 In this case, since the prompt was specific, the tool only retrieves selected content from the page.
-### Limitations[](https://kiro.dev/docs/cli/reference/built-in-tools/#limitations)
-  * **Size** : 10MB maximum per page fetch
-  * **Timeout** : 30 seconds per request
-  * **Redirects** : Maximum 10 redirects followed
-  * **Content type** : Only text/html pages supported
-  * **Retries** : 3 automatic retry attempts on failure
 
+### Limitations[](https://kiro.dev/docs/cli/reference/built-in-tools/#limitations)
+
+- **Size** : 10MB maximum per page fetch
+- **Timeout** : 30 seconds per request
+- **Redirects** : Maximum 10 redirects followed
+- **Content type** : Only text/html pages supported
+- **Retries** : 3 automatic retry attempts on failure
 
 ## Introspect Kiro CLI capabilities[](https://kiro.dev/docs/cli/reference/built-in-tools/#introspect-kiro-cli-capabilities)
+
 **Tool name** : `introspect`
 **Description** : Provide information about Kiro CLI capabilities, features, commands, and documentation. This tool accesses Kiro CLI's built-in documentation and help content to answer questions about the CLI's functionality.
 bash
+
 ```
 
 > what can you do
@@ -466,16 +505,19 @@ Command Execution
 ```
 
 ### Usage[](https://kiro.dev/docs/cli/reference/built-in-tools/#usage)
-The introspect tool is automatically used when you ask questions about Kiro CLI itself, such as:
-  * "What can you do?"
-  * "How do I save conversations?"
-  * "What commands are available?"
-  * "Do you have feature X?"
 
+The introspect tool is automatically used when you ask questions about Kiro CLI itself, such as:
+
+- "What can you do?"
+- "How do I save conversations?"
+- "What commands are available?"
+- "Do you have feature X?"
 
 ### Configuration[](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration)
+
 To automatically enter [tangent mode](https://kiro.dev/docs/cli/experimental/tangent-mode) for introspect questions:
 bash
+
 ```
 
 kiro-cli settings introspect.tangentMode true
@@ -484,44 +526,57 @@ kiro-cli settings introspect.tangentMode true
 ```
 
 ## Submit an issue or feature request[](https://kiro.dev/docs/cli/reference/built-in-tools/#submit-an-issue-or-feature-request)
+
 **Tool name** : `report`
 **Description** : Opens the browser to a pre-filled GitHub issue template to report chat issues, bugs, or feature requests.
 This tool has no configuration options.
+
 ## Knowledge tool (experimental)[](https://kiro.dev/docs/cli/reference/built-in-tools/#knowledge-tool-experimental)
+
 **Tool name** : `knowledge`
 **Description** : Store and retrieve information in a knowledge base across chat sessions. Provides semantic search capabilities for files, directories, and text content.
 This tool has no configuration options.
+
 ## Thinking tool (experimental)[](https://kiro.dev/docs/cli/reference/built-in-tools/#thinking-tool-experimental)
+
 **Tool name** : `thinking`
 **Description** : An internal reasoning mechanism that improves the quality of complex tasks by breaking them down into atomic actions.
 This tool has no configuration options.
+
 ## ToDo list tool (experimental)[](https://kiro.dev/docs/cli/reference/built-in-tools/#todo-list-tool-experimental)
+
 **Tool name** : `todo`
 **Description** :
 Create and manage ToDo lists for tracking multi-step tasks.
 This tool has no configuration options.
+
 ## Subagent tool[](https://kiro.dev/docs/cli/reference/built-in-tools/#subagent-tool)
+
 **Tool name** : `use_subagent`
 **Description** : Delegate complex tasks to specialized subagents that run in parallel with isolated context. Useful for breaking down multi-step tasks into parallel subtasks, preventing context window bloat, running independent research simultaneously, or delegating to different agent configurations.
 **Custom agent configuration**
 This tool is included in the default agent. For custom agents, you need to explicitly add `use_subagent` to your `tools` array or include it via the `@builtin` sigil.
 **Features:**
-  * Spawn up to 4 subagents simultaneously for parallel task execution
-  * Each subagent operates with its own isolated context to prevent main conversation bloat
-  * Real-time visual indicator showing status of all running subagents
-  * Support for different agent configurations per subagent
-  * Automatic execution summary with tool usage and duration metrics
 
+- Spawn up to 4 subagents simultaneously for parallel task execution
+- Each subagent operates with its own isolated context to prevent main conversation bloat
+- Real-time visual indicator showing status of all running subagents
+- Support for different agent configurations per subagent
+- Automatic execution summary with tool usage and duration metrics
 
 ### Configuration[](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-1)
-The `use_subagent` tool itself has no configurable `toolsSettings`. However, subagents can use different agent configurations:
-  * **Default subagent** : Uses the built-in default agent configuration
-  * **Custom subagents** : Can reference custom agent configurations by name when delegating tasks
 
+The `use_subagent` tool itself has no configurable `toolsSettings`. However, subagents can use different agent configurations:
+
+- **Default subagent** : Uses the built-in default agent configuration
+- **Custom subagents** : Can reference custom agent configurations by name when delegating tasks
 
 The subagent inherits its tool access, permissions, and behavior from whichever agent configuration it's assigned to use.
+
 ### Example workflow[](https://kiro.dev/docs/cli/reference/built-in-tools/#example-workflow)
+
 bash
+
 ```
 
 > Research the top 3 JavaScript frameworks and compare their performance
@@ -542,10 +597,13 @@ bash
 ```
 
 For details on how subagents work and best practices, see [Subagents](https://kiro.dev/docs/cli/chat/subagents).
+
 ## Using tool settings in agent configuration[](https://kiro.dev/docs/cli/reference/built-in-tools/#using-tool-settings-in-agent-configuration)
+
 Tool settings are specified in the `toolsSettings` section of the agent configuration file. Each tool's settings are specified using the tool's name as the key.
 For MCP server tools, use the format `@server_name/tool_name` as the key:
 json
+
 ```
 
 {
@@ -563,8 +621,10 @@ json
 ```
 
 ## Tool permissions[](https://kiro.dev/docs/cli/reference/built-in-tools/#tool-permissions)
+
 Tools can be explicitly allowed in the `allowedTools` section of the agent configuration:
 json
+
 ```
 
 {
@@ -580,45 +640,46 @@ json
 
 If a tool is not in the `allowedTools` list, the user will be prompted for permission when the tool is used unless an allowed `toolSettings` configuration is set.
 Some tools have default permission behaviors:
-  * `report` is trusted by default
-  * `read`, `grep`, and `glob` are trusted in the current working directory
-  * `shell`, `write`, and `aws` prompt for permission by default, but can be configured to allow specific commands/paths/services
 
+- `report` is trusted by default
+- `read`, `grep`, and `glob` are trusted in the current working directory
+- `shell`, `write`, and `aws` prompt for permission by default, but can be configured to allow specific commands/paths/services
 
 ## Next steps[](https://kiro.dev/docs/cli/reference/built-in-tools/#next-steps)
-  * **[Agent Integration](https://kiro.dev/docs/command-line/agents)** - Use tools with custom agents
-  * **[MCP Integration](https://kiro.dev/docs/mcp/cli-integration)** - Connect external tools via MCP
-  * **[Settings](https://kiro.dev/docs/command-line/settings)** - Configure tool preferences
-  * **[Troubleshooting](https://kiro.dev/docs/command-line/agents-troubleshooting)** - Common tool issues
 
+- **[Agent Integration](https://kiro.dev/docs/command-line/agents)** - Use tools with custom agents
+- **[MCP Integration](https://kiro.dev/docs/mcp/cli-integration)** - Connect external tools via MCP
+- **[Settings](https://kiro.dev/docs/command-line/settings)** - Configure tool preferences
+- **[Troubleshooting](https://kiro.dev/docs/command-line/agents-troubleshooting)** - Common tool issues
 
 Page updated: December 22, 2025
 [Slash commands](https://kiro.dev/docs/cli/reference/slash-commands/)
 [Settings](https://kiro.dev/docs/cli/reference/settings/)
 On this page
-  * [File read](https://kiro.dev/docs/cli/reference/built-in-tools/#file-read)
-  * [Configuration options](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options)
-  * [Glob](https://kiro.dev/docs/cli/reference/built-in-tools/#glob)
-  * [Configuration options](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-1)
-  * [Grep](https://kiro.dev/docs/cli/reference/built-in-tools/#grep)
-  * [Configuration options](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-2)
-  * [File write](https://kiro.dev/docs/cli/reference/built-in-tools/#file-write)
-  * [Configuration options](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-3)
-  * [Execute shell commands](https://kiro.dev/docs/cli/reference/built-in-tools/#execute-shell-commands)
-  * [Configuration Options](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-4)
-  * [Execute AWS commands](https://kiro.dev/docs/cli/reference/built-in-tools/#execute-aws-commands)
-  * [Web search and fetch](https://kiro.dev/docs/cli/reference/built-in-tools/#web-search-and-fetch)
-  * [Limitations](https://kiro.dev/docs/cli/reference/built-in-tools/#limitations)
-  * [Introspect Kiro CLI capabilities](https://kiro.dev/docs/cli/reference/built-in-tools/#introspect-kiro-cli-capabilities)
-  * [Usage](https://kiro.dev/docs/cli/reference/built-in-tools/#usage)
-  * [Configuration](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration)
-  * [Submit an issue or feature request](https://kiro.dev/docs/cli/reference/built-in-tools/#submit-an-issue-or-feature-request)
-  * [Knowledge tool (experimental)](https://kiro.dev/docs/cli/reference/built-in-tools/#knowledge-tool-experimental)
-  * [Thinking tool (experimental)](https://kiro.dev/docs/cli/reference/built-in-tools/#thinking-tool-experimental)
-  * [ToDo list tool (experimental)](https://kiro.dev/docs/cli/reference/built-in-tools/#todo-list-tool-experimental)
-  * [Subagent tool](https://kiro.dev/docs/cli/reference/built-in-tools/#subagent-tool)
-  * [Configuration](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-1)
-  * [Example workflow](https://kiro.dev/docs/cli/reference/built-in-tools/#example-workflow)
-  * [Using tool settings in agent configuration](https://kiro.dev/docs/cli/reference/built-in-tools/#using-tool-settings-in-agent-configuration)
-  * [Tool permissions](https://kiro.dev/docs/cli/reference/built-in-tools/#tool-permissions)
-  * [Next steps](https://kiro.dev/docs/cli/reference/built-in-tools/#next-steps)
+
+- [File read](https://kiro.dev/docs/cli/reference/built-in-tools/#file-read)
+- [Configuration options](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options)
+- [Glob](https://kiro.dev/docs/cli/reference/built-in-tools/#glob)
+- [Configuration options](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-1)
+- [Grep](https://kiro.dev/docs/cli/reference/built-in-tools/#grep)
+- [Configuration options](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-2)
+- [File write](https://kiro.dev/docs/cli/reference/built-in-tools/#file-write)
+- [Configuration options](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-3)
+- [Execute shell commands](https://kiro.dev/docs/cli/reference/built-in-tools/#execute-shell-commands)
+- [Configuration Options](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-options-4)
+- [Execute AWS commands](https://kiro.dev/docs/cli/reference/built-in-tools/#execute-aws-commands)
+- [Web search and fetch](https://kiro.dev/docs/cli/reference/built-in-tools/#web-search-and-fetch)
+- [Limitations](https://kiro.dev/docs/cli/reference/built-in-tools/#limitations)
+- [Introspect Kiro CLI capabilities](https://kiro.dev/docs/cli/reference/built-in-tools/#introspect-kiro-cli-capabilities)
+- [Usage](https://kiro.dev/docs/cli/reference/built-in-tools/#usage)
+- [Configuration](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration)
+- [Submit an issue or feature request](https://kiro.dev/docs/cli/reference/built-in-tools/#submit-an-issue-or-feature-request)
+- [Knowledge tool (experimental)](https://kiro.dev/docs/cli/reference/built-in-tools/#knowledge-tool-experimental)
+- [Thinking tool (experimental)](https://kiro.dev/docs/cli/reference/built-in-tools/#thinking-tool-experimental)
+- [ToDo list tool (experimental)](https://kiro.dev/docs/cli/reference/built-in-tools/#todo-list-tool-experimental)
+- [Subagent tool](https://kiro.dev/docs/cli/reference/built-in-tools/#subagent-tool)
+- [Configuration](https://kiro.dev/docs/cli/reference/built-in-tools/#configuration-1)
+- [Example workflow](https://kiro.dev/docs/cli/reference/built-in-tools/#example-workflow)
+- [Using tool settings in agent configuration](https://kiro.dev/docs/cli/reference/built-in-tools/#using-tool-settings-in-agent-configuration)
+- [Tool permissions](https://kiro.dev/docs/cli/reference/built-in-tools/#tool-permissions)
+- [Next steps](https://kiro.dev/docs/cli/reference/built-in-tools/#next-steps)

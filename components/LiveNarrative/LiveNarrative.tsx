@@ -1,5 +1,8 @@
 import { useLiveNarrative } from './LiveNarrative.hooks';
-import type { LiveNarrativeProps, EventDisplayProps } from './LiveNarrative.types';
+import type {
+  LiveNarrativeProps,
+  EventDisplayProps,
+} from './LiveNarrative.types';
 import type { RiskLevel } from '../../lib/types';
 
 /**
@@ -25,7 +28,7 @@ function getRiskStyling(riskLevel: RiskLevel) {
  */
 function EventDisplay({ event, analysis }: EventDisplayProps) {
   const riskStyling = getRiskStyling(event.riskLevel);
-  
+
   return (
     <div className="bg-white p-3 rounded-lg shadow-sm border">
       <div className="flex items-start justify-between mb-2">
@@ -33,11 +36,13 @@ function EventDisplay({ event, analysis }: EventDisplayProps) {
           <h3 className="font-medium text-gray-900 text-sm">{event.domain}</h3>
           <p className="text-xs text-gray-600 mt-1">{event.description}</p>
         </div>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${riskStyling}`}>
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium border ${riskStyling}`}
+        >
           {event.riskLevel}
         </span>
       </div>
-      
+
       {analysis && (
         <div className="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-200">
           <p className="text-sm text-blue-800">{analysis.narrative}</p>
@@ -60,7 +65,9 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
           <h2 className="font-medium text-gray-900 mb-2">Live Activity</h2>
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
-            <span className="text-sm text-gray-600">Loading tracking data...</span>
+            <span className="text-sm text-gray-600">
+              Loading tracking data...
+            </span>
           </div>
         </div>
       </div>
@@ -73,7 +80,9 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
         <div className="bg-white p-3 rounded-lg shadow-sm border">
           <h2 className="font-medium text-gray-900 mb-2">Live Activity</h2>
           <p className="text-sm text-gray-500">No tracking detected yet...</p>
-          <p className="text-xs text-gray-400 mt-1">Visit a website to see tracking activity</p>
+          <p className="text-xs text-gray-400 mt-1">
+            Visit a website to see tracking activity
+          </p>
         </div>
       </div>
     );
@@ -83,13 +92,17 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
     <div className={`space-y-4 ${className}`}>
       <div className="bg-white p-3 rounded-lg shadow-sm border">
         <h2 className="font-medium text-gray-900 mb-2">Live Activity</h2>
-        
+
         {analysis && (
           <div className="mb-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-            <p className="text-sm text-blue-900 font-medium">{analysis.narrative}</p>
+            <p className="text-sm text-blue-900 font-medium">
+              {analysis.narrative}
+            </p>
             {analysis.recommendations.length > 0 && (
               <div className="mt-2">
-                <p className="text-xs text-blue-700 font-medium">Recommendations:</p>
+                <p className="text-xs text-blue-700 font-medium">
+                  Recommendations:
+                </p>
                 <ul className="text-xs text-blue-700 mt-1 space-y-1">
                   {analysis.recommendations.map((rec, index) => (
                     <li key={index} className="flex items-start">
@@ -110,11 +123,15 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
         )}
 
         <div className="space-y-2 max-h-64 overflow-y-auto">
-          {events.map((event) => (
-            <EventDisplay 
-              key={event.id} 
-              event={event} 
-              analysis={event.id === events[events.length - 1]?.id ? analysis || undefined : undefined}
+          {events.map(event => (
+            <EventDisplay
+              key={event.id}
+              event={event}
+              analysis={
+                event.id === events[events.length - 1]?.id
+                  ? analysis || undefined
+                  : undefined
+              }
             />
           ))}
         </div>

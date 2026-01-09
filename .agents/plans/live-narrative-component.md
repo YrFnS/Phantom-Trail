@@ -68,6 +68,7 @@ Create a live narrative feed that displays tracking events in real-time with AI-
 ### Patterns to Follow
 
 **Component Structure Pattern** (from `entrypoints/popup/App.tsx`):
+
 ```tsx
 function ComponentName() {
   return (
@@ -76,15 +77,14 @@ function ComponentName() {
         <h1 className="text-xl font-bold text-gray-900">Title</h1>
         <p className="text-sm text-gray-600">Subtitle</p>
       </header>
-      <main className="space-y-4">
-        {/* Content */}
-      </main>
+      <main className="space-y-4">{/* Content */}</main>
     </div>
   );
 }
 ```
 
 **Storage Pattern** (from `lib/storage-manager.ts`):
+
 ```typescript
 static async getRecentEvents(limit = 100): Promise<TrackingEvent[]> {
   try {
@@ -99,6 +99,7 @@ static async getRecentEvents(limit = 100): Promise<TrackingEvent[]> {
 ```
 
 **Error Handling Pattern** (from `lib/ai-engine.ts`):
+
 ```typescript
 try {
   // Main logic
@@ -109,6 +110,7 @@ try {
 ```
 
 **TypeScript Interface Pattern** (from `lib/types.ts`):
+
 ```typescript
 export interface ComponentProps {
   property: string;
@@ -125,6 +127,7 @@ export interface ComponentProps {
 Set up the component structure and Chrome storage integration for real-time updates.
 
 **Tasks:**
+
 - Create component directory structure following WXT conventions
 - Implement Chrome storage hook for real-time updates
 - Set up TypeScript interfaces for component props and state
@@ -134,6 +137,7 @@ Set up the component structure and Chrome storage integration for real-time upda
 Build the main Live Narrative component with event display and AI integration.
 
 **Tasks:**
+
 - Implement main LiveNarrative component with event list
 - Add real-time event updates using Chrome storage listeners
 - Integrate AI narrative generation with graceful fallback
@@ -144,6 +148,7 @@ Build the main Live Narrative component with event display and AI integration.
 Connect the component to the background script and enhance tracker detection.
 
 **Tasks:**
+
 - Enhance background script to actually classify and store tracking events
 - Integrate LiveNarrative component into popup App
 - Test real-time updates across extension contexts
@@ -153,6 +158,7 @@ Connect the component to the background script and enhance tracker detection.
 Ensure component works correctly with various tracking scenarios.
 
 **Tasks:**
+
 - Test with known tracker websites (Google Analytics, Facebook)
 - Validate AI narrative generation and fallback behavior
 - Verify real-time updates and performance
@@ -236,12 +242,14 @@ IMPORTANT: Execute every task in order, top to bottom. Each task is atomic and i
 Currently no test framework is configured. Focus on TypeScript compilation and manual testing for this iteration.
 
 **Validation Commands:**
+
 - `npx tsc --noEmit` - Ensure zero TypeScript errors
 - `pnpm build` - Verify successful build without warnings
 
 ### Integration Tests
 
 **Manual Testing Scenarios:**
+
 1. Load extension in Chrome and verify popup displays
 2. Visit websites with known trackers (google.com, facebook.com)
 3. Verify events appear in real-time in popup
@@ -267,6 +275,7 @@ Execute every command to ensure zero regressions and 100% feature correctness.
 ```bash
 npx tsc --noEmit
 ```
+
 **Expected**: Zero TypeScript errors
 
 ### Level 2: Build Validation
@@ -274,6 +283,7 @@ npx tsc --noEmit
 ```bash
 pnpm build
 ```
+
 **Expected**: Successful build with no errors or warnings
 
 ### Level 3: Extension Loading
@@ -281,11 +291,13 @@ pnpm build
 ```bash
 # Manual: Load .output/chrome-mv3 in chrome://extensions/
 ```
+
 **Expected**: Extension loads without errors in Chrome
 
 ### Level 4: Manual Validation
 
 **Test Scenarios:**
+
 1. Open extension popup - should show Live Narrative component
 2. Visit google.com - should detect Google Analytics tracker
 3. Visit facebook.com - should detect Facebook tracking
@@ -295,6 +307,7 @@ pnpm build
 ### Level 5: Performance Validation
 
 **Metrics to Check:**
+
 - Popup opens in <500ms
 - Events display within 1 second of detection
 - No memory leaks in Chrome DevTools
@@ -337,22 +350,26 @@ pnpm build
 ## NOTES
 
 **Design Decisions:**
+
 - Used Chrome storage onChanged listener for real-time updates instead of polling
 - Implemented graceful AI degradation to ensure extension works without API key
 - Followed WXT component directory structure for consistency
 - Used existing Tailwind patterns to maintain visual consistency
 
 **Performance Considerations:**
+
 - Limited event storage to 1000 items to prevent memory issues
 - Implemented AI rate limiting to avoid API costs
 - Used React.memo for component optimization if needed
 
 **Security Considerations:**
+
 - API key stored locally in Chrome storage (never transmitted)
 - All data processing happens locally
 - Minimal Chrome permissions used (already configured)
 
 **Future Enhancements:**
+
 - Add event filtering and search capabilities
 - Implement event categorization and grouping
 - Add export functionality for tracking data

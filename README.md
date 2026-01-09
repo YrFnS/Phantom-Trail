@@ -15,6 +15,7 @@ Every time you browse the web, dozens of companies silently track your clicks, r
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - Chrome browser with Developer Mode enabled
 - pnpm (recommended) or npm
@@ -22,23 +23,27 @@ Every time you browse the web, dozens of companies silently track your clicks, r
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/phantom-trail.git
    cd phantom-trail
    ```
 
 2. **Install dependencies**
+
    ```bash
    pnpm install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    cp .env.example .env.local
    # Add your OpenRouter API key (optional - extension works without AI features)
    ```
 
 4. **Start development**
+
    ```bash
    pnpm dev
    ```
@@ -109,18 +114,21 @@ pnpm typecheck    # Run TypeScript checks
 ## 🎯 Success Criteria
 
 ### Functional Requirements
+
 - ✅ Detect trackers on 90%+ of top 100 websites
 - ✅ AI narrative generates within 3 seconds
 - ✅ Network graph renders 50+ nodes smoothly
 - ✅ Chat responses return within 5 seconds
 
 ### Performance Requirements
+
 - ✅ CPU overhead <5% during browsing
 - ✅ Memory usage <100MB
 - ✅ Extension bundle <5MB
 - ✅ No impact on page load times
 
 ### User Experience
+
 - ✅ Non-technical users understand narratives
 - ✅ Works offline (basic features without AI)
 - ✅ Setup complete in <2 minutes
