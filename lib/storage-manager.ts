@@ -62,10 +62,15 @@ export class StorageManager {
   static async addEvent(event: TrackingEvent): Promise<void> {
     try {
       const events = await this.getRecentEvents(999); // Keep last 999 events
-      events.push(event);
+      
+      // Remove events older than 7 days
+      const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      const filteredEvents = events.filter(e => e.timestamp > sevenDaysAgo);
+      
+      filteredEvents.push(event);
       
       await chrome.storage.local.set({
-        [this.EVENTS_KEY]: events
+        [this.EVENTS_KEY]: filteredEvents
       });
     } catch (error) {
       console.error('Failed to add event:', error);

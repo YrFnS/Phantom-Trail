@@ -9,16 +9,14 @@ export class AIEngine {
   private static readonly PRIMARY_MODEL = 'anthropic/claude-3-haiku';
   private static readonly FALLBACK_MODEL = 'openai/gpt-4o-mini';
   private static readonly MAX_REQUESTS_PER_MINUTE = 10;
-  
-  private static requestCount = 0;
-  private static lastResetTime = Date.now();
+  private static readonly RATE_LIMIT_KEY = 'phantom_trail_rate_limit';
 
   /**
    * Generate AI narrative for tracking events
    */
   static async generateNarrative(events: TrackingEvent[]): Promise<AIAnalysis | null> {
     try {
-      if (!this.canMakeRequest()) {
+      if (!(await this.canMakeRequest())) {
         console.warn('Rate limit exceeded, skipping AI analysis');
         return null;
       }
@@ -32,7 +30,7 @@ export class AIEngine {
       const response = await this.callOpenRouter(settings.apiKey, prompt);
       
       if (response) {
-        this.incrementRequestCount();
+        await this.incrementRequestCount();
         return this.parseResponse(response);
       }
 
@@ -46,23 +44,40 @@ export class AIEngine {
   /**
    * Check if we can make another API request (rate limiting)
    */
-  private static canMakeRequest(): boolean {
-    const now = Date.now();
-    
-    // Reset counter every minute
-    if (now - this.lastResetTime > 60000) {
-      this.requestCount = 0;
-      this.lastResetTime = now;
+  private static async canMakeRequest(): Promise<boolean> {
+    try {
+      const result = await chrome.storage.session.get(this.RATE_LIMIT_KEY);
+      const rateData = result[this.RATE_LIMIT_KEY] || { count: 0, resetTime: Date.now() };
+      const now = Date.now();
+      
+      // Reset counter every minute
+      if (now - rateData.resetTime > 60000) {
+        rateData.count = 0;
+        rateData.resetTime = now;
+      }
+      
+      return rateData.count < this.MAX_REQUESTS_PER_MINUTE;
+    } catch (error) {
+      console.error('Rate limit check failed:', error);
+      return true; // Allow request if storage fails
     }
-    
-    return this.requestCount < this.MAX_REQUESTS_PER_MINUTE;
   }
 
   /**
    * Increment request counter
    */
-  private static incrementRequestCount(): void {
-    this.requestCount++;
+  private static async incrementRequestCount(): Promise<void> {
+    try {
+      const result = await chrome.storage.session.get(this.RATE_LIMIT_KEY);
+      const rateData = result[this.RATE_LIMIT_KEY] || { count: 0, resetTime: Date.now() };
+      rateData.count++;
+      
+      await chrome.storage.session.set({
+        [this.RATE_LIMIT_KEY]: rateData
+      });
+    } catch (error) {
+      console.error('Failed to increment request count:', error);
+    }
   }
 
   /**
