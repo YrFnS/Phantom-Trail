@@ -1,20 +1,21 @@
 # Update DEVLOG
 
-Update DEVLOG.md with the current development session, following the examples\DEVLOG.md example format.
+Update DEVLOG.md with the current development session, following the Reference examples\DEVLOG.md example format.
 
 ## Your Role
 Analyze the conversation history to understand what was accomplished in this session, then update DEVLOG.md with a new entry.
 
 ## Process
 1. **Read current DEVLOG.md** to understand structure and latest entry
-2. **Analyze conversation** to identify:
+2. **Check git** to identify actual code changes made
+3. **Analyze conversation** to identify:
    - What was worked on (features, tasks, decisions)
    - Time spent (estimate from conversation timestamps)
    - Technical decisions made
    - Challenges encountered and solutions
    - Kiro prompts used in this session
-3. **Add new entry** following the established format
-4. **Update tracking sections** (time breakdown, Kiro stats, status sections)
+4. **Add new entry** following the established format
+5. **Update tracking sections** (time breakdown, Kiro stats, status sections)
 
 ## Entry Format
 ```markdown

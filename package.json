@@ -1,0 +1,43 @@
+{
+  "name": "phantom-trail",
+  "version": "1.0.0",
+  "description": "**An AI-native Chrome extension that makes invisible data collection visible in real-time.**",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "type-check": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YrFnS/Phantom-Trail.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/YrFnS/Phantom-Trail/issues"
+  },
+  "homepage": "https://github.com/YrFnS/Phantom-Trail#readme",
+  "dependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3",
+    "wxt": "^0.20.13",
+    "zustand": "^5.0.2",
+    "vis-network": "^9.1.9",
+    "chart.js": "^4.4.6"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.277",
+    "@wxt-dev/module-react": "^1.1.1"
+  }
+}
