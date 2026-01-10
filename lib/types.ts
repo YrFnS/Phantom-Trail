@@ -51,4 +51,5 @@ export interface ExtensionSettings {
   enableAI: boolean;
   enableNotifications: boolean;
   riskThreshold: RiskLevel;
+  aiModel?: string;
 }

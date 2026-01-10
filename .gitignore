@@ -38,3 +38,4 @@ logs/
 
 # TypeScript
 *.tsbuildinfo
+log.txt

@@ -1,13 +1,12 @@
 import type { AIAnalysis, TrackingEvent, RiskLevel } from './types';
 import { StorageManager } from './storage-manager';
+import { DEFAULT_MODEL, FALLBACK_MODEL } from './ai-models';
 
 /**
  * OpenRouter API integration for AI-powered tracking analysis
  */
 export class AIEngine {
   private static readonly API_BASE = 'https://openrouter.ai/api/v1';
-  private static readonly PRIMARY_MODEL = 'anthropic/claude-3-haiku';
-  private static readonly FALLBACK_MODEL = 'openai/gpt-4o-mini';
   private static readonly MAX_REQUESTS_PER_MINUTE = 10;
   private static readonly RATE_LIMIT_KEY = 'phantom_trail_rate_limit';
 
@@ -114,20 +113,26 @@ Respond with a JSON object containing:
 Keep the narrative conversational and non-technical. Focus on what the user should know or do.`;
   }
 
-  /**
-   * Call OpenRouter API with fallback
-   */
   private static async callOpenRouter(
     apiKey: string,
     prompt: string
   ): Promise<string | null> {
     try {
-      // Try primary model first
-      let response = await this.makeAPICall(apiKey, prompt, this.PRIMARY_MODEL);
+      const settings = await StorageManager.getSettings();
+      const primaryModel = settings.aiModel || DEFAULT_MODEL;
+      
+      // Try user-selected model first
+      let response = await this.makeAPICall(apiKey, prompt, primaryModel);
       if (response) return response;
 
-      // Fallback to secondary model
-      response = await this.makeAPICall(apiKey, prompt, this.FALLBACK_MODEL);
+      // Fallback to default model if user model fails
+      if (primaryModel !== DEFAULT_MODEL) {
+        response = await this.makeAPICall(apiKey, prompt, DEFAULT_MODEL);
+        if (response) return response;
+      }
+      
+      // Final fallback
+      response = await this.makeAPICall(apiKey, prompt, FALLBACK_MODEL);
       return response;
     } catch (error) {
       console.error('OpenRouter API call failed:', error);
