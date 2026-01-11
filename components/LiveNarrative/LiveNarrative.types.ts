@@ -18,6 +18,7 @@ export interface NarrativeState {
   analysis: AIAnalysis | null;
   loading: boolean;
   error: string | null;
+  retryCount?: number;
 }
 
 export interface EventWithAnalysis extends TrackingEvent {

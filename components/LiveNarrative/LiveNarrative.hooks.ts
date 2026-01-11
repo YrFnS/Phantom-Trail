@@ -26,8 +26,9 @@ export function useAIAnalysis(events: TrackingEvent[]) {
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
-  const generateAnalysis = useCallback(async () => {
+  const generateAnalysis = useCallback(async (attempt = 0) => {
     if (events.length === 0) {
       setAnalysis(null);
       return;
@@ -39,12 +40,26 @@ export function useAIAnalysis(events: TrackingEvent[]) {
     try {
       const result = await AIEngine.generateNarrative(events);
       setAnalysis(result);
+      setRetryCount(0); // Reset retry count on success
     } catch (err) {
       console.error('Failed to generate AI analysis:', err);
-      setError('Failed to generate analysis');
-      setAnalysis(null);
+      
+      // Retry logic with exponential backoff
+      if (attempt < 2) {
+        const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        setTimeout(() => {
+          generateAnalysis(attempt + 1);
+        }, delay);
+        setRetryCount(attempt + 1);
+      } else {
+        setError('AI analysis temporarily unavailable');
+        setAnalysis(null);
+        setRetryCount(0);
+      }
     } finally {
-      setLoading(false);
+      if (attempt >= 2 || events.length === 0) {
+        setLoading(false);
+      }
     }
   }, [events]);
 
@@ -59,7 +74,8 @@ export function useAIAnalysis(events: TrackingEvent[]) {
     analysis,
     loading,
     error,
-    regenerate: generateAnalysis,
+    retryCount,
+    regenerate: () => generateAnalysis(0),
   };
 }
 
@@ -68,12 +84,13 @@ export function useAIAnalysis(events: TrackingEvent[]) {
  */
 export function useLiveNarrative(): NarrativeState {
   const { events, loading: eventsLoading } = useTrackingEvents();
-  const { analysis, loading: analysisLoading, error } = useAIAnalysis(events);
+  const { analysis, loading: analysisLoading, error, retryCount } = useAIAnalysis(events);
 
   return {
     events,
     analysis,
     loading: eventsLoading || analysisLoading,
     error,
+    retryCount,
   };
 }

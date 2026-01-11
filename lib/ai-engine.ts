@@ -11,6 +11,43 @@ export class AIEngine {
   private static readonly RATE_LIMIT_KEY = 'phantom_trail_rate_limit';
 
   /**
+   * Chat interface for user queries
+   */
+  static async chatQuery(query: string): Promise<string | null> {
+    try {
+      // Validate input
+      if (!query || typeof query !== 'string' || !query.trim()) {
+        return null;
+      }
+
+      if (!(await this.canMakeRequest())) return null;
+
+      const settings = await StorageManager.getSettings();
+      if (!settings.enableAI || !settings.apiKey) return null;
+
+      const events = await StorageManager.getRecentEvents(50);
+      const prompt = this.buildChatPrompt(query.trim(), events);
+      
+      const response = await this.callOpenRouter(settings.apiKey, prompt);
+      if (response) {
+        await this.incrementRequestCount();
+        
+        // Validate response is reasonable length and content
+        if (response.length > 2000) {
+          return response.substring(0, 2000) + '...';
+        }
+        
+        return response;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Chat query failed:', error);
+      return null;
+    }
+  }
+
+  /**
    * Generate AI narrative for tracking events
    */
   static async generateNarrative(
@@ -88,6 +125,23 @@ export class AIEngine {
   }
 
   /**
+   * Build prompt for chat queries
+   */
+  private static buildChatPrompt(query: string, events: TrackingEvent[]): string {
+    const recentEvents = events.slice(-20);
+    const eventSummary = recentEvents
+      .map(e => `${e.domain} (${e.trackerType}): ${e.description}`)
+      .join('\n');
+
+    return `You are a privacy expert. Based on recent tracking data, answer this user question: "${query}"
+
+Recent tracking activity:
+${eventSummary}
+
+Provide a conversational, helpful response. Be specific about what companies learned and actionable about what the user can do.`;
+  }
+
+  /**
    * Build prompt for AI analysis
    */
   private static buildPrompt(events: TrackingEvent[]): string {
@@ -141,45 +195,50 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
   }
 
   /**
-   * Make actual API call to OpenRouter
+   * Make actual API call to OpenRouter with retry logic
    */
   private static async makeAPICall(
     apiKey: string,
     prompt: string,
-    model: string
+    model: string,
+    retries = 2
   ): Promise<string | null> {
-    try {
-      const response = await fetch(`${this.API_BASE}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': chrome.runtime.getURL(''),
-          'X-Title': 'Phantom Trail',
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          max_tokens: 500,
-          temperature: 0.3,
-        }),
-      });
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(`${this.API_BASE}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': chrome.runtime.getURL(''),
+            'X-Title': 'Phantom Trail',
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 500,
+            temperature: 0.3,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`API call failed: ${response.status}`);
+        if (!response.ok) {
+          if (response.status === 429 && attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+            continue;
+          }
+          throw new Error(`API call failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || null;
+      } catch (error) {
+        if (attempt === retries) {
+          console.error(`API call to ${model} failed after ${retries + 1} attempts:`, error);
+          return null;
+        }
       }
-
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || null;
-    } catch (error) {
-      console.error(`API call to ${model} failed:`, error);
-      return null;
     }
+    return null;
   }
 
   /**
@@ -187,14 +246,26 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
    */
   private static parseResponse(response: string): AIAnalysis {
     try {
+      // Validate response is not empty or malformed
+      if (!response || typeof response !== 'string') {
+        throw new Error('Invalid response format');
+      }
+
       const parsed = JSON.parse(response);
 
+      // Validate required fields exist
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Response is not a valid object');
+      }
+
       return {
-        narrative: parsed.narrative || 'Tracking activity detected',
+        narrative: typeof parsed.narrative === 'string' 
+          ? parsed.narrative 
+          : 'Tracking activity detected',
         riskAssessment:
           this.validateRiskLevel(parsed.riskAssessment) || 'medium',
         recommendations: Array.isArray(parsed.recommendations)
-          ? parsed.recommendations.slice(0, 3)
+          ? parsed.recommendations.slice(0, 3).filter((r: unknown) => typeof r === 'string')
           : ['Review your privacy settings'],
         confidence:
           typeof parsed.confidence === 'number'

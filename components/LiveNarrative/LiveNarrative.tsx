@@ -56,7 +56,7 @@ function EventDisplay({ event, analysis }: EventDisplayProps) {
  * Main Live Narrative component
  */
 export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
-  const { events, analysis, loading, error } = useLiveNarrative();
+  const { events, analysis, loading, error, retryCount } = useLiveNarrative();
 
   if (loading && events.length === 0) {
     return (
@@ -118,7 +118,15 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
 
         {error && (
           <div className="mb-3 p-2 bg-yellow-50 rounded border-l-4 border-yellow-400">
-            <p className="text-sm text-yellow-800">AI analysis unavailable</p>
+            <p className="text-sm text-yellow-800">
+              {(retryCount || 0) > 0 
+                ? `AI analysis retrying... (attempt ${(retryCount || 0) + 1}/3)`
+                : 'AI analysis temporarily unavailable'
+              }
+            </p>
+            <p className="text-xs text-yellow-600 mt-1">
+              Tracker detection continues to work normally
+            </p>
           </div>
         )}
 
