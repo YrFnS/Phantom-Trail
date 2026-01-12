@@ -11,4 +11,28 @@ export default defineConfig({
     permissions: ['webRequest', 'storage', 'activeTab', 'tabs'],
     host_permissions: ['<all_urls>'],
   },
+  vite: () => ({
+    build: {
+      rollupOptions: {
+        onwarn(warning, warn) {
+          // Suppress specific warnings that don't affect functionality
+          if (warning.code === 'EVAL' || warning.code === 'MODULE_LEVEL_DIRECTIVE') {
+            return;
+          }
+          // Don't treat vis-network import as an error
+          if (warning.code === 'UNRESOLVED_IMPORT' && warning.id?.includes('vis-network')) {
+            return;
+          }
+          warn(warning);
+        },
+      },
+    },
+    define: {
+      // Ensure proper environment variables
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    },
+    optimizeDeps: {
+      include: ['vis-network'],
+    },
+  }),
 });

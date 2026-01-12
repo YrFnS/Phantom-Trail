@@ -15,8 +15,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["@types/chrome"]
+    "types": ["@types/chrome", "@types/react", "@types/react-dom"]
   },
-  "include": ["entrypoints", "components", "lib", "assets"],
+  "include": ["entrypoints", "components", "lib", "assets", "types", ".wxt/types"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

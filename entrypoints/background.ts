@@ -11,6 +11,10 @@ export default defineBackground({
     // Track significant events for AI analysis
     let significantEventCount = 0;
     let lastAIAnalysis = 0;
+    
+    // Throttle tracking events to prevent overwhelming the UI
+    const recentDomains = new Map<string, number>();
+    const DOMAIN_THROTTLE_MS = 5000; // 5 seconds between same domain events
 
     // Initialize tracker detection on web requests
     chrome.webRequest.onBeforeRequest.addListener(
@@ -30,6 +34,26 @@ export default defineBackground({
             const trackerInfo = TrackerDatabase.classifyUrl(details.url);
 
             if (trackerInfo) {
+              const now = Date.now();
+              const lastSeen = recentDomains.get(trackerInfo.domain) || 0;
+              
+              // Throttle events from the same domain
+              if (now - lastSeen < DOMAIN_THROTTLE_MS) {
+                return;
+              }
+              
+              recentDomains.set(trackerInfo.domain, now);
+              
+              // Clean up old entries
+              if (recentDomains.size > 100) {
+                const cutoff = now - DOMAIN_THROTTLE_MS * 2;
+                for (const [domain, timestamp] of recentDomains.entries()) {
+                  if (timestamp < cutoff) {
+                    recentDomains.delete(domain);
+                  }
+                }
+              }
+
               // Create tracking event
               const event: TrackingEvent = {
                 id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

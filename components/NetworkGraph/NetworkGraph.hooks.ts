@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useStorage } from '../../lib/hooks/useStorage';
 import type { TrackingEvent, RiskLevel } from '../../lib/types';
 import type { NetworkData, NetworkNode, NetworkEdge, ProcessedTrackingData } from './NetworkGraph.types';
@@ -9,8 +9,25 @@ export function useTrackingEvents() {
     []
   );
 
+  // Debounce rapid updates to prevent constant graph recreation
+  const lastUpdateRef = useRef<number>(0);
+  const stableEventsRef = useRef<TrackingEvent[]>([]);
+
+  const stableEvents = useMemo(() => {
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateRef.current;
+    
+    // Only update if 2+ seconds have passed or significant change
+    if (timeSinceLastUpdate > 2000 || Math.abs(events.length - stableEventsRef.current.length) > 5) {
+      lastUpdateRef.current = now;
+      stableEventsRef.current = events.slice(-50); // Show last 50 events
+    }
+    
+    return stableEventsRef.current;
+  }, [events]);
+
   return {
-    events: events.slice(-50), // Show last 50 events for network analysis
+    events: stableEvents,
     loading: eventsLoading,
   };
 }
@@ -70,6 +87,7 @@ function getRiskPriority(riskLevel: RiskLevel): number {
 
 export function useNetworkData(): { data: NetworkData; loading: boolean } {
   const { events, loading } = useTrackingEvents();
+  const previousDataRef = useRef<NetworkData>({ nodes: [], edges: [] });
 
   const networkData = useMemo((): NetworkData => {
     if (events.length === 0) {
@@ -112,7 +130,19 @@ export function useNetworkData(): { data: NetworkData; loading: boolean } {
       });
     });
 
-    return { nodes, edges };
+    const newData = { nodes, edges };
+    
+    // Only return new data if structure significantly changed
+    const hasSignificantChange = 
+      Math.abs(newData.nodes.length - previousDataRef.current.nodes.length) > 2 ||
+      Math.abs(newData.edges.length - previousDataRef.current.edges.length) > 3;
+    
+    if (hasSignificantChange) {
+      previousDataRef.current = newData;
+      return newData;
+    }
+    
+    return previousDataRef.current;
   }, [events]);
 
   return { data: networkData, loading };

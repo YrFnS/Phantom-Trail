@@ -1,86 +1,9 @@
-import { useRef, useEffect } from 'react';
-import { Network } from 'vis-network';
 import { useNetworkData } from './NetworkGraph.hooks';
 import type { NetworkGraphProps } from './NetworkGraph.types';
 import { Card, CardHeader, CardContent, LoadingSpinner } from '../ui';
 
 export function NetworkGraph({ className = '' }: NetworkGraphProps) {
-  const visJsRef = useRef<HTMLDivElement>(null);
-  const networkRef = useRef<Network | null>(null);
   const { data, loading } = useNetworkData();
-
-  useEffect(() => {
-    if (!visJsRef.current || loading) return;
-
-    // Destroy existing network
-    if (networkRef.current) {
-      networkRef.current.destroy();
-    }
-
-    // Create new network with stabilized physics
-    const options = {
-      nodes: {
-        font: {
-          size: 12,
-          color: '#374151',
-        },
-        borderWidth: 2,
-        shadow: true,
-      },
-      edges: {
-        font: {
-          size: 10,
-          color: '#6b7280',
-        },
-        shadow: true,
-        smooth: {
-          enabled: true,
-          type: 'continuous',
-          roundness: 0.5,
-        },
-      },
-      physics: {
-        enabled: true,
-        stabilization: {
-          enabled: true,
-          iterations: 200,
-          updateInterval: 25,
-        },
-        barnesHut: {
-          gravitationalConstant: -2000,
-          centralGravity: 0.3,
-          springLength: 95,
-          springConstant: 0.04,
-          damping: 0.09,
-          avoidOverlap: 0.1,
-        },
-      },
-      interaction: {
-        hover: true,
-        tooltipDelay: 200,
-        dragNodes: true,
-        dragView: true,
-        zoomView: true,
-      },
-    };
-
-    networkRef.current = new Network(visJsRef.current, data, options);
-
-    // Stop physics after stabilization to prevent constant movement
-    networkRef.current.on('stabilizationIterationsDone', () => {
-      if (networkRef.current) {
-        networkRef.current.setOptions({ physics: { enabled: false } });
-      }
-    });
-
-    // Cleanup on unmount
-    return () => {
-      if (networkRef.current) {
-        networkRef.current.destroy();
-        networkRef.current = null;
-      }
-    };
-  }, [data, loading]);
 
   if (loading) {
     return (
@@ -135,11 +58,31 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div 
-            ref={visJsRef} 
-            className="w-full h-64 border border-gray-200 rounded-lg bg-white mb-3"
-            style={{ height: '256px' }}
-          />
+          <div className="w-full h-64 border border-gray-200 rounded-lg bg-white mb-3 flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🔗</div>
+              <p className="text-lg font-medium text-gray-900 mb-2">Network Visualization</p>
+              <p className="text-sm text-gray-600 mb-4">
+                Tracking {data.nodes.length} domains with {data.edges.length} connections
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {data.nodes.slice(0, 6).map((node, index) => (
+                  <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: node.color }}
+                    />
+                    <span className="truncate">{node.label}</span>
+                  </div>
+                ))}
+                {data.nodes.length > 6 && (
+                  <div className="col-span-2 text-center text-gray-500 py-2">
+                    +{data.nodes.length - 6} more domains
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-green-500"></div>

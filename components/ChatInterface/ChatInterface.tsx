@@ -1,3 +1,4 @@
+import { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import { useChat } from './ChatInterface.hooks';
 import type { ChatInterfaceProps, MessageDisplayProps } from './ChatInterface.types';
 import { Card, CardHeader, CardContent, Button, LoadingSpinner } from '../ui';
@@ -40,14 +41,14 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
     clearChat,
   } = useChat();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (inputValue.trim() && !loading) {
       sendMessage(inputValue);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -115,7 +116,7 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
               <input
                 type="text"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about your privacy..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-phantom-500 focus:border-phantom-500"
