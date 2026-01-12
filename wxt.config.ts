@@ -19,20 +19,17 @@ export default defineConfig({
           if (warning.code === 'EVAL' || warning.code === 'MODULE_LEVEL_DIRECTIVE') {
             return;
           }
-          // Don't treat vis-network import as an error
-          if (warning.code === 'UNRESOLVED_IMPORT' && warning.id?.includes('vis-network')) {
-            return;
-          }
           warn(warning);
         },
       },
+      chunkSizeWarningLimit: 1000, // Increase limit for Cytoscape.js
     },
     define: {
       // Ensure proper environment variables
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
     },
     optimizeDeps: {
-      include: ['vis-network'],
+      include: ['cytoscape'],
     },
   }),
 });
