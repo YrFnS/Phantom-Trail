@@ -1,0 +1,53 @@
+/* Global styles and CSS variables */
+:root {
+  --phantom-primary: #0284c7;
+  --phantom-primary-hover: #0369a1;
+  --phantom-secondary: #64748b;
+  --phantom-success: #059669;
+  --phantom-warning: #d97706;
+  --phantom-error: #dc2626;
+  --phantom-surface: #ffffff;
+  --phantom-background: #f8fafc;
+}
+
+/* Scrollbar styling for extension popup */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Focus styles for accessibility */
+.focus-visible {
+  outline: 2px solid var(--phantom-primary);
+  outline-offset: 2px;
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Extension-specific styles */
+.extension-popup {
+  min-height: 400px;
+  max-height: 600px;
+  width: 384px; /* w-96 */
+}
