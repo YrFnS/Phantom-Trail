@@ -155,7 +155,7 @@ export function useAIAnalysis(events: TrackingEvent[]) {
     if (events.length > 0) {
       generateAnalysis();
     }
-  }, [generateAnalysis]);
+  }, [events.length, generateAnalysis]);
 
   return {
     analysis,
@@ -237,7 +237,7 @@ export function usePatternDetection(events: TrackingEvent[]) {
     }, 2000); // Increased to 2 seconds for more stability
 
     return () => clearTimeout(timeoutId);
-  }, [events.length]); // Only depend on length, not the entire array
+  }, [events.length, detectPatterns]); // Only depend on length, not the entire array
 
   return {
     patterns,

@@ -93,15 +93,32 @@ pnpm build        # Build for production
 pnpm build:firefox # Build for Firefox
 pnpm zip          # Create distribution package
 pnpm typecheck    # Run TypeScript checks
+pnpm lint         # Run ESLint
+pnpm format       # Format code with Prettier
 ```
 
 ### Development Workflow
 
-1. **Load project context**: Use `@prime` prompt to understand codebase
-2. **Plan features**: Use `@plan-feature` for structured implementation
-3. **Execute**: Use `@execute` for systematic development
-4. **Review**: Use `@code-review` before committing
-5. **Test**: Load extension in Chrome and verify functionality
+1. **Before making changes**: Ensure clean state
+   ```bash
+   pnpm lint && pnpm build && npx tsc --noEmit
+   ```
+
+2. **After adding dependencies**: Verify everything works
+   ```bash
+   # Windows PowerShell
+   .\scripts\verify-deps.ps1
+   
+   # Or manually:
+   pnpm install && pnpm lint && pnpm build && npx tsc --noEmit
+   ```
+
+3. **After using Kiro CLI**: Always verify
+   ```bash
+   pnpm install  # Refresh dependencies
+   pnpm lint     # Check code quality  
+   pnpm build    # Verify build
+   ```
 
 ### Code Standards
 

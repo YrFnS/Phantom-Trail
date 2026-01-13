@@ -67,9 +67,13 @@ components/
 
 **Type Check** - Run `npx tsc --noEmit` before committing
 
+**Lint Check** - Run `pnpm lint` and fix all warnings before committing
+
 **Manual Test** - Load extension in Chrome and verify changes work
 
 **No Breaking Changes** - Extension must function after each commit
+
+**Dependency Verification** - After adding dependencies, verify `pnpm lint` and `pnpm build` still work
 
 ## Git Workflow
 

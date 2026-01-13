@@ -295,13 +295,13 @@ Building an AI-powered Chrome extension that makes invisible data collection vis
 
 ## Time Breakdown by Category
 
-| Category                 | Hours   | Percentage |
-| ------------------------ | ------- | ---------- |
-| Project Setup & Planning | 2h      | 10%        |
-| WXT Framework Setup      | 1h      | 5%         |
-| Core Implementation      | 12.5h   | 64%        |
-| Testing & Integration    | 2h      | 10%        |
-| UI/UX Enhancement        | 2h      | 10%        |
+| Category                 | Hours     | Percentage |
+| ------------------------ | --------- | ---------- |
+| Project Setup & Planning | 2h        | 10%        |
+| WXT Framework Setup      | 1h        | 5%         |
+| Core Implementation      | 12.5h     | 64%        |
+| Testing & Integration    | 2h        | 10%        |
+| UI/UX Enhancement        | 2h        | 10%        |
 | **Total**                | **19.5h** | **100%**   |
 
 ---
