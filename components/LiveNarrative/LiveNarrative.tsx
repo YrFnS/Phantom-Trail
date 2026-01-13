@@ -14,85 +14,87 @@ import { Card, CardHeader, CardContent, Badge, LoadingSpinner } from '../ui';
 /**
  * Individual event display component with AI analysis
  */
-const EventDisplay = React.memo(function EventDisplay({
-  event,
-  analysis,
-}: EventDisplayProps) {
-  const { analysis: eventAnalysis, loading: analysisLoading } =
-    useEventAnalysis(event);
+const EventDisplay = React.memo(
+  function EventDisplay({ event, analysis }: EventDisplayProps) {
+    const { analysis: eventAnalysis, loading: analysisLoading } =
+      useEventAnalysis(event);
 
-  // Use individual event analysis if available, fallback to passed analysis
-  const displayAnalysis = React.useMemo(
-    () => eventAnalysis || analysis,
-    [eventAnalysis, analysis]
-  );
+    // Use individual event analysis if available, fallback to passed analysis
+    const displayAnalysis = React.useMemo(
+      () => eventAnalysis || analysis,
+      [eventAnalysis, analysis]
+    );
 
-  return (
-    <Card className="animate-fade-in">
-      <CardContent className="p-3">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1">
-            <h3 className="font-medium text-gray-900 text-sm">
-              {event.domain}
-            </h3>
-            <p className="text-xs text-gray-600 mt-1">{event.description}</p>
-            {eventAnalysis?.websiteContext && (
-              <Badge variant="default" className="mt-1 text-xs">
-                {eventAnalysis.websiteContext}
-              </Badge>
-            )}
-          </div>
-          <div className="flex flex-col items-end space-y-1">
-            <Badge variant={event.riskLevel}>{event.riskLevel}</Badge>
-            {eventAnalysis?.confidence && (
-              <span className="text-xs text-gray-500">
-                {Math.round(eventAnalysis.confidence * 100)}% confident
-              </span>
-            )}
-          </div>
-        </div>
-
-        {analysisLoading && (
-          <div className="mt-2 p-2 bg-gray-50 rounded border-l-4 border-gray-300">
-            <div className="flex items-center space-x-2">
-              <LoadingSpinner size="sm" />
-              <span className="text-xs text-gray-600">Analyzing...</span>
+    return (
+      <Card className="animate-fade-in">
+        <CardContent className="p-3">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex-1">
+              <h3 className="font-medium text-gray-900 text-sm">
+                {event.domain}
+              </h3>
+              <p className="text-xs text-gray-600 mt-1">{event.description}</p>
+              {eventAnalysis?.websiteContext && (
+                <Badge variant="default" className="mt-1 text-xs">
+                  {eventAnalysis.websiteContext}
+                </Badge>
+              )}
+            </div>
+            <div className="flex flex-col items-end space-y-1">
+              <Badge variant={event.riskLevel}>{event.riskLevel}</Badge>
+              {eventAnalysis?.confidence && (
+                <span className="text-xs text-gray-500">
+                  {Math.round(eventAnalysis.confidence * 100)}% confident
+                </span>
+              )}
             </div>
           </div>
-        )}
 
-        {displayAnalysis && !analysisLoading && (
-          <div className="mt-2 p-2 bg-phantom-50 rounded border-l-4 border-phantom-400">
-            <p className="text-sm text-phantom-800">
-              {displayAnalysis.narrative}
-            </p>
-            {displayAnalysis.recommendations.length > 0 && (
-              <div className="mt-2">
-                <p className="text-xs text-phantom-700 font-medium">
-                  Quick actions:
-                </p>
-                <ul className="text-xs text-phantom-700 mt-1 space-y-1">
-                  {displayAnalysis.recommendations
-                    .slice(0, 2)
-                    .map((rec, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="mr-1">•</span>
-                        <span>{rec}</span>
-                      </li>
-                    ))}
-                </ul>
+          {analysisLoading && (
+            <div className="mt-2 p-2 bg-gray-50 rounded border-l-4 border-gray-300">
+              <div className="flex items-center space-x-2">
+                <LoadingSpinner size="sm" />
+                <span className="text-xs text-gray-600">Analyzing...</span>
               </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}, (prevProps, nextProps) => {
-  // Only re-render if event ID or analysis changes
-  return prevProps.event.id === nextProps.event.id && 
-         prevProps.analysis === nextProps.analysis;
-});
+            </div>
+          )}
+
+          {displayAnalysis && !analysisLoading && (
+            <div className="mt-2 p-2 bg-phantom-50 rounded border-l-4 border-phantom-400">
+              <p className="text-sm text-phantom-800">
+                {displayAnalysis.narrative}
+              </p>
+              {displayAnalysis.recommendations.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-phantom-700 font-medium">
+                    Quick actions:
+                  </p>
+                  <ul className="text-xs text-phantom-700 mt-1 space-y-1">
+                    {displayAnalysis.recommendations
+                      .slice(0, 2)
+                      .map((rec, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="mr-1">•</span>
+                          <span>{rec}</span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Only re-render if event ID or analysis changes
+    return (
+      prevProps.event.id === nextProps.event.id &&
+      prevProps.analysis === nextProps.analysis
+    );
+  }
+);
 
 /**
  * Pattern alert display component

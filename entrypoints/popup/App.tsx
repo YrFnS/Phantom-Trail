@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { LiveNarrative } from '../../components/LiveNarrative';
 import { NetworkGraph } from '../../components/NetworkGraph';
 import { ChatInterface } from '../../components/ChatInterface';
+import { RiskDashboard } from '../../components/RiskDashboard';
 import { Settings } from '../../components/Settings';
 import { Button } from '../../components/ui';
 
 function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState<
-    'narrative' | 'network' | 'chat'
+    'narrative' | 'network' | 'chat' | 'dashboard'
   >('narrative');
 
   if (showSettings) {
@@ -68,6 +69,18 @@ function App() {
             Network Graph
           </Button>
           <Button
+            variant={activeView === 'dashboard' ? 'primary' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveView('dashboard')}
+            className={`flex-1 rounded-none border-0 ${
+              activeView === 'dashboard'
+                ? 'bg-phantom-600 text-white'
+                : 'bg-transparent text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            Dashboard
+          </Button>
+          <Button
             variant={activeView === 'chat' ? 'primary' : 'ghost'}
             size="sm"
             onClick={() => setActiveView('chat')}
@@ -84,6 +97,7 @@ function App() {
         <div className="animate-fade-in">
           {activeView === 'narrative' && <LiveNarrative />}
           {activeView === 'network' && <NetworkGraph />}
+          {activeView === 'dashboard' && <RiskDashboard />}
           {activeView === 'chat' && <ChatInterface />}
         </div>
       </main>
