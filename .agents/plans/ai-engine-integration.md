@@ -17,6 +17,7 @@ So that I can understand what companies are learning about me and make informed 
 ## Problem Statement
 
 The current implementation has a solid AI engine foundation but lacks complete integration:
+
 - AI analysis is not consistently triggered when new tracking events occur
 - No chat interface for user queries like "What did Google learn about me today?"
 - Error handling doesn't gracefully degrade when AI is unavailable
@@ -66,6 +67,7 @@ Complete the AI engine integration by connecting all components, implementing th
 ### Patterns to Follow
 
 **Component Structure Pattern:**
+
 ```typescript
 // From components/LiveNarrative/
 export function ComponentName({ className = '' }: ComponentProps) {
@@ -75,6 +77,7 @@ export function ComponentName({ className = '' }: ComponentProps) {
 ```
 
 **Custom Hook Pattern:**
+
 ```typescript
 // From LiveNarrative.hooks.ts
 export function useHookName(): HookState {
@@ -87,6 +90,7 @@ export function useHookName(): HookState {
 ```
 
 **Error Handling Pattern:**
+
 ```typescript
 // From ai-engine.ts
 try {
@@ -99,6 +103,7 @@ try {
 ```
 
 **Storage Pattern:**
+
 ```typescript
 // From storage-manager.ts
 static async getStoredData(): Promise<DataType> {
@@ -113,15 +118,21 @@ static async getStoredData(): Promise<DataType> {
 ```
 
 **Risk Level Styling Pattern:**
+
 ```typescript
 // From LiveNarrative.tsx
 function getRiskStyling(riskLevel: RiskLevel) {
   switch (riskLevel) {
-    case 'low': return 'bg-green-100 text-green-800 border-green-200';
-    case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-    case 'critical': return 'bg-red-100 text-red-800 border-red-200';
-    default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    case 'low':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'medium':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'high':
+      return 'bg-orange-100 text-orange-800 border-orange-200';
+    case 'critical':
+      return 'bg-red-100 text-red-800 border-red-200';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200';
   }
 }
 ```
@@ -135,6 +146,7 @@ function getRiskStyling(riskLevel: RiskLevel) {
 Improve the existing AI engine integration and error handling to ensure robust operation.
 
 **Tasks:**
+
 - Enhance AI analysis triggering in background script
 - Improve error handling and fallback behavior
 - Add proper loading states and user feedback
@@ -145,6 +157,7 @@ Improve the existing AI engine integration and error handling to ensure robust o
 Create the natural language chat interface for user queries about their tracking data.
 
 **Tasks:**
+
 - Build ChatInterface component with input/output UI
 - Implement chat state management hooks
 - Connect to AIEngine.chatQuery method
@@ -155,6 +168,7 @@ Create the natural language chat interface for user queries about their tracking
 Connect all components and ensure seamless user experience.
 
 **Tasks:**
+
 - Integrate chat interface into popup UI
 - Add tab navigation for chat vs live feed
 - Implement proper loading states across all components
@@ -165,6 +179,7 @@ Connect all components and ensure seamless user experience.
 Ensure all AI features work correctly with proper fallbacks.
 
 **Tasks:**
+
 - Test with real OpenRouter API key
 - Validate error handling with network failures
 - Test rate limiting behavior
@@ -367,18 +382,21 @@ echo "Manual: Verify <5% CPU overhead during browsing"
 ## NOTES
 
 **Key Implementation Decisions:**
+
 - Chat interface uses same tab navigation pattern as existing Live Feed/Network Graph
 - AI analysis triggers on significant events only (not every request) to manage rate limits
 - Error handling prioritizes user experience over technical accuracy
 - Message history persists in session storage for better UX
 
 **Performance Considerations:**
+
 - Rate limiting prevents API abuse and cost overruns
 - Retry logic includes exponential backoff to avoid hammering failed endpoints
 - Chat history limited to prevent memory bloat
 - AI analysis batched for efficiency
 
 **Security Notes:**
+
 - API keys stored in chrome.storage.local (encrypted by Chrome)
 - No API keys logged or transmitted except to OpenRouter
 - Proper attribution headers required by OpenRouter terms

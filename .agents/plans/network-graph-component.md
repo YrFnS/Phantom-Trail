@@ -63,6 +63,7 @@ Create an interactive network graph using Vis.js that displays tracking domains 
 ### Patterns to Follow
 
 **React Hook Pattern:**
+
 ```typescript
 // From components/LiveNarrative/LiveNarrative.hooks.ts
 export function useTrackingEvents() {
@@ -78,29 +79,38 @@ export function useTrackingEvents() {
 ```
 
 **Risk Level Styling Pattern:**
+
 ```typescript
 // From components/LiveNarrative/LiveNarrative.tsx
 function getRiskStyling(riskLevel: RiskLevel) {
   switch (riskLevel) {
-    case 'low': return 'bg-green-100 text-green-800 border-green-200';
-    case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-    case 'critical': return 'bg-red-100 text-red-800 border-red-200';
-    default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    case 'low':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'medium':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'high':
+      return 'bg-orange-100 text-orange-800 border-orange-200';
+    case 'critical':
+      return 'bg-red-100 text-red-800 border-red-200';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200';
   }
 }
 ```
 
 **Vis.js React Integration Pattern:**
+
 ```typescript
 // From documentation research
 const visJsRef = useRef<HTMLDivElement>(null);
 useEffect(() => {
-  const network = visJsRef.current && new Network(visJsRef.current, { nodes, edges });
+  const network =
+    visJsRef.current && new Network(visJsRef.current, { nodes, edges });
 }, [visJsRef, nodes, edges]);
 ```
 
 **Component Export Pattern:**
+
 ```typescript
 // From existing components
 export function ComponentName({ prop }: ComponentProps) {
@@ -117,6 +127,7 @@ export function ComponentName({ prop }: ComponentProps) {
 Set up the basic NetworkGraph component structure with Vis.js integration and TypeScript definitions.
 
 **Tasks:**
+
 - Create component directory structure following existing patterns
 - Set up Vis.js React integration with proper DOM ref handling
 - Define TypeScript interfaces for network data structures
@@ -126,6 +137,7 @@ Set up the basic NetworkGraph component structure with Vis.js integration and Ty
 Implement the main network visualization logic with real-time data processing.
 
 **Tasks:**
+
 - Create data transformation logic (TrackingEvent → Vis.js nodes/edges)
 - Implement real-time network updates using existing storage hooks
 - Add risk-based color coding for nodes and edges
@@ -135,6 +147,7 @@ Implement the main network visualization logic with real-time data processing.
 Connect the NetworkGraph component to the existing application structure.
 
 **Tasks:**
+
 - Integrate component into popup UI alongside LiveNarrative
 - Add proper error handling and loading states
 - Ensure responsive design within extension constraints
@@ -144,6 +157,7 @@ Connect the NetworkGraph component to the existing application structure.
 Validate functionality and performance with real tracking data.
 
 **Tasks:**
+
 - Test with various tracking scenarios (single domain, multiple domains, cross-site)
 - Validate performance with 50+ nodes as specified in success criteria
 - Ensure proper cleanup and memory management
@@ -209,6 +223,7 @@ IMPORTANT: Execute every task in order, top to bottom. Each task is atomic and i
 ### Unit Tests
 
 Test data transformation logic and hook behavior in isolation:
+
 - TrackingEvent to Vis.js node/edge conversion
 - Real-time data updates through storage hooks
 - Risk level to color mapping accuracy
@@ -216,6 +231,7 @@ Test data transformation logic and hook behavior in isolation:
 ### Integration Tests
 
 Test component integration with existing systems:
+
 - NetworkGraph component renders without errors
 - Real-time updates work with Chrome storage changes
 - Component integrates properly with popup UI layout
@@ -223,6 +239,7 @@ Test component integration with existing systems:
 ### Edge Cases
 
 Test specific scenarios that must work correctly:
+
 - Single domain tracking (one node, no edges)
 - Multiple domains with cross-connections (complex network)
 - Rapid tracking events (performance under load)
@@ -305,17 +322,20 @@ pnpm dev
 ## NOTES
 
 **Key Design Decisions:**
+
 - Use domain names as node IDs to prevent duplicate nodes for same tracker
 - Implement view switching rather than side-by-side display due to popup size constraints
 - Follow existing risk color scheme for consistency with LiveNarrative
 - Use real-time storage hooks to maintain consistency with existing data flow
 
 **Performance Considerations:**
+
 - Limit node count display to prevent UI lag (similar to LiveNarrative's 10-event limit)
 - Implement efficient data transformation to minimize re-renders
 - Use Vis.js built-in clustering for large networks if needed
 
 **Future Enhancement Opportunities:**
+
 - Click-to-focus on specific tracker domains
 - Export network graph as image
 - Advanced filtering by tracker type or risk level

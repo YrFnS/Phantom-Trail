@@ -1,6 +1,9 @@
 import { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import { useChat } from './ChatInterface.hooks';
-import type { ChatInterfaceProps, MessageDisplayProps } from './ChatInterface.types';
+import type {
+  ChatInterfaceProps,
+  MessageDisplayProps,
+} from './ChatInterface.types';
 import { Card, CardHeader, CardContent, Button, LoadingSpinner } from '../ui';
 
 /**
@@ -8,7 +11,7 @@ import { Card, CardHeader, CardContent, Button, LoadingSpinner } from '../ui';
  */
 function MessageDisplay({ message }: MessageDisplayProps) {
   const isUser = message.type === 'user';
-  
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
       <div
@@ -19,7 +22,9 @@ function MessageDisplay({ message }: MessageDisplayProps) {
         }`}
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
-        <p className={`text-xs mt-1 ${isUser ? 'text-phantom-100' : 'text-gray-500'}`}>
+        <p
+          className={`text-xs mt-1 ${isUser ? 'text-phantom-100' : 'text-gray-500'}`}
+        >
           {new Date(message.timestamp).toLocaleTimeString()}
         </p>
       </div>
@@ -82,7 +87,8 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
                 <div className="text-3xl mb-3">💬</div>
                 <p className="text-sm mb-2">Ask me about your privacy!</p>
                 <p className="text-xs text-gray-400">
-                  Try: "What trackers did I encounter today?" or "Is this website safe?"
+                  Try: &ldquo;What trackers did I encounter today?&rdquo; or
+                  &ldquo;Is this website safe?&rdquo;
                 </p>
               </div>
             ) : (
@@ -90,7 +96,7 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
                 {messages.map(message => (
                   <MessageDisplay key={message.id} message={message} />
                 ))}
-                
+
                 {loading && (
                   <div className="flex justify-start mb-3">
                     <div className="bg-gray-100 border px-3 py-2 rounded-lg text-sm">
@@ -111,12 +117,17 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="p-3 border-t border-gray-200">
+          <form
+            onSubmit={handleSubmit}
+            className="p-3 border-t border-gray-200"
+          >
             <div className="flex space-x-2">
               <input
                 type="text"
                 value={inputValue}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setInputValue(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setInputValue(e.target.value)
+                }
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about your privacy..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-phantom-500 focus:border-phantom-500"

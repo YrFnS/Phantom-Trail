@@ -73,11 +73,13 @@ Fix the Tailwind CSS build pipeline by correcting import syntax and configuratio
 ### Patterns to Follow
 
 **Naming Conventions:**
+
 - Components: PascalCase (`LiveNarrative.tsx`, `NetworkGraph.tsx`)
 - Utilities: camelCase (`getRiskStyling`, `formatTimestamp`)
 - CSS classes: Tailwind utilities with custom phantom- prefix for brand colors
 
 **Error Handling:**
+
 ```typescript
 // From LiveNarrative.tsx lines 45-55
 if (error && (retryCount || 0) > 0) {
@@ -92,19 +94,25 @@ if (error && (retryCount || 0) > 0) {
 ```
 
 **Risk Level Styling Pattern:**
+
 ```typescript
 // From LiveNarrative.tsx lines 10-20
 function getRiskStyling(riskLevel: RiskLevel) {
   switch (riskLevel) {
-    case 'low': return 'bg-green-100 text-green-800 border-green-200';
-    case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-    case 'critical': return 'bg-red-100 text-red-800 border-red-200';
+    case 'low':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'medium':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'high':
+      return 'bg-orange-100 text-orange-800 border-orange-200';
+    case 'critical':
+      return 'bg-red-100 text-red-800 border-red-200';
   }
 }
 ```
 
 **Component Structure Pattern:**
+
 ```typescript
 // From App.tsx lines 15-25
 return (
@@ -128,6 +136,7 @@ return (
 Fix the broken Tailwind CSS integration by correcting import syntax, adding PostCSS configuration, and ensuring proper build processing.
 
 **Tasks:**
+
 - Fix Tailwind CSS import syntax in style.css
 - Create PostCSS configuration file
 - Update package.json dependencies if needed
@@ -138,6 +147,7 @@ Fix the broken Tailwind CSS integration by correcting import syntax, adding Post
 Establish a cohesive design system with proper typography, spacing, colors, and reusable components.
 
 **Tasks:**
+
 - Create utility functions for class name management
 - Implement shared UI components (Button, Card, Badge)
 - Define consistent spacing and typography scales
@@ -148,6 +158,7 @@ Establish a cohesive design system with proper typography, spacing, colors, and 
 Enhance existing components with improved styling, visual hierarchy, and interactive states.
 
 **Tasks:**
+
 - Redesign popup layout with better proportions
 - Enhance LiveNarrative component styling
 - Improve tab navigation design
@@ -158,6 +169,7 @@ Enhance existing components with improved styling, visual hierarchy, and interac
 Add final visual polish with animations, shadows, gradients, and professional finishing touches.
 
 **Tasks:**
+
 - Implement subtle animations and transitions
 - Add proper shadows and depth
 - Optimize for different screen densities
@@ -308,6 +320,7 @@ No unit tests required for this styling enhancement - focus on visual and functi
 ### Integration Tests
 
 Manual testing of all components in Chrome extension environment:
+
 - Load extension in Chrome browser
 - Test all tab navigation (Live Feed, Network Graph, Chat)
 - Verify settings panel functionality
@@ -368,6 +381,7 @@ pnpm zip
 ### Level 4: Manual Validation
 
 **Visual Testing Steps:**
+
 1. Click extension icon to open popup
 2. Verify proper Tailwind styling is applied (not plain text)
 3. Test all three tabs (Live Feed, Network Graph, Chat)
@@ -378,6 +392,7 @@ pnpm zip
 8. Verify responsive behavior
 
 **Functional Testing Steps:**
+
 1. Verify tracker detection still works
 2. Test AI analysis integration
 3. Test chat interface functionality
@@ -433,22 +448,26 @@ pnpm zip
 ## NOTES
 
 **Design Decisions:**
+
 - Using Tailwind CSS v3.4.0 for stability over v4 alpha
 - Maintaining existing component structure while enhancing styling
 - Following Chrome extension popup size constraints (800x600px max)
 - Preserving all existing functionality while improving visual design
 
 **Performance Considerations:**
+
 - Tailwind CSS will be purged to include only used classes
 - CSS bundle size should remain under 50KB
 - No JavaScript performance impact expected
 
 **Browser Compatibility:**
+
 - Targeting Chrome Manifest V3 extensions
 - Using modern CSS features supported in Chrome 88+
 - Avoiding experimental CSS features
 
 **Future Enhancements:**
+
 - Dark mode support can be added later
 - Animation system can be expanded
 - Additional UI components can be created as needed

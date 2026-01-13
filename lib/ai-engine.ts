@@ -27,22 +27,55 @@ export class AIEngine {
 
       const events = await StorageManager.getRecentEvents(50);
       const prompt = this.buildChatPrompt(query.trim(), events);
-      
+
       const response = await this.callOpenRouter(settings.apiKey, prompt);
       if (response) {
         await this.incrementRequestCount();
-        
+
         // Validate response is reasonable length and content
         if (response.length > 2000) {
           return response.substring(0, 2000) + '...';
         }
-        
+
         return response;
       }
-      
+
       return null;
     } catch (error) {
       console.error('Chat query failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate AI analysis for individual tracking event
+   */
+  static async generateEventAnalysis(
+    event: TrackingEvent,
+    context: string
+  ): Promise<AIAnalysis | null> {
+    try {
+      if (!(await this.canMakeRequest())) {
+        console.warn('Rate limit exceeded, skipping event analysis');
+        return null;
+      }
+
+      const settings = await StorageManager.getSettings();
+      if (!settings.enableAI || !settings.apiKey) {
+        return null;
+      }
+
+      const prompt = this.buildEventPrompt(event, context);
+      const response = await this.callOpenRouter(settings.apiKey, prompt);
+
+      if (response) {
+        await this.incrementRequestCount();
+        return this.parseResponse(response);
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Event AI analysis failed:', error);
       return null;
     }
   }
@@ -125,9 +158,56 @@ export class AIEngine {
   }
 
   /**
+   * Build prompt for individual event analysis
+   */
+  private static buildEventPrompt(
+    event: TrackingEvent,
+    context: string
+  ): string {
+    const contextPrompts = {
+      banking:
+        'This tracking occurred on a banking/financial website. Focus on financial privacy and security risks.',
+      shopping:
+        'This tracking occurred on an e-commerce website. Focus on purchase behavior and price manipulation.',
+      social:
+        'This tracking occurred on a social media website. Focus on social profiling and behavioral targeting.',
+      news: 'This tracking occurred on a news website. Focus on reading habits and political profiling.',
+      search:
+        'This tracking occurred on a search engine. Focus on search history and intent tracking.',
+      streaming:
+        'This tracking occurred on a streaming website. Focus on viewing habits and content preferences.',
+      unknown: 'Analyze this tracking event for general privacy implications.',
+    };
+
+    const contextPrompt =
+      contextPrompts[context as keyof typeof contextPrompts] ||
+      contextPrompts.unknown;
+
+    return `You are a privacy expert analyzing a specific tracking event. ${contextPrompt}
+
+Event Details:
+- Domain: ${event.domain}
+- Tracker Type: ${event.trackerType}
+- Risk Level: ${event.riskLevel}
+- Description: ${event.description}
+- Website: ${new URL(event.url).hostname}
+
+Provide a brief, user-friendly analysis as JSON:
+- "narrative": 1 sentence explaining what this specific tracker is doing
+- "riskAssessment": Risk level (low/medium/high/critical)
+- "recommendations": Array of 1-2 specific actions the user can take
+- "confidence": Confidence score 0-1
+
+Focus on what this individual tracker learned and actionable steps.`;
+  }
+
+  /**
    * Build prompt for chat queries
    */
-  private static buildChatPrompt(query: string, events: TrackingEvent[]): string {
+  private static buildChatPrompt(
+    query: string,
+    events: TrackingEvent[]
+  ): string {
     const recentEvents = events.slice(-20);
     const eventSummary = recentEvents
       .map(e => `${e.domain} (${e.trackerType}): ${e.description}`)
@@ -142,10 +222,37 @@ Provide a conversational, helpful response. Be specific about what companies lea
   }
 
   /**
-   * Build prompt for AI analysis
+   * Build prompt for AI analysis with context awareness
    */
   private static buildPrompt(events: TrackingEvent[]): string {
     const recentEvents = events.slice(-10); // Last 10 events for context
+
+    // Detect dominant website context
+    const contexts = recentEvents.map(event => {
+      try {
+        const hostname = new URL(event.url).hostname;
+        if (hostname.includes('bank') || hostname.includes('financial'))
+          return 'banking';
+        if (
+          hostname.includes('shop') ||
+          hostname.includes('amazon') ||
+          hostname.includes('ebay')
+        )
+          return 'shopping';
+        if (
+          hostname.includes('facebook') ||
+          hostname.includes('twitter') ||
+          hostname.includes('social')
+        )
+          return 'social';
+        return 'general';
+      } catch {
+        return 'general';
+      }
+    });
+
+    const dominantContext = this.getMostFrequent(contexts);
+    const contextPrompt = this.getContextPrompt(dominantContext);
 
     const eventSummary = recentEvents
       .map(
@@ -154,8 +261,9 @@ Provide a conversational, helpful response. Be specific about what companies lea
       )
       .join('\n');
 
-    return `You are a privacy expert analyzing web tracking activity. Based on these recent tracking events, provide a brief, user-friendly analysis:
+    return `You are a privacy expert analyzing web tracking activity. ${contextPrompt}
 
+Recent tracking events:
 ${eventSummary}
 
 Respond with a JSON object containing:
@@ -167,6 +275,42 @@ Respond with a JSON object containing:
 Keep the narrative conversational and non-technical. Focus on what the user should know or do.`;
   }
 
+  /**
+   * Get context-specific prompt addition
+   */
+  private static getContextPrompt(context: string): string {
+    const prompts = {
+      banking:
+        'These events occurred on banking/financial websites. Focus on financial privacy and unauthorized access risks.',
+      shopping:
+        'These events occurred on e-commerce websites. Focus on purchase tracking and price manipulation.',
+      social:
+        'These events occurred on social media websites. Focus on social profiling and behavioral targeting.',
+      general: 'Analyze general tracking behavior and privacy implications.',
+    };
+    return prompts[context as keyof typeof prompts] || prompts.general;
+  }
+
+  /**
+   * Get most frequent item in array
+   */
+  private static getMostFrequent<T>(arr: T[]): T {
+    const counts = new Map<T, number>();
+    arr.forEach(item => counts.set(item, (counts.get(item) || 0) + 1));
+
+    let maxCount = 0;
+    let mostFrequent = arr[0];
+
+    counts.forEach((count, item) => {
+      if (count > maxCount) {
+        maxCount = count;
+        mostFrequent = item;
+      }
+    });
+
+    return mostFrequent;
+  }
+
   private static async callOpenRouter(
     apiKey: string,
     prompt: string
@@ -174,7 +318,7 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
     try {
       const settings = await StorageManager.getSettings();
       const primaryModel = settings.aiModel || DEFAULT_MODEL;
-      
+
       // Try user-selected model first
       let response = await this.makeAPICall(apiKey, prompt, primaryModel);
       if (response) return response;
@@ -184,7 +328,7 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
         response = await this.makeAPICall(apiKey, prompt, DEFAULT_MODEL);
         if (response) return response;
       }
-      
+
       // Final fallback
       response = await this.makeAPICall(apiKey, prompt, FALLBACK_MODEL);
       return response;
@@ -223,7 +367,9 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
 
         if (!response.ok) {
           if (response.status === 429 && attempt < retries) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+            await new Promise(resolve =>
+              setTimeout(resolve, 1000 * (attempt + 1))
+            );
             continue;
           }
           throw new Error(`API call failed: ${response.status}`);
@@ -233,7 +379,10 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
         return data.choices?.[0]?.message?.content || null;
       } catch (error) {
         if (attempt === retries) {
-          console.error(`API call to ${model} failed after ${retries + 1} attempts:`, error);
+          console.error(
+            `API call to ${model} failed after ${retries + 1} attempts:`,
+            error
+          );
           return null;
         }
       }
@@ -259,13 +408,16 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
       }
 
       return {
-        narrative: typeof parsed.narrative === 'string' 
-          ? parsed.narrative 
-          : 'Tracking activity detected',
+        narrative:
+          typeof parsed.narrative === 'string'
+            ? parsed.narrative
+            : 'Tracking activity detected',
         riskAssessment:
           this.validateRiskLevel(parsed.riskAssessment) || 'medium',
         recommendations: Array.isArray(parsed.recommendations)
-          ? parsed.recommendations.slice(0, 3).filter((r: unknown) => typeof r === 'string')
+          ? parsed.recommendations
+              .slice(0, 3)
+              .filter((r: unknown) => typeof r === 'string')
           : ['Review your privacy settings'],
         confidence:
           typeof parsed.confidence === 'number'

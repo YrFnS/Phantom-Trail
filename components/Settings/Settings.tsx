@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { StorageManager } from '../../lib/storage-manager';
 import { AI_MODELS, DEFAULT_MODEL } from '../../lib/ai-models';
-import type { ExtensionSettings } from '../../lib/types';
+import type { ExtensionSettings, RiskLevel } from '../../lib/types';
 import { Card, CardHeader, CardContent, Button } from '../ui';
 
 interface SettingsProps {
@@ -73,7 +73,7 @@ export function Settings({ onClose }: SettingsProps) {
               <input
                 type="password"
                 value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+                onChange={e => setApiKey(e.target.value)}
                 placeholder="sk-or-v1-..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-phantom-500 focus:border-phantom-500"
               />
@@ -97,15 +97,19 @@ export function Settings({ onClose }: SettingsProps) {
               </label>
               <select
                 value={settings.aiModel || DEFAULT_MODEL}
-                onChange={(e) =>
+                onChange={e =>
                   setSettings({ ...settings, aiModel: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-phantom-500 focus:border-phantom-500"
               >
-                {AI_MODELS.map((model) => (
+                {AI_MODELS.map(model => (
                   <option key={model.id} value={model.id}>
-                    {model.name} {model.category === 'free' ? '(Free)' : 
-                     model.category === 'fast' ? '(Fast)' : '(Premium)'}
+                    {model.name}{' '}
+                    {model.category === 'free'
+                      ? '(Free)'
+                      : model.category === 'fast'
+                        ? '(Fast)'
+                        : '(Premium)'}
                   </option>
                 ))}
               </select>
@@ -127,7 +131,7 @@ export function Settings({ onClose }: SettingsProps) {
               <input
                 type="checkbox"
                 checked={settings.enableAI}
-                onChange={(e) =>
+                onChange={e =>
                   setSettings({ ...settings, enableAI: e.target.checked })
                 }
                 className="rounded border-gray-300 text-phantom-600 focus:ring-phantom-500"
@@ -141,10 +145,10 @@ export function Settings({ onClose }: SettingsProps) {
               </label>
               <select
                 value={settings.riskThreshold}
-                onChange={(e) =>
+                onChange={e =>
                   setSettings({
                     ...settings,
-                    riskThreshold: e.target.value as any,
+                    riskThreshold: e.target.value as RiskLevel,
                   })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-phantom-500 focus:border-phantom-500"

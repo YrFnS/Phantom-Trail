@@ -17,6 +17,13 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["@types/chrome", "@types/react", "@types/react-dom"]
   },
-  "include": ["entrypoints", "components", "lib", "assets", "types", ".wxt/types"],
+  "include": [
+    "entrypoints",
+    "components",
+    "lib",
+    "assets",
+    "types",
+    ".wxt/types"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

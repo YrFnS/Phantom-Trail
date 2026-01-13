@@ -1,4 +1,8 @@
-import type { NetworkData, NetworkNode, NetworkEdge } from './NetworkGraph.types';
+import type {
+  NetworkData,
+  NetworkNode,
+  NetworkEdge,
+} from './NetworkGraph.types';
 import type { RiskLevel } from '../../lib/types';
 
 /**

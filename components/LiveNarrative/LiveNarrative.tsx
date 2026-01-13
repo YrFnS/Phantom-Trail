@@ -1,44 +1,195 @@
-import { useLiveNarrative } from './LiveNarrative.hooks';
+import React from 'react';
+import {
+  useLiveNarrative,
+  useEventAnalysis,
+  usePatternDetection,
+} from './LiveNarrative.hooks';
 import type {
   LiveNarrativeProps,
   EventDisplayProps,
+  PatternAlert,
 } from './LiveNarrative.types';
 import { Card, CardHeader, CardContent, Badge, LoadingSpinner } from '../ui';
 
 /**
- * Individual event display component
+ * Individual event display component with AI analysis
  */
-function EventDisplay({ event, analysis }: EventDisplayProps) {
+const EventDisplay = React.memo(function EventDisplay({
+  event,
+  analysis,
+}: EventDisplayProps) {
+  const { analysis: eventAnalysis, loading: analysisLoading } =
+    useEventAnalysis(event);
+
+  // Use individual event analysis if available, fallback to passed analysis
+  const displayAnalysis = React.useMemo(
+    () => eventAnalysis || analysis,
+    [eventAnalysis, analysis]
+  );
+
   return (
     <Card className="animate-fade-in">
       <CardContent className="p-3">
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
-            <h3 className="font-medium text-gray-900 text-sm">{event.domain}</h3>
+            <h3 className="font-medium text-gray-900 text-sm">
+              {event.domain}
+            </h3>
             <p className="text-xs text-gray-600 mt-1">{event.description}</p>
+            {eventAnalysis?.websiteContext && (
+              <Badge variant="default" className="mt-1 text-xs">
+                {eventAnalysis.websiteContext}
+              </Badge>
+            )}
           </div>
-          <Badge variant={event.riskLevel}>
-            {event.riskLevel}
-          </Badge>
+          <div className="flex flex-col items-end space-y-1">
+            <Badge variant={event.riskLevel}>{event.riskLevel}</Badge>
+            {eventAnalysis?.confidence && (
+              <span className="text-xs text-gray-500">
+                {Math.round(eventAnalysis.confidence * 100)}% confident
+              </span>
+            )}
+          </div>
         </div>
 
-        {analysis && (
+        {analysisLoading && (
+          <div className="mt-2 p-2 bg-gray-50 rounded border-l-4 border-gray-300">
+            <div className="flex items-center space-x-2">
+              <LoadingSpinner size="sm" />
+              <span className="text-xs text-gray-600">Analyzing...</span>
+            </div>
+          </div>
+        )}
+
+        {displayAnalysis && !analysisLoading && (
           <div className="mt-2 p-2 bg-phantom-50 rounded border-l-4 border-phantom-400">
-            <p className="text-sm text-phantom-800">{analysis.narrative}</p>
+            <p className="text-sm text-phantom-800">
+              {displayAnalysis.narrative}
+            </p>
+            {displayAnalysis.recommendations.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs text-phantom-700 font-medium">
+                  Quick actions:
+                </p>
+                <ul className="text-xs text-phantom-700 mt-1 space-y-1">
+                  {displayAnalysis.recommendations
+                    .slice(0, 2)
+                    .map((rec, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="mr-1">•</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
     </Card>
   );
-}
+}, (prevProps, nextProps) => {
+  // Only re-render if event ID or analysis changes
+  return prevProps.event.id === nextProps.event.id && 
+         prevProps.analysis === nextProps.analysis;
+});
+
+/**
+ * Pattern alert display component
+ */
+const PatternAlerts = React.memo(function PatternAlerts({
+  alerts,
+}: {
+  alerts: PatternAlert[];
+}) {
+  if (alerts.length === 0) return null;
+
+  return (
+    <div className="space-y-2 mb-3">
+      {alerts.map((alert, index) => (
+        <div
+          key={index}
+          className={`p-3 rounded-lg border-l-4 ${
+            alert.severity === 'critical'
+              ? 'bg-red-50 border-red-400'
+              : alert.severity === 'warning'
+                ? 'bg-yellow-50 border-yellow-400'
+                : 'bg-blue-50 border-blue-400'
+          }`}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">
+                  {alert.severity === 'critical'
+                    ? '🚨'
+                    : alert.severity === 'warning'
+                      ? '⚠️'
+                      : 'ℹ️'}
+                </span>
+                <h4
+                  className={`font-medium text-sm ${
+                    alert.severity === 'critical'
+                      ? 'text-red-800'
+                      : alert.severity === 'warning'
+                        ? 'text-yellow-800'
+                        : 'text-blue-800'
+                  }`}
+                >
+                  Pattern Detected
+                </h4>
+              </div>
+              <p
+                className={`text-sm mt-1 ${
+                  alert.severity === 'critical'
+                    ? 'text-red-700'
+                    : alert.severity === 'warning'
+                      ? 'text-yellow-700'
+                      : 'text-blue-700'
+                }`}
+              >
+                {alert.message}
+              </p>
+              {alert.actionable && (
+                <p
+                  className={`text-xs mt-2 ${
+                    alert.severity === 'critical'
+                      ? 'text-red-600'
+                      : alert.severity === 'warning'
+                        ? 'text-yellow-600'
+                        : 'text-blue-600'
+                  }`}
+                >
+                  💡 Consider using privacy-focused browser settings or
+                  extensions
+                </p>
+              )}
+            </div>
+            <Badge variant={alert.pattern.riskLevel} className="ml-2">
+              {alert.pattern.type}
+            </Badge>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+});
 
 /**
  * Main Live Narrative component
  */
 export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
   const { events, analysis, loading, error, retryCount } = useLiveNarrative();
+  const { alerts } = usePatternDetection(events);
 
-  if (loading && events.length === 0) {
+  // Memoize expensive computations
+  const hasEvents = React.useMemo(() => events.length > 0, [events.length]);
+  const isInitialLoading = React.useMemo(
+    () => loading && events.length === 0,
+    [loading, events.length]
+  );
+
+  if (isInitialLoading) {
     return (
       <div className={`space-y-4 ${className}`}>
         <Card>
@@ -58,7 +209,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
     );
   }
 
-  if (events.length === 0) {
+  if (!hasEvents) {
     return (
       <div className={`space-y-4 ${className}`}>
         <Card>
@@ -68,7 +219,9 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
           <CardContent>
             <div className="text-center py-6">
               <div className="text-4xl mb-2">🔍</div>
-              <p className="text-sm text-gray-500 mb-1">No tracking detected yet...</p>
+              <p className="text-sm text-gray-500 mb-1">
+                No tracking detected yet...
+              </p>
               <p className="text-xs text-gray-400">
                 Visit a website to see tracking activity
               </p>
@@ -80,14 +233,26 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
   }
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div
+      className={`space-y-4 ${className}`}
+      role="region"
+      aria-label="Live tracking activity"
+    >
       <Card>
         <CardHeader>
-          <h2 className="font-medium text-gray-900">Live Activity</h2>
+          <h2 className="font-medium text-gray-900" id="live-activity-heading">
+            Live Activity
+          </h2>
         </CardHeader>
-        <CardContent>
+        <CardContent aria-labelledby="live-activity-heading">
+          <PatternAlerts alerts={alerts} />
+
           {analysis && (
-            <div className="mb-3 p-3 bg-phantom-50 rounded-lg border-l-4 border-phantom-400">
+            <div
+              className="mb-3 p-3 bg-phantom-50 rounded-lg border-l-4 border-phantom-400"
+              role="status"
+              aria-live="polite"
+            >
               <p className="text-sm text-phantom-900 font-medium">
                 {analysis.narrative}
               </p>
@@ -96,10 +261,19 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
                   <p className="text-xs text-phantom-700 font-medium">
                     Recommendations:
                   </p>
-                  <ul className="text-xs text-phantom-700 mt-1 space-y-1">
+                  <ul
+                    className="text-xs text-phantom-700 mt-1 space-y-1"
+                    role="list"
+                  >
                     {analysis.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="mr-1">•</span>
+                      <li
+                        key={index}
+                        className="flex items-start"
+                        role="listitem"
+                      >
+                        <span className="mr-1" aria-hidden="true">
+                          •
+                        </span>
                         <span>{rec}</span>
                       </li>
                     ))}
@@ -110,12 +284,15 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
           )}
 
           {error && (
-            <div className="mb-3 p-2 bg-yellow-50 rounded border-l-4 border-yellow-400">
+            <div
+              className="mb-3 p-2 bg-yellow-50 rounded border-l-4 border-yellow-400"
+              role="alert"
+              aria-live="assertive"
+            >
               <p className="text-sm text-yellow-800">
-                {(retryCount || 0) > 0 
+                {(retryCount || 0) > 0
                   ? `AI analysis retrying... (attempt ${(retryCount || 0) + 1}/3)`
-                  : 'AI analysis temporarily unavailable'
-                }
+                  : 'AI analysis temporarily unavailable'}
               </p>
               <p className="text-xs text-yellow-600 mt-1">
                 Tracker detection continues to work normally
@@ -123,7 +300,12 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
             </div>
           )}
 
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div
+            className="space-y-2 max-h-64 overflow-y-auto"
+            role="log"
+            aria-label="Tracking events list"
+            tabIndex={0}
+          >
             {events.map(event => (
               <EventDisplay
                 key={event.id}
@@ -138,7 +320,11 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
           </div>
 
           {loading && (
-            <div className="flex items-center justify-center py-3">
+            <div
+              className="flex items-center justify-center py-3"
+              role="status"
+              aria-live="polite"
+            >
               <LoadingSpinner size="sm" />
               <span className="text-xs text-gray-600 ml-2">Analyzing...</span>
             </div>

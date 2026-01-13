@@ -1,7 +1,12 @@
 import { useMemo, useRef } from 'react';
 import { useStorage } from '../../lib/hooks/useStorage';
 import type { TrackingEvent, RiskLevel } from '../../lib/types';
-import type { NetworkData, NetworkNode, NetworkEdge, ProcessedTrackingData } from './NetworkGraph.types';
+import type {
+  NetworkData,
+  NetworkNode,
+  NetworkEdge,
+  ProcessedTrackingData,
+} from './NetworkGraph.types';
 
 export function useTrackingEvents() {
   const [events, , eventsLoading] = useStorage<TrackingEvent[]>(
@@ -16,13 +21,16 @@ export function useTrackingEvents() {
   const stableEvents = useMemo(() => {
     const now = Date.now();
     const timeSinceLastUpdate = now - lastUpdateRef.current;
-    
+
     // Only update if 2+ seconds have passed or significant change
-    if (timeSinceLastUpdate > 2000 || Math.abs(events.length - stableEventsRef.current.length) > 5) {
+    if (
+      timeSinceLastUpdate > 2000 ||
+      Math.abs(events.length - stableEventsRef.current.length) > 5
+    ) {
       lastUpdateRef.current = now;
       stableEventsRef.current = events.slice(-50); // Show last 50 events
     }
-    
+
     return stableEventsRef.current;
   }, [events]);
 
@@ -55,10 +63,13 @@ function processTrackingEvents(events: TrackingEvent[]): ProcessedTrackingData {
   events.forEach(event => {
     const { domain, riskLevel } = event;
     domains.add(domain);
-    
+
     // Track highest risk level for each domain
     const currentRisk = riskLevels.get(domain);
-    if (!currentRisk || getRiskPriority(riskLevel) > getRiskPriority(currentRisk)) {
+    if (
+      !currentRisk ||
+      getRiskPriority(riskLevel) > getRiskPriority(currentRisk)
+    ) {
       riskLevels.set(domain, riskLevel);
     }
 
@@ -77,11 +88,16 @@ function processTrackingEvents(events: TrackingEvent[]): ProcessedTrackingData {
 
 function getRiskPriority(riskLevel: RiskLevel): number {
   switch (riskLevel) {
-    case 'low': return 1;
-    case 'medium': return 2;
-    case 'high': return 3;
-    case 'critical': return 4;
-    default: return 0;
+    case 'low':
+      return 1;
+    case 'medium':
+      return 2;
+    case 'high':
+      return 3;
+    case 'critical':
+      return 4;
+    default:
+      return 0;
   }
 }
 
@@ -95,7 +111,7 @@ export function useNetworkData(): { data: NetworkData; loading: boolean } {
     }
 
     const { domains, connections, riskLevels } = processTrackingEvents(events);
-    
+
     // Create nodes
     const nodes: NetworkNode[] = Array.from(domains).map(domain => {
       const riskLevel = riskLevels.get(domain) || 'low';
@@ -112,13 +128,16 @@ export function useNetworkData(): { data: NetworkData; loading: boolean } {
     // Create edges
     const edges: NetworkEdge[] = [];
     let edgeId = 0;
-    
+
     connections.forEach((targetDomains, sourceDomain) => {
       targetDomains.forEach(targetDomain => {
         const sourceRisk = riskLevels.get(sourceDomain) || 'low';
         const targetRisk = riskLevels.get(targetDomain) || 'low';
-        const maxRisk = getRiskPriority(sourceRisk) > getRiskPriority(targetRisk) ? sourceRisk : targetRisk;
-        
+        const maxRisk =
+          getRiskPriority(sourceRisk) > getRiskPriority(targetRisk)
+            ? sourceRisk
+            : targetRisk;
+
         edges.push({
           id: `edge-${edgeId++}`,
           from: sourceDomain,
@@ -131,17 +150,18 @@ export function useNetworkData(): { data: NetworkData; loading: boolean } {
     });
 
     const newData = { nodes, edges };
-    
+
     // Only return new data if structure significantly changed
-    const hasSignificantChange = 
-      Math.abs(newData.nodes.length - previousDataRef.current.nodes.length) > 2 ||
+    const hasSignificantChange =
+      Math.abs(newData.nodes.length - previousDataRef.current.nodes.length) >
+        2 ||
       Math.abs(newData.edges.length - previousDataRef.current.edges.length) > 3;
-    
+
     if (hasSignificantChange) {
       previousDataRef.current = newData;
       return newData;
     }
-    
+
     return previousDataRef.current;
   }, [events]);
 

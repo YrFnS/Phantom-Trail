@@ -16,7 +16,10 @@ export default defineConfig({
       rollupOptions: {
         onwarn(warning, warn) {
           // Suppress specific warnings that don't affect functionality
-          if (warning.code === 'EVAL' || warning.code === 'MODULE_LEVEL_DIRECTIVE') {
+          if (
+            warning.code === 'EVAL' ||
+            warning.code === 'MODULE_LEVEL_DIRECTIVE'
+          ) {
             return;
           }
           warn(warning);
@@ -26,7 +29,9 @@ export default defineConfig({
     },
     define: {
       // Ensure proper environment variables
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+      'process.env.NODE_ENV': JSON.stringify(
+        process.env.NODE_ENV || 'development'
+      ),
     },
     optimizeDeps: {
       include: ['cytoscape'],

@@ -17,59 +17,62 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
   }, []);
 
   // Convert our data format to Cytoscape format
-  const convertToCytoscapeData = useCallback((networkData: typeof data): ElementDefinition[] => {
-    const elements: ElementDefinition[] = [];
+  const convertToCytoscapeData = useCallback(
+    (networkData: typeof data): ElementDefinition[] => {
+      const elements: ElementDefinition[] = [];
 
-    // Add nodes
-    networkData.nodes.forEach(node => {
-      elements.push({
-        data: {
-          id: node.id,
-          label: node.label,
-          riskLevel: node.riskLevel,
-        },
-        style: {
-          'background-color': node.color,
-          'width': node.size,
-          'height': node.size,
-          'label': node.label,
-          'font-size': '12px',
-          'text-valign': 'center',
-          'text-halign': 'center',
-          'color': '#374151',
-          'text-outline-width': 2,
-          'text-outline-color': '#ffffff',
-        },
+      // Add nodes
+      networkData.nodes.forEach(node => {
+        elements.push({
+          data: {
+            id: node.id,
+            label: node.label,
+            riskLevel: node.riskLevel,
+          },
+          style: {
+            'background-color': node.color,
+            width: node.size,
+            height: node.size,
+            label: node.label,
+            'font-size': '12px',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            color: '#374151',
+            'text-outline-width': 2,
+            'text-outline-color': '#ffffff',
+          },
+        });
       });
-    });
 
-    // Add edges
-    networkData.edges.forEach(edge => {
-      elements.push({
-        data: {
-          id: edge.id,
-          source: edge.from,
-          target: edge.to,
-        },
-        style: {
-          'line-color': edge.color,
-          'width': edge.width,
-          'target-arrow-color': edge.color,
-          'target-arrow-shape': 'triangle',
-          'curve-style': 'bezier',
-        },
+      // Add edges
+      networkData.edges.forEach(edge => {
+        elements.push({
+          data: {
+            id: edge.id,
+            source: edge.from,
+            target: edge.to,
+          },
+          style: {
+            'line-color': edge.color,
+            width: edge.width,
+            'target-arrow-color': edge.color,
+            'target-arrow-shape': 'triangle',
+            'curve-style': 'bezier',
+          },
+        });
       });
-    });
 
-    return elements;
-  }, []);
+      return elements;
+    },
+    []
+  );
 
   // Initialize or update Cytoscape
   const initializeCytoscape = useCallback(() => {
     if (!containerRef.current || loading || data.nodes.length === 0) return;
 
     const currentHash = getDataHash(data);
-    
+
     // Only recreate if data significantly changed or cytoscape doesn't exist
     if (cyRef.current && lastDataHashRef.current === currentHash) {
       return;
@@ -91,7 +94,7 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           {
             selector: 'node',
             style: {
-              'shape': 'ellipse',
+              shape: 'ellipse',
               'border-width': 2,
               'border-color': '#ffffff',
               'text-wrap': 'wrap',
@@ -103,7 +106,7 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           {
             selector: 'edge',
             style: {
-              'opacity': 0.8,
+              opacity: 0.8,
               'arrow-scale': 1.2,
             },
           },
@@ -117,8 +120,8 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           {
             selector: 'edge:hover',
             style: {
-              'opacity': 1,
-              'width': 'mapData(width, 1, 10, 3, 8)',
+              opacity: 1,
+              width: 'mapData(width, 1, 10, 3, 8)',
             },
           },
         ],
@@ -143,44 +146,53 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       });
 
       // Add event listeners for interactivity
-      cyRef.current.on('tap', 'node', (event) => {
+      cyRef.current.on('tap', 'node', event => {
         const node = event.target;
         const nodeData = node.data();
-        console.log('Node clicked:', nodeData.label, 'Risk:', nodeData.riskLevel);
-        
+        console.log(
+          'Node clicked:',
+          nodeData.label,
+          'Risk:',
+          nodeData.riskLevel
+        );
+
         // Highlight connected nodes
         const connectedEdges = node.connectedEdges();
         const connectedNodes = connectedEdges.connectedNodes();
-        
+
         // Reset all styles
         cyRef.current?.elements().removeClass('highlighted dimmed');
-        
+
         // Highlight connected elements
         node.addClass('highlighted');
         connectedNodes.addClass('highlighted');
         connectedEdges.addClass('highlighted');
-        
+
         // Dim non-connected elements
-        cyRef.current?.elements().not(node.union(connectedNodes).union(connectedEdges)).addClass('dimmed');
+        cyRef.current
+          ?.elements()
+          .not(node.union(connectedNodes).union(connectedEdges))
+          .addClass('dimmed');
       });
 
       // Reset highlighting on background tap
-      cyRef.current.on('tap', (event) => {
+      cyRef.current.on('tap', event => {
         if (event.target === cyRef.current) {
           cyRef.current?.elements().removeClass('highlighted dimmed');
         }
       });
 
       // Add custom styles for highlighting
-      cyRef.current.style()
+      cyRef.current
+        .style()
         .selector('.highlighted')
         .style({
-          'opacity': 1,
+          opacity: 1,
           'z-index': 10,
         })
         .selector('.dimmed')
         .style({
-          'opacity': 0.3,
+          opacity: 0.3,
         })
         .update();
 
@@ -254,8 +266,12 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <div className="text-4xl mb-3">🕸️</div>
-                <p className="text-sm text-gray-600 mb-1">No tracking data yet</p>
-                <p className="text-xs text-gray-500">Visit websites to see the network</p>
+                <p className="text-sm text-gray-600 mb-1">
+                  No tracking data yet
+                </p>
+                <p className="text-xs text-gray-500">
+                  Visit websites to see the network
+                </p>
               </div>
             </div>
           </CardContent>
@@ -276,7 +292,7 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div 
+          <div
             ref={containerRef}
             className="w-full h-64 border border-gray-200 rounded-lg bg-white mb-3"
             style={{ height: '320px' }}

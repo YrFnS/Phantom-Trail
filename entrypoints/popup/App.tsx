@@ -7,7 +7,9 @@ import { Button } from '../../components/ui';
 
 function App() {
   const [showSettings, setShowSettings] = useState(false);
-  const [activeView, setActiveView] = useState<'narrative' | 'network' | 'chat'>('narrative');
+  const [activeView, setActiveView] = useState<
+    'narrative' | 'network' | 'chat'
+  >('narrative');
 
   if (showSettings) {
     return (
@@ -24,7 +26,9 @@ function App() {
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             👻 Phantom Trail
           </h1>
-          <p className="text-sm text-gray-600 mt-1">Privacy tracking in real-time</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Privacy tracking in real-time
+          </p>
         </div>
         <Button
           variant="ghost"
@@ -76,7 +80,7 @@ function App() {
             Chat
           </Button>
         </div>
-        
+
         <div className="animate-fade-in">
           {activeView === 'narrative' && <LiveNarrative />}
           {activeView === 'network' && <NetworkGraph />}
