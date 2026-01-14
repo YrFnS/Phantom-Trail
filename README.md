@@ -59,7 +59,7 @@ Every time you browse the web, dozens of companies silently track your clicks, r
 - **UI**: React 18 + TypeScript + Tailwind CSS
 - **State**: Zustand
 - **Visualization**: Vis.js (network graphs), Chart.js (metrics)
-- **AI**: OpenRouter API (Claude Haiku primary, GPT-4o-mini backup)
+- **AI**: OpenRouter API (configurable models via `lib/ai-models.ts`)
 - **Data Sources**: EasyList/EasyPrivacy, Disconnect.me, ipapi.co
 
 ## 📁 Project Structure
@@ -100,15 +100,17 @@ pnpm format       # Format code with Prettier
 ### Development Workflow
 
 1. **Before making changes**: Ensure clean state
+
    ```bash
    pnpm lint && pnpm build && npx tsc --noEmit
    ```
 
 2. **After adding dependencies**: Verify everything works
+
    ```bash
    # Windows PowerShell
    .\scripts\verify-deps.ps1
-   
+
    # Or manually:
    pnpm install && pnpm lint && pnpm build && npx tsc --noEmit
    ```
@@ -116,7 +118,7 @@ pnpm format       # Format code with Prettier
 3. **After using Kiro CLI**: Always verify
    ```bash
    pnpm install  # Refresh dependencies
-   pnpm lint     # Check code quality  
+   pnpm lint     # Check code quality
    pnpm build    # Verify build
    ```
 
@@ -127,6 +129,25 @@ pnpm format       # Format code with Prettier
 - Feature-based component structure
 - Comprehensive error handling
 - Chrome API isolation in `lib/` utilities
+
+### AI Model Configuration
+
+To add or change AI models, edit `lib/ai-models.ts`:
+
+```typescript
+export const AI_MODELS: AIModel[] = [
+  {
+    id: 'anthropic/claude-3-haiku',
+    name: 'Claude Haiku',
+    provider: 'openrouter',
+    category: 'fast',
+    description: 'Fast and cost-effective',
+  },
+  // Add more models here
+];
+```
+
+Models automatically appear in the extension's settings UI.
 
 ## 🎯 Success Criteria
 

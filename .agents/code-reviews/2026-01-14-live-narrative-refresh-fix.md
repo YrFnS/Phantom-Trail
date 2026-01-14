@@ -16,6 +16,7 @@
 ### 1. Enhanced `useStorage` Hook (`lib/hooks/useStorage.ts`)
 
 **Added**:
+
 - Polling fallback (2-second interval) for reliability
 - Data hash comparison to prevent unnecessary state updates
 - `lastDataRef` to track actual data changes vs reference changes
@@ -25,11 +26,13 @@
 ### 2. Fixed `useTrackingEvents` Hook
 
 **Before**:
+
 ```typescript
 const recentEvents = useMemo(() => events.slice(-10), [events]);
 ```
 
 **After**:
+
 ```typescript
 const [recentEvents, setRecentEvents] = useState<TrackingEvent[]>([]);
 const lastEventCountRef = useRef(0);
@@ -47,6 +50,7 @@ useEffect(() => {
 ### 3. Debounced AI Analysis (`useAIAnalysis`)
 
 **Added**:
+
 - 3-second debounce before triggering analysis
 - `lastAnalyzedCountRef` to prevent duplicate analysis
 - Skip analysis if event count unchanged
@@ -56,6 +60,7 @@ useEffect(() => {
 ### 4. Debounced Pattern Detection (`usePatternDetection`)
 
 **Added**:
+
 - 5-second debounce before pattern detection
 - `lastPatternCheckRef` to prevent duplicate checks
 - Skip detection if event count unchanged
@@ -65,12 +70,14 @@ useEffect(() => {
 ## Performance Improvements
 
 **Before**:
+
 - AI analysis triggered on every event
 - Pattern detection ran every 2 seconds regardless of changes
 - Array references changed on every render
 - No deduplication of processing
 
 **After**:
+
 - AI analysis debounced to 3 seconds after last event
 - Pattern detection debounced to 5 seconds
 - Stable array references prevent unnecessary re-renders

@@ -27,7 +27,7 @@ export function useStorage<T>(
         const result = await chrome.storage.local.get(key);
         const newData = result[key] ?? defaultValue;
         const dataHash = JSON.stringify(newData);
-        
+
         if (dataHash !== lastDataRef.current) {
           setData(newData);
           lastDataRef.current = dataHash;
@@ -52,7 +52,7 @@ export function useStorage<T>(
       if (areaName === 'local' && changes[key]) {
         const newData = changes[key].newValue ?? defaultValue;
         const dataHash = JSON.stringify(newData);
-        
+
         if (dataHash !== lastDataRef.current) {
           setData(newData);
           lastDataRef.current = dataHash;
@@ -69,7 +69,7 @@ export function useStorage<T>(
         const result = await chrome.storage.local.get(key);
         const newData = result[key] ?? defaultValue;
         const dataHash = JSON.stringify(newData);
-        
+
         if (dataHash !== lastDataRef.current) {
           setData(newData);
           lastDataRef.current = dataHash;

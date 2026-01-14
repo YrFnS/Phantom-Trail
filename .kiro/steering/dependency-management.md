@@ -13,11 +13,13 @@
 ## WSL/Windows Hybrid Environment
 
 **Development Setup**:
+
 - **Kiro CLI**: Runs in WSL (Linux environment)
 - **Local Commands**: Run in Windows PowerShell
 - **Project Files**: Accessible from both environments
 
 **Important Considerations**:
+
 - Use PowerShell commands for local development tasks (pnpm, npm, git)
 - Kiro CLI operates in WSL and may have different path handling
 - Line endings: Git may convert LF ↔ CRLF between environments
@@ -25,6 +27,7 @@
 - Node modules: Install in Windows environment for local development
 
 **Recommended Workflow**:
+
 ```bash
 # Local development (Windows PowerShell)
 pnpm install
@@ -37,6 +40,7 @@ pnpm lint
 ```
 
 **Path Handling**:
+
 - Windows paths: `C:\Users\...\Phantom-Trail`
 - WSL paths: `/mnt/c/Users/.../Phantom-Trail`
 - Use relative paths in scripts for cross-environment compatibility
@@ -44,6 +48,7 @@ pnpm lint
 ## Adding Dependencies
 
 **Process for New Dependencies**:
+
 1. Add dependency: `pnpm add package-name`
 2. Verify build: `pnpm build`
 3. Verify linting: `pnpm lint`
@@ -58,6 +63,7 @@ pnpm lint
 ## Troubleshooting Dependency Issues
 
 **If `pnpm lint` fails with "Cannot find package"**:
+
 ```bash
 # Option 1: Reinstall (preferred)
 pnpm install
@@ -73,12 +79,14 @@ pnpm install
 ```
 
 **If TypeScript fails with "tsc not found"**:
+
 ```bash
 # Ensure TypeScript is installed
 pnpm add -D typescript
 ```
 
 **If permission errors on Windows**:
+
 ```bash
 # Run PowerShell as Administrator, then:
 Remove-Item -Recurse -Force node_modules
@@ -88,6 +96,7 @@ pnpm install
 ## Cache Management
 
 **Regular Maintenance**:
+
 ```bash
 # Clean unused packages (run monthly)
 pnpm store prune
@@ -97,6 +106,7 @@ pnpm store status
 ```
 
 **When to Clear Cache**:
+
 - Weird dependency resolution errors
 - Packages seem corrupted
 - After major pnpm version updates
@@ -104,6 +114,7 @@ pnpm store status
 ## Version Pinning
 
 **Pin Critical Dependencies** - Use exact versions for:
+
 - `wxt` (extension framework)
 - `react` and `react-dom` (UI framework)
 - `typescript` (type system)
@@ -111,12 +122,13 @@ pnpm store status
 **Allow Patch Updates** - Use `^` for most other dependencies to get security fixes.
 
 **Example**:
+
 ```json
 {
   "dependencies": {
-    "wxt": "0.20.13",           // Exact version (critical)
-    "react": "19.2.3",          // Exact version (critical)
-    "chart.js": "^4.4.6"        // Allow patches (non-critical)
+    "wxt": "0.20.13", // Exact version (critical)
+    "react": "19.2.3", // Exact version (critical)
+    "chart.js": "^4.4.6" // Allow patches (non-critical)
   }
 }
 ```
@@ -124,6 +136,7 @@ pnpm store status
 ## Dependency Audit
 
 **Security Checks**:
+
 ```bash
 # Check for vulnerabilities
 pnpm audit
@@ -133,6 +146,7 @@ pnpm audit --fix
 ```
 
 **Bundle Size Monitoring**:
+
 - Monitor build output size after adding dependencies
 - Target: Keep total bundle under 1MB
 - Use `pnpm build` to check bundle size
@@ -140,6 +154,7 @@ pnpm audit --fix
 ## Emergency Recovery
 
 **If Everything Breaks**:
+
 1. Backup your source code changes
 2. Reset to last working commit: `git checkout HEAD~1`
 3. Apply your changes manually
@@ -147,6 +162,7 @@ pnpm audit --fix
 5. Commit working state
 
 **Lockfile Corruption Signs**:
+
 - "Cannot find package" errors for installed packages
 - Build works but lint fails
 - TypeScript can't find types that should exist
@@ -155,6 +171,7 @@ pnpm audit --fix
 ## Integration with Kiro CLI
 
 **Before Using Kiro CLI for Features**:
+
 ```bash
 # Ensure clean state
 pnpm lint
@@ -163,6 +180,7 @@ npx tsc --noEmit
 ```
 
 **After Kiro CLI Implementation**:
+
 ```bash
 # Verify everything still works
 pnpm install  # Refresh dependencies
@@ -173,6 +191,7 @@ git commit -m "feat: implement feature via kiro cli"
 ```
 
 **If Kiro CLI Breaks Dependencies**:
+
 1. Don't panic - this is recoverable
 2. Check what changed: `git status`
 3. If lockfile changed unexpectedly, restore it: `git checkout pnpm-lock.yaml`
@@ -182,11 +201,13 @@ git commit -m "feat: implement feature via kiro cli"
 ## Monitoring
 
 **Daily Checks** (for active development):
+
 - `pnpm lint` should always pass
 - `pnpm build` should complete without errors
 - Extension should load in Chrome without console errors
 
 **Weekly Maintenance**:
+
 - `pnpm store prune` to clean cache
 - `pnpm audit` to check security
 - Review bundle size trends
