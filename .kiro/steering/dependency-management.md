@@ -10,6 +10,37 @@
 
 **Frozen Installs in CI** - Use `pnpm install --frozen-lockfile` in production/CI environments.
 
+## WSL/Windows Hybrid Environment
+
+**Development Setup**:
+- **Kiro CLI**: Runs in WSL (Linux environment)
+- **Local Commands**: Run in Windows PowerShell
+- **Project Files**: Accessible from both environments
+
+**Important Considerations**:
+- Use PowerShell commands for local development tasks (pnpm, npm, git)
+- Kiro CLI operates in WSL and may have different path handling
+- Line endings: Git may convert LF ↔ CRLF between environments
+- File permissions: WSL and Windows handle permissions differently
+- Node modules: Install in Windows environment for local development
+
+**Recommended Workflow**:
+```bash
+# Local development (Windows PowerShell)
+pnpm install
+pnpm dev
+pnpm build
+pnpm lint
+
+# Kiro CLI operations (WSL)
+# Kiro CLI handles its own environment automatically
+```
+
+**Path Handling**:
+- Windows paths: `C:\Users\...\Phantom-Trail`
+- WSL paths: `/mnt/c/Users/.../Phantom-Trail`
+- Use relative paths in scripts for cross-environment compatibility
+
 ## Adding Dependencies
 
 **Process for New Dependencies**:
