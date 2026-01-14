@@ -28,18 +28,8 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
             id: node.id,
             label: node.label,
             riskLevel: node.riskLevel,
-          },
-          style: {
-            'background-color': node.color,
-            width: node.size,
-            height: node.size,
-            label: node.label,
-            'font-size': '12px',
-            'text-valign': 'center',
-            'text-halign': 'center',
-            color: '#374151',
-            'text-outline-width': 2,
-            'text-outline-color': '#ffffff',
+            color: node.color,
+            size: node.size,
           },
         });
       });
@@ -51,13 +41,8 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
             id: edge.id,
             source: edge.from,
             target: edge.to,
-          },
-          style: {
-            'line-color': edge.color,
+            color: edge.color,
             width: edge.width,
-            'target-arrow-color': edge.color,
-            'target-arrow-shape': 'triangle',
-            'curve-style': 'bezier',
           },
         });
       });
@@ -94,11 +79,21 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           {
             selector: 'node',
             style: {
+              'background-color': 'data(color)',
+              width: 'data(size)',
+              height: 'data(size)',
+              label: 'data(label)',
               shape: 'ellipse',
               'border-width': 2,
               'border-color': '#ffffff',
               'text-wrap': 'wrap',
               'text-max-width': '80px',
+              'font-size': '12px',
+              'text-valign': 'center',
+              'text-halign': 'center',
+              color: '#374151',
+              'text-outline-width': 2,
+              'text-outline-color': '#ffffff',
               'font-family': 'system-ui, -apple-system, sans-serif',
               'font-weight': 500,
             },
@@ -106,22 +101,26 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           {
             selector: 'edge',
             style: {
+              'line-color': 'data(color)',
+              width: 'data(width)',
+              'target-arrow-color': 'data(color)',
+              'target-arrow-shape': 'triangle',
+              'curve-style': 'bezier',
               opacity: 0.8,
               'arrow-scale': 1.2,
             },
           },
           {
-            selector: 'node:hover',
+            selector: '.highlighted',
             style: {
-              'border-width': 3,
-              'border-color': '#3b82f6',
+              opacity: 1,
+              'z-index': 10,
             },
           },
           {
-            selector: 'edge:hover',
+            selector: '.dimmed',
             style: {
-              opacity: 1,
-              width: 'mapData(width, 1, 10, 3, 8)',
+              opacity: 0.3,
             },
           },
         ],
@@ -140,7 +139,6 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           coolingFactor: 0.95,
           minTemp: 1.0,
         },
-        wheelSensitivity: 0.2,
         minZoom: 0.3,
         maxZoom: 3,
       });
@@ -181,20 +179,6 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           cyRef.current?.elements().removeClass('highlighted dimmed');
         }
       });
-
-      // Add custom styles for highlighting
-      cyRef.current
-        .style()
-        .selector('.highlighted')
-        .style({
-          opacity: 1,
-          'z-index': 10,
-        })
-        .selector('.dimmed')
-        .style({
-          opacity: 0.3,
-        })
-        .update();
 
       lastDataHashRef.current = currentHash;
       isInitializedRef.current = true;

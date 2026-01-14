@@ -110,7 +110,6 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
         borderColor: '#0284c7',
         backgroundColor: 'rgba(2, 132, 199, 0.1)',
         borderWidth: 2,
-        fill: true,
       },
     ],
   };
