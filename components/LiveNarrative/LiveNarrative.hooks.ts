@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStorage } from '../../lib/hooks/useStorage';
 import { AIEngine } from '../../lib/ai-engine';
 import type { TrackingEvent, AIAnalysis } from '../../lib/types';
@@ -20,8 +20,17 @@ export function useTrackingEvents() {
     []
   );
 
-  // Memoize the sliced events to prevent unnecessary re-renders
-  const recentEvents = useMemo(() => events.slice(-10), [events]);
+  // Use stable reference to prevent unnecessary re-renders
+  const [recentEvents, setRecentEvents] = useState<TrackingEvent[]>([]);
+  const lastEventCountRef = useRef(0);
+
+  useEffect(() => {
+    // Only update if event count changed
+    if (events.length !== lastEventCountRef.current) {
+      setRecentEvents(events.slice(-10));
+      lastEventCountRef.current = events.length;
+    }
+  }, [events]); // Need full events array to slice
 
   return {
     events: recentEvents,
@@ -111,11 +120,18 @@ export function useAIAnalysis(events: TrackingEvent[]) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const lastAnalyzedCountRef = useRef(0);
+  const analysisTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const generateAnalysis = useCallback(
     async (attempt = 0) => {
       if (events.length === 0) {
         setAnalysis(null);
+        return;
+      }
+
+      // Skip if we already analyzed this many events
+      if (events.length === lastAnalyzedCountRef.current && attempt === 0) {
         return;
       }
 
@@ -125,13 +141,14 @@ export function useAIAnalysis(events: TrackingEvent[]) {
       try {
         const result = await AIEngine.generateNarrative(events);
         setAnalysis(result);
-        setRetryCount(0); // Reset retry count on success
+        setRetryCount(0);
+        lastAnalyzedCountRef.current = events.length;
       } catch (err) {
         console.error('Failed to generate AI analysis:', err);
 
         // Retry logic with exponential backoff
         if (attempt < 2) {
-          const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+          const delay = Math.pow(2, attempt) * 1000;
           setTimeout(() => {
             generateAnalysis(attempt + 1);
           }, delay);
@@ -147,14 +164,26 @@ export function useAIAnalysis(events: TrackingEvent[]) {
         }
       }
     },
-    [events]
+    [events] // Need full events array for analysis
   );
 
-  // Generate analysis when events change
+  // Debounce analysis generation
   useEffect(() => {
-    if (events.length > 0) {
-      generateAnalysis();
+    if (analysisTimeoutRef.current) {
+      clearTimeout(analysisTimeoutRef.current);
     }
+
+    if (events.length > 0) {
+      analysisTimeoutRef.current = setTimeout(() => {
+        generateAnalysis();
+      }, 3000); // Wait 3 seconds after last event
+    }
+
+    return () => {
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+    };
   }, [events.length, generateAnalysis]);
 
   return {
@@ -162,7 +191,10 @@ export function useAIAnalysis(events: TrackingEvent[]) {
     loading,
     error,
     retryCount,
-    regenerate: () => generateAnalysis(0),
+    regenerate: () => {
+      lastAnalyzedCountRef.current = 0;
+      generateAnalysis(0);
+    },
   };
 }
 
@@ -173,11 +205,18 @@ export function usePatternDetection(events: TrackingEvent[]) {
   const [patterns, setPatterns] = useState<TrackingPattern[]>([]);
   const [alerts, setAlerts] = useState<PatternAlert[]>([]);
   const [loading, setLoading] = useState(false);
+  const lastPatternCheckRef = useRef(0);
+  const patternTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const detectPatterns = useCallback(async () => {
     if (events.length < 3) {
       setPatterns([]);
       setAlerts([]);
+      return;
+    }
+
+    // Skip if we already checked this many events
+    if (events.length === lastPatternCheckRef.current) {
       return;
     }
 
@@ -223,21 +262,32 @@ export function usePatternDetection(events: TrackingEvent[]) {
 
       setPatterns(detectedPatterns);
       setAlerts(newAlerts);
+      lastPatternCheckRef.current = events.length;
     } catch (error) {
       console.error('Pattern detection failed:', error);
     } finally {
       setLoading(false);
     }
-  }, [events]);
+  }, [events]); // Need full events array for pattern detection
 
-  // Debounce pattern detection to avoid excessive processing
+  // Debounce pattern detection
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      detectPatterns();
-    }, 2000); // Increased to 2 seconds for more stability
+    if (patternTimeoutRef.current) {
+      clearTimeout(patternTimeoutRef.current);
+    }
 
-    return () => clearTimeout(timeoutId);
-  }, [events.length, detectPatterns]); // Only depend on length, not the entire array
+    if (events.length >= 3) {
+      patternTimeoutRef.current = setTimeout(() => {
+        detectPatterns();
+      }, 5000); // Wait 5 seconds for pattern detection
+    }
+
+    return () => {
+      if (patternTimeoutRef.current) {
+        clearTimeout(patternTimeoutRef.current);
+      }
+    };
+  }, [events.length, detectPatterns]);
 
   return {
     patterns,
