@@ -1,6 +1,7 @@
 import type { AIAnalysis, TrackingEvent, RiskLevel } from './types';
 import { StorageManager } from './storage-manager';
 import { DEFAULT_MODEL, FALLBACK_MODEL } from './ai-models';
+import { jsonrepair } from 'jsonrepair';
 
 /**
  * OpenRouter API integration for AI-powered tracking analysis
@@ -460,7 +461,15 @@ Keep the narrative conversational and non-technical. Focus on what the user shou
         throw new Error('Invalid response format');
       }
 
-      const parsed = JSON.parse(response);
+      // Try to repair JSON if malformed
+      let repairedResponse = response.trim();
+      try {
+        repairedResponse = jsonrepair(response);
+      } catch (repairError) {
+        console.warn('JSON repair failed, attempting direct parse:', repairError);
+      }
+
+      const parsed = JSON.parse(repairedResponse);
 
       // Validate required fields exist
       if (!parsed || typeof parsed !== 'object') {

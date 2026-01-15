@@ -20,9 +20,11 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
   const convertToCytoscapeData = useCallback(
     (networkData: typeof data): ElementDefinition[] => {
       const elements: ElementDefinition[] = [];
+      const nodeIds = new Set<string>();
 
       // Add nodes
       networkData.nodes.forEach(node => {
+        nodeIds.add(node.id);
         elements.push({
           data: {
             id: node.id,
@@ -34,17 +36,19 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
         });
       });
 
-      // Add edges
+      // Add edges (only if both nodes exist)
       networkData.edges.forEach(edge => {
-        elements.push({
-          data: {
-            id: edge.id,
-            source: edge.from,
-            target: edge.to,
-            color: edge.color,
-            width: edge.width,
-          },
-        });
+        if (nodeIds.has(edge.from) && nodeIds.has(edge.to)) {
+          elements.push({
+            data: {
+              id: edge.id,
+              source: edge.from,
+              target: edge.to,
+              color: edge.color,
+              width: edge.width,
+            },
+          });
+        }
       });
 
       return elements;

@@ -31,6 +31,7 @@
     "@types/react-dom": "^19.2.3",
     "chart.js": "^4.4.6",
     "cytoscape": "^3.33.1",
+    "jsonrepair": "^3.13.2",
     "react": "^19.2.3",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.3",

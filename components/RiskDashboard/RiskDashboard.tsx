@@ -75,6 +75,14 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
     critical: '#ef4444',
   };
 
+  // Text colors for each risk level (dark versions for good contrast)
+  const riskTextColors = {
+    low: 'text-green-900',      // Dark green text
+    medium: 'text-yellow-900',  // Dark yellow text
+    high: 'text-orange-900',    // Dark orange text
+    critical: 'text-red-900',   // Dark red text
+  };
+
   const riskDistributionData = {
     labels: ['Low', 'Medium', 'High', 'Critical'],
     datasets: [
@@ -235,7 +243,7 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
                     {tracker.count} events
                   </span>
                   <Badge
-                    className={`${riskColors[tracker.riskLevel]} text-white text-xs`}
+                    className={`${riskColors[tracker.riskLevel]} ${riskTextColors[tracker.riskLevel]} text-xs`}
                   >
                     {tracker.riskLevel}
                   </Badge>

@@ -3,6 +3,37 @@ import { ContentMessaging } from '../lib/content-messaging';
 import { InPageDetector } from '../lib/in-page-detector';
 import type { TrackingEvent } from '../lib/types';
 
+// Event deduplication
+const recentEventSignatures = new Map<string, number>();
+const SIGNATURE_TTL = 10000; // 10 seconds
+
+function getEventSignature(event: TrackingEvent): string {
+  return `${event.domain}-${event.trackerType}-${event.riskLevel}`;
+}
+
+function isDuplicateEvent(event: TrackingEvent): boolean {
+  const signature = getEventSignature(event);
+  const lastSeen = recentEventSignatures.get(signature);
+
+  if (lastSeen && Date.now() - lastSeen < SIGNATURE_TTL) {
+    return true;
+  }
+
+  recentEventSignatures.set(signature, Date.now());
+
+  // Clean up old signatures periodically
+  if (recentEventSignatures.size > 100) {
+    const cutoff = Date.now() - SIGNATURE_TTL;
+    for (const [sig, time] of recentEventSignatures.entries()) {
+      if (time < cutoff) {
+        recentEventSignatures.delete(sig);
+      }
+    }
+  }
+
+  return false;
+}
+
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_start',
@@ -14,7 +45,37 @@ export default defineContentScript({
     const recentDetections = new Map<string, number>();
     const DETECTION_THROTTLE_MS = 3000;
 
+    // Monitor extension context health
+    let contextValid = true;
+    const contextCheckInterval = setInterval(() => {
+      try {
+        const wasValid = contextValid;
+        contextValid = chrome.runtime?.id !== undefined;
+
+        if (wasValid && !contextValid) {
+          console.warn(
+            '[Phantom Trail] Context invalidated, stopping detection'
+          );
+          clearInterval(contextCheckInterval);
+        }
+      } catch {
+        contextValid = false;
+        clearInterval(contextCheckInterval);
+      }
+    }, 5000);
+
+    // Clean up on unload
+    window.addEventListener('unload', () => {
+      clearInterval(contextCheckInterval);
+    });
+
     async function processDetection(event: CustomEvent) {
+      // Check context validity
+      if (!contextValid) {
+        console.warn('[Phantom Trail] Skipping detection, context invalid');
+        return;
+      }
+
       try {
         const { type, timestamp, operations } = event.detail;
 
@@ -72,6 +133,15 @@ export default defineContentScript({
             frequency: detectionResult.frequency,
           },
         };
+
+        // Check for duplicate BEFORE sending
+        if (isDuplicateEvent(trackingEvent)) {
+          console.log(
+            '[Phantom Trail] Skipping duplicate event:',
+            getEventSignature(trackingEvent)
+          );
+          return;
+        }
 
         // Send to background
         const response =

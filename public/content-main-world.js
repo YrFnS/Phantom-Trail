@@ -4,9 +4,8 @@
   console.log('[Phantom Trail] Canvas detector loaded');
 
   const canvasOperations = [];
-  const storageOperations = [];
   const mouseEventCount = { count: 0, startTime: Date.now() };
-  const monitoredFields = new Set();
+  let monitoredFields = new Set();
   let formMonitoringTimeout = null;
   const deviceAPICalls = [];
 
@@ -70,6 +69,40 @@
   }
 
   function interceptStorage() {
+    // Storage access detection with sliding window
+    const storageAccessWindow = {
+      events: [],
+      windowSize: 60000, // 1 minute window
+      lastReport: 0,
+      reportCooldown: 30000, // Report at most every 30 seconds
+
+      add(operation, key) {
+        const now = Date.now();
+        // Remove events outside window
+        this.events = this.events.filter(e => now - e.timestamp < this.windowSize);
+        // Add new event
+        this.events.push({ operation, key, timestamp: now });
+      },
+
+      getUniqueCount() {
+        const unique = new Set(this.events.map(e => `${e.operation}:${e.key}`));
+        return unique.size;
+      },
+
+      shouldReport() {
+        const now = Date.now();
+        const uniqueOps = this.getUniqueCount();
+        const timeSinceLastReport = now - this.lastReport;
+
+        // Report if: 10+ unique operations AND cooldown passed
+        return uniqueOps >= 10 && timeSinceLastReport >= this.reportCooldown;
+      },
+
+      markReported() {
+        this.lastReport = Date.now();
+      }
+    };
+
     ['localStorage', 'sessionStorage'].forEach(storageType => {
       const storage = window[storageType];
       const originalSetItem = storage.setItem;
@@ -77,57 +110,39 @@
       const originalRemoveItem = storage.removeItem;
 
       storage.setItem = function(key, value) {
-        storageOperations.push({
-          type: `${storageType}.setItem`,
-          key,
-          timestamp: Date.now()
-        });
+        storageAccessWindow.add(`${storageType}.setItem`, key);
         checkStorageAccess();
         return originalSetItem.call(this, key, value);
       };
 
       storage.getItem = function(key) {
-        storageOperations.push({
-          type: `${storageType}.getItem`,
-          key,
-          timestamp: Date.now()
-        });
+        storageAccessWindow.add(`${storageType}.getItem`, key);
         checkStorageAccess();
         return originalGetItem.call(this, key);
       };
 
       storage.removeItem = function(key) {
-        storageOperations.push({
-          type: `${storageType}.removeItem`,
-          key,
-          timestamp: Date.now()
-        });
+        storageAccessWindow.add(`${storageType}.removeItem`, key);
         checkStorageAccess();
         return originalRemoveItem.call(this, key);
       };
     });
-  }
 
-  function checkStorageAccess() {
-    const now = Date.now();
-    const cutoff = now - 60000;
-    
-    // Remove old entries and keep recent ones
-    for (let i = storageOperations.length - 1; i >= 0; i--) {
-      if (storageOperations[i].timestamp < cutoff) {
-        storageOperations.splice(i, 1);
+    function checkStorageAccess() {
+      if (storageAccessWindow.shouldReport()) {
+        const uniqueOps = storageAccessWindow.getUniqueCount();
+        const frequency = uniqueOps / (storageAccessWindow.windowSize / 60000);
+
+        reportDetection({
+          type: 'storage-access',
+          operations: storageAccessWindow.events.slice(-20), // Last 20 only
+          uniqueOperations: uniqueOps,
+          frequency: Math.round(frequency),
+          timestamp: Date.now()
+        });
+
+        storageAccessWindow.markReported();
       }
-    }
-
-    if (storageOperations.length >= 10) {
-      reportDetection({
-        type: 'storage-access',
-        operations: storageOperations.slice(),
-        timestamp: now
-      });
-      
-      // Clear after reporting to avoid duplicates
-      storageOperations.length = 0;
     }
   }
 

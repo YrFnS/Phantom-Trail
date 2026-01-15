@@ -179,43 +179,49 @@ export default defineBackground({
         _sender,
         sendResponse: (response: BackgroundResponse) => void
       ) => {
-        (async () => {
-          try {
-            if (message.type === 'ping') {
-              sendResponse({ success: true });
-              return;
-            }
+        if (message.type === 'ping') {
+          sendResponse({ success: true });
+          return false;
+        }
 
-            if (message.type === 'tracking-event' && message.payload) {
+        if (message.type === 'tracking-event' && message.payload) {
+          (async () => {
+            try {
               const event = message.payload;
+              if (!event) {
+                sendResponse({ success: false, error: 'Missing event payload' });
+                return;
+              }
 
               // Store the event
               await StorageManager.addEvent(event);
 
-              // Trigger AI analysis for high-risk canvas fingerprinting
+              // Trigger AI analysis for high-risk events
               if (event.riskLevel === 'high' || event.riskLevel === 'critical') {
                 const context = ContextDetector.detectContext(event);
                 await AIEngine.generateEventAnalysis(event, context);
               }
 
               console.log(
-                'Canvas fingerprinting detected:',
-                event.inPageTracking?.method,
+                'In-page tracking detected:',
+                event.inPageTracking?.method || event.trackerType,
                 'on',
                 event.domain
               );
 
               sendResponse({ success: true });
-            } else {
-              sendResponse({ success: false, error: 'Invalid message type' });
+            } catch (error) {
+              console.error('Failed to handle tracking event:', error);
+              sendResponse({ success: false, error: String(error) });
             }
-          } catch (error) {
-            console.error('Failed to handle content script message:', error);
-            sendResponse({ success: false, error: String(error) });
-          }
-        })();
+          })();
 
-        return true; // Keep channel open for async response
+          return true; // Keep channel open for async response
+        }
+
+        // Unknown message type
+        sendResponse({ success: false, error: 'Invalid message type' });
+        return false;
       }
     );
   },
