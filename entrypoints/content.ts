@@ -42,6 +42,10 @@ export default defineContentScript({
             event.detail.eventCount || 0,
             event.detail.duration || 1
           );
+        } else if (type === 'form-monitoring') {
+          detectionResult = InPageDetector.analyzeFormMonitoring(
+            event.detail.fields || []
+          );
         }
 
         if (!detectionResult || !detectionResult.detected) {

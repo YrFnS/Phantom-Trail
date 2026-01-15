@@ -91,4 +91,29 @@ export class InPageDetector {
       frequency: eventCount,
     };
   }
+
+  /**
+   * Analyze form field monitoring
+   */
+  static analyzeFormMonitoring(
+    fields: Array<{ type: string; name: string; monitored: boolean }>
+  ): DetectionResult {
+    const monitoredFields = fields.filter(f => f.monitored);
+    const hasPasswordField = monitoredFields.some(f => f.type === 'password');
+    const detected = monitoredFields.length > 0;
+
+    return {
+      detected,
+      method: 'form-monitoring',
+      description: detected
+        ? `Form field monitoring detected on ${monitoredFields.length} fields`
+        : 'No form monitoring detected',
+      riskLevel: hasPasswordField ? 'critical' : detected ? 'high' : 'low',
+      details: hasPasswordField
+        ? '⚠️ PASSWORD FIELD BEING MONITORED - Potential keylogging'
+        : `${monitoredFields.length} form fields monitored`,
+      apiCalls: monitoredFields.map(f => `${f.type}:${f.name}`),
+      frequency: monitoredFields.length,
+    };
+  }
 }

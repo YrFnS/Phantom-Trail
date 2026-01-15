@@ -224,6 +224,20 @@ and build a profile of how you interact with content. Common on e-commerce sites
 to optimize conversion rates.`;
     }
 
+    if (event.inPageTracking?.method === 'form-monitoring') {
+      const hasPassword = event.inPageTracking.details.includes('PASSWORD');
+      
+      prompt += `\n\nForm Monitoring Details:
+- Fields Monitored: ${event.inPageTracking.frequency || 'N/A'}
+- Field Types: ${event.inPageTracking.apiCalls?.join(', ') || 'N/A'}
+- Risk Level: ${event.riskLevel.toUpperCase()}
+
+${hasPassword 
+  ? '🚨 CRITICAL SECURITY ALERT: This website is monitoring password field inputs. This is potential keylogging behavior. DO NOT enter sensitive passwords on this site. Recommend using a password manager and enabling two-factor authentication.'
+  : 'This website is monitoring what you type in form fields. This data can be used to track your behavior, analyze your inputs, and potentially capture sensitive information before you submit the form.'
+}`;
+    }
+
     prompt += `
 
 Provide a brief, user-friendly analysis as JSON:
