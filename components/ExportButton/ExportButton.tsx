@@ -1,0 +1,179 @@
+import { useState } from 'react';
+import { ExportService } from '../../lib/export-service';
+import type { ExportButtonProps, ExportFormatOption } from './ExportButton.types';
+import type { ExportFormat } from '../../lib/export-service';
+
+const EXPORT_FORMATS: ExportFormatOption[] = [
+  {
+    format: 'csv',
+    label: 'CSV',
+    description: 'Spreadsheet format for Excel/Google Sheets',
+    icon: '📊',
+  },
+  {
+    format: 'json',
+    label: 'JSON',
+    description: 'Structured data format for developers',
+    icon: '🔧',
+  },
+  {
+    format: 'pdf',
+    label: 'Report',
+    description: 'Human-readable summary report',
+    icon: '📄',
+  },
+];
+
+/**
+ * Export Button Component
+ */
+export function ExportButton({ 
+  events, 
+  privacyScore, 
+  className = '', 
+  disabled = false 
+}: ExportButtonProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
+
+  const handleExport = async (format: ExportFormat) => {
+    setIsExporting(true);
+    setExportStatus({ type: null, message: '' });
+
+    try {
+      const options = {
+        format,
+        dateRange: events.length > 0 ? {
+          start: new Date(Math.min(...events.map(e => e.timestamp))),
+          end: new Date(Math.max(...events.map(e => e.timestamp))),
+        } : undefined,
+      };
+
+      await ExportService.exportAndDownload(events, privacyScore, options);
+      
+      setExportStatus({
+        type: 'success',
+        message: `Successfully exported ${events.length} events as ${format.toUpperCase()}`,
+      });
+      
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Export failed:', error);
+      setExportStatus({
+        type: 'error',
+        message: `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const hasData = events.length > 0;
+
+  return (
+    <div className={`relative ${className}`}>
+      {/* Main Export Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={disabled || !hasData}
+        className={`
+          inline-flex items-center px-3 py-2 text-sm font-medium rounded-md
+          transition-colors duration-200
+          ${hasData && !disabled
+            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }
+        `}
+        title={hasData ? 'Export tracking data' : 'No data to export'}
+      >
+        <span className="mr-2">📥</span>
+        Export
+        <span className="ml-1">
+          {isOpen ? '▲' : '▼'}
+        </span>
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && hasData && (
+        <div className="absolute right-0 mt-2 w-72 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+          <div className="py-1">
+            <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+              Export {events.length} tracking event{events.length !== 1 ? 's' : ''}
+            </div>
+            
+            {EXPORT_FORMATS.map((option) => (
+              <button
+                key={option.format}
+                onClick={() => handleExport(option.format)}
+                disabled={isExporting}
+                className={`
+                  w-full text-left px-4 py-3 hover:bg-gray-50 
+                  transition-colors duration-150
+                  ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
+              >
+                <div className="flex items-start space-x-3">
+                  <span className="text-lg">{option.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900">
+                      {option.label}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {option.description}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Loading Indicator */}
+      {isExporting && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-md">
+          <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+            <span>Exporting...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Status Messages */}
+      {exportStatus.type && (
+        <div className={`
+          absolute top-full left-0 right-0 mt-2 p-3 rounded-md text-sm z-40
+          ${exportStatus.type === 'success' 
+            ? 'bg-green-50 text-green-800 border border-green-200' 
+            : 'bg-red-50 text-red-800 border border-red-200'
+          }
+        `}>
+          <div className="flex items-center">
+            <span className="mr-2">
+              {exportStatus.type === 'success' ? '✅' : '❌'}
+            </span>
+            <span>{exportStatus.message}</span>
+            <button
+              onClick={() => setExportStatus({ type: null, message: '' })}
+              className="ml-auto text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Click outside to close */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </div>
+  );
+}

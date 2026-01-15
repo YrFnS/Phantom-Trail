@@ -40,6 +40,76 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Amazon advertising platform',
     riskLevel: 'medium',
   },
+  'analytics.tiktok.com': {
+    domain: 'analytics.tiktok.com',
+    name: 'TikTok Pixel',
+    category: 'Social Media',
+    description: 'TikTok advertising and analytics tracking',
+    riskLevel: 'high',
+  },
+  'clarity.ms': {
+    domain: 'clarity.ms',
+    name: 'Microsoft Clarity',
+    category: 'Analytics',
+    description: 'User session recording and heatmaps',
+    riskLevel: 'high',
+  },
+  'hotjar.com': {
+    domain: 'hotjar.com',
+    name: 'Hotjar',
+    category: 'Analytics',
+    description: 'User behavior analytics and session recordings',
+    riskLevel: 'high',
+  },
+  'mixpanel.com': {
+    domain: 'mixpanel.com',
+    name: 'Mixpanel',
+    category: 'Analytics',
+    description: 'Product analytics and user tracking',
+    riskLevel: 'medium',
+  },
+  'segment.com': {
+    domain: 'segment.com',
+    name: 'Segment',
+    category: 'Analytics',
+    description: 'Customer data platform and tracking',
+    riskLevel: 'medium',
+  },
+  'omtrdc.net': {
+    domain: 'omtrdc.net',
+    name: 'Adobe Analytics',
+    category: 'Analytics',
+    description: 'Adobe marketing cloud analytics',
+    riskLevel: 'medium',
+  },
+  'salesforce.com': {
+    domain: 'salesforce.com',
+    name: 'Salesforce Tracking',
+    category: 'Analytics',
+    description: 'CRM and marketing automation tracking',
+    riskLevel: 'medium',
+  },
+  'hubspot.com': {
+    domain: 'hubspot.com',
+    name: 'HubSpot',
+    category: 'Analytics',
+    description: 'Marketing automation and CRM tracking',
+    riskLevel: 'medium',
+  },
+  'intercom.io': {
+    domain: 'intercom.io',
+    name: 'Intercom',
+    category: 'Analytics',
+    description: 'Customer messaging and behavior tracking',
+    riskLevel: 'medium',
+  },
+  'zendesk.com': {
+    domain: 'zendesk.com',
+    name: 'Zendesk',
+    category: 'Analytics',
+    description: 'Customer support and user tracking',
+    riskLevel: 'low',
+  },
 };
 
 /**
@@ -53,17 +123,43 @@ export class TrackerDatabase {
     try {
       const urlObj = new URL(url);
       const domain = urlObj.hostname.toLowerCase();
+      const path = urlObj.pathname.toLowerCase();
+      const search = urlObj.search.toLowerCase();
 
       // Check exact domain match
       if (KNOWN_TRACKERS[domain]) {
         return KNOWN_TRACKERS[domain];
       }
 
-      // Check subdomain matches
+      // Check subdomain matches (e.g., *.google-analytics.com)
       for (const [trackerDomain, info] of Object.entries(KNOWN_TRACKERS)) {
         if (domain.endsWith(`.${trackerDomain}`) || domain === trackerDomain) {
           return info;
         }
+      }
+
+      // Check path-based detection
+      const trackingPaths = ['/gtag/', '/pixel/', '/collect/', '/beacon/', '/track/', '/analytics/'];
+      if (trackingPaths.some(trackingPath => path.includes(trackingPath))) {
+        return {
+          domain,
+          name: `Path-based Tracker (${domain})`,
+          category: 'Analytics',
+          description: 'Detected by tracking path pattern',
+          riskLevel: 'medium',
+        };
+      }
+
+      // Check query parameter detection
+      const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'gclid', '_ga', 'mc_eid'];
+      if (trackingParams.some(param => search.includes(param))) {
+        return {
+          domain,
+          name: `Parameter-based Tracker (${domain})`,
+          category: 'Analytics',
+          description: 'Detected by tracking parameters',
+          riskLevel: 'low',
+        };
       }
 
       // Heuristic detection for unknown trackers

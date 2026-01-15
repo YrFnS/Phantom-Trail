@@ -59,6 +59,29 @@ export class StorageManager {
   }
 
   /**
+   * Get tracking events within a date range
+   */
+  static async getEventsByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<TrackingEvent[]> {
+    try {
+      const result = await chrome.storage.local.get(this.EVENTS_KEY);
+      const events: TrackingEvent[] = result[this.EVENTS_KEY] || [];
+      
+      const startTime = startDate.getTime();
+      const endTime = endDate.getTime();
+      
+      return events.filter(event => 
+        event.timestamp >= startTime && event.timestamp <= endTime
+      );
+    } catch (error) {
+      console.error('Failed to get events by date range:', error);
+      return [];
+    }
+  }
+
+  /**
    * Add new tracking event to storage
    */
   static async addEvent(event: TrackingEvent): Promise<void> {

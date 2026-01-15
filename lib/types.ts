@@ -67,3 +67,18 @@ export interface ExtensionSettings {
   riskThreshold: RiskLevel;
   aiModel?: string;
 }
+
+export interface PrivacyScore {
+  score: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  color: 'green' | 'yellow' | 'orange' | 'red';
+  breakdown: {
+    totalTrackers: number;
+    highRisk: number;
+    mediumRisk: number;
+    lowRisk: number;
+    httpsBonus: boolean;
+    excessiveTrackingPenalty: boolean;
+  };
+  recommendations: string[];
+}
