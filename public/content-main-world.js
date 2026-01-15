@@ -5,6 +5,7 @@
 
   const canvasOperations = [];
   const storageOperations = [];
+  const mouseEventCount = { count: 0, startTime: Date.now() };
 
   function reportDetection(data) {
     window.dispatchEvent(new CustomEvent('phantom-trail-detection', {
@@ -118,9 +119,43 @@
     }
   }
 
+  function monitorMouseTracking() {
+    let throttleTimeout = null;
+
+    document.addEventListener(
+      'mousemove',
+      () => {
+        mouseEventCount.count++;
+
+        if (!throttleTimeout) {
+          throttleTimeout = setTimeout(() => {
+            const duration = Date.now() - mouseEventCount.startTime;
+            const eventsPerSecond = (mouseEventCount.count / duration) * 1000;
+
+            if (eventsPerSecond >= 50) {
+              reportDetection({
+                type: 'mouse-tracking',
+                eventCount: mouseEventCount.count,
+                duration,
+                eventsPerSecond: Math.round(eventsPerSecond),
+                timestamp: Date.now()
+              });
+            }
+
+            mouseEventCount.count = 0;
+            mouseEventCount.startTime = Date.now();
+            throttleTimeout = null;
+          }, 2000);
+        }
+      },
+      { passive: true }
+    );
+  }
+
   try {
     interceptCanvas();
     interceptStorage();
+    monitorMouseTracking();
   } catch (error) {
     console.error('[Phantom Trail] Failed to initialize canvas detector:', error);
   }

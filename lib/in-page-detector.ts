@@ -13,6 +13,7 @@ export interface DetectionResult {
 export class InPageDetector {
   private static readonly CANVAS_FINGERPRINT_THRESHOLD = 3;
   private static readonly STORAGE_ACCESS_THRESHOLD = 10; // 10+ operations per minute
+  private static readonly MOUSE_TRACKING_THRESHOLD = 50; // 50+ events per second
 
   /**
    * Analyze canvas operations for fingerprinting patterns
@@ -69,6 +70,25 @@ export class InPageDetector {
       details: `${recentOps.length} storage operations in last minute`,
       apiCalls: recentOps.map(op => `${op.type}(${op.key})`),
       frequency: recentOps.length,
+    };
+  }
+
+  /**
+   * Analyze mouse tracking patterns
+   */
+  static analyzeMouseTracking(eventCount: number, duration: number): DetectionResult {
+    const eventsPerSecond = (eventCount / duration) * 1000;
+    const detected = eventsPerSecond >= this.MOUSE_TRACKING_THRESHOLD;
+
+    return {
+      detected,
+      method: 'mouse-tracking',
+      description: detected
+        ? 'Intensive mouse tracking detected - recording your movements'
+        : 'Normal mouse event handling',
+      riskLevel: detected ? 'medium' : 'low',
+      details: `${Math.round(eventsPerSecond)} mouse events per second`,
+      frequency: eventCount,
     };
   }
 }

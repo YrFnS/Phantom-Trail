@@ -213,6 +213,17 @@ This can be used to track you across sessions and build a profile of your behavi
 The data persists even after closing the browser.`;
     }
 
+    if (event.inPageTracking?.method === 'mouse-tracking') {
+      prompt += `\n\nMouse Tracking Details:
+- Event Frequency: ${event.inPageTracking.details}
+- Total Events: ${event.inPageTracking.frequency || 'N/A'}
+
+This website is intensively monitoring your mouse movements and scrolling behavior.
+This behavioral data is used to analyze your engagement, predict your intentions,
+and build a profile of how you interact with content. Common on e-commerce sites
+to optimize conversion rates.`;
+    }
+
     prompt += `
 
 Provide a brief, user-friendly analysis as JSON:

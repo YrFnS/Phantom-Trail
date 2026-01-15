@@ -37,6 +37,11 @@ export default defineContentScript({
           detectionResult = InPageDetector.analyzeStorageAccess(
             operations || []
           );
+        } else if (type === 'mouse-tracking') {
+          detectionResult = InPageDetector.analyzeMouseTracking(
+            event.detail.eventCount || 0,
+            event.detail.duration || 1
+          );
         }
 
         if (!detectionResult || !detectionResult.detected) {
