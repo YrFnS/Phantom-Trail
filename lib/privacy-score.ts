@@ -9,6 +9,7 @@ export interface PrivacyScore {
     highRisk: number;
     mediumRisk: number;
     lowRisk: number;
+    criticalRisk: number;
     httpsBonus: boolean;
     excessiveTrackingPenalty: boolean;
   };
@@ -30,6 +31,7 @@ export function calculatePrivacyScore(
     highRisk: 0,
     mediumRisk: 0,
     lowRisk: 0,
+    criticalRisk: 0,
     httpsBonus: isHttps,
     excessiveTrackingPenalty: events.length > 10,
   };
@@ -39,7 +41,8 @@ export function calculatePrivacyScore(
     switch (event.riskLevel) {
       case 'critical':
         score -= 25;
-        breakdown.highRisk++;
+        breakdown.criticalRisk++;
+        breakdown.highRisk++; // Critical counts as high-risk for display
         break;
       case 'high':
         score -= 15;

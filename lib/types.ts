@@ -77,6 +77,7 @@ export interface PrivacyScore {
     highRisk: number;
     mediumRisk: number;
     lowRisk: number;
+    criticalRisk: number;
     httpsBonus: boolean;
     excessiveTrackingPenalty: boolean;
   };

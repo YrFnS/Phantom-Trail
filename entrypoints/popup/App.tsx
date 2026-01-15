@@ -11,6 +11,22 @@ import { StorageManager } from '../../lib/storage-manager';
 import { calculatePrivacyScore } from '../../lib/privacy-score';
 import type { TrackingEvent, PrivacyScore as PrivacyScoreType } from '../../lib/types';
 
+const EMPTY_PRIVACY_SCORE: PrivacyScoreType = {
+  score: 100,
+  grade: 'A',
+  color: 'green',
+  breakdown: {
+    totalTrackers: 0,
+    highRisk: 0,
+    mediumRisk: 0,
+    lowRisk: 0,
+    criticalRisk: 0,
+    httpsBonus: true,
+    excessiveTrackingPenalty: false,
+  },
+  recommendations: [],
+};
+
 function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState<
@@ -29,16 +45,26 @@ function App() {
         setEvents(recentEvents);
         
         // Get current domain from active tab
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        const activeTab = tabs[0];
-        const domain = activeTab?.url ? new URL(activeTab.url).hostname : '';
+        let domain = '';
+        let isHttps = false;
+        try {
+          const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          const activeTab = tabs[0];
+          if (activeTab?.url) {
+            domain = new URL(activeTab.url).hostname;
+            isHttps = activeTab.url.startsWith('https:');
+          }
+        } catch (tabError) {
+          console.warn('Failed to get active tab:', tabError);
+          // Continue with empty domain - extension still works
+        }
         setCurrentDomain(domain);
         
         // Calculate privacy score for current domain events
         const domainEvents = recentEvents.filter(event => 
           event.domain === domain || event.url.includes(domain)
         );
-        const currentScore = calculatePrivacyScore(domainEvents, activeTab?.url?.startsWith('https:') || false);
+        const currentScore = calculatePrivacyScore(domainEvents, isHttps);
         setCurrentSiteScore(currentScore);
         
         // Calculate overall privacy score for all recent events
@@ -79,20 +105,7 @@ function App() {
           <div className="flex items-center space-x-2">
             <ExportButton 
               events={events} 
-              privacyScore={overallScore || {
-                score: 100,
-                grade: 'A',
-                color: 'green',
-                breakdown: {
-                  totalTrackers: 0,
-                  highRisk: 0,
-                  mediumRisk: 0,
-                  lowRisk: 0,
-                  httpsBonus: true,
-                  excessiveTrackingPenalty: false,
-                },
-                recommendations: [],
-              }}
+              privacyScore={overallScore || EMPTY_PRIVACY_SCORE}
             />
             <Button
               variant="ghost"

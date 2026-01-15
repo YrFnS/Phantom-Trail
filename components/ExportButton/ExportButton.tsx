@@ -53,7 +53,8 @@ export function ExportButton({
         } : undefined,
       };
 
-      await ExportService.exportAndDownload(events, privacyScore, options);
+      const { blob, filename } = await ExportService.prepareExport(events, privacyScore, options);
+      ExportService.downloadBlob(blob, filename);
       
       setExportStatus({
         type: 'success',

@@ -84,24 +84,24 @@ export function PrivacyScore({ score, trend, showBreakdown = false, className = 
             Breakdown
           </div>
           <div className="grid grid-cols-3 gap-2 text-sm">
-            {score.breakdown.highRisk > 0 && (
-              <div className="text-center">
-                <div className="text-red-600 font-bold">{score.breakdown.highRisk}</div>
-                <div className="text-xs text-gray-500">High Risk</div>
+            <div className="text-center">
+              <div className="text-red-600 font-bold">
+                {score.breakdown.highRisk > 0 ? score.breakdown.highRisk : '—'}
               </div>
-            )}
-            {score.breakdown.mediumRisk > 0 && (
-              <div className="text-center">
-                <div className="text-orange-600 font-bold">{score.breakdown.mediumRisk}</div>
-                <div className="text-xs text-gray-500">Medium Risk</div>
+              <div className="text-xs text-gray-500">High Risk</div>
+            </div>
+            <div className="text-center">
+              <div className="text-orange-600 font-bold">
+                {score.breakdown.mediumRisk > 0 ? score.breakdown.mediumRisk : '—'}
               </div>
-            )}
-            {score.breakdown.lowRisk > 0 && (
-              <div className="text-center">
-                <div className="text-yellow-600 font-bold">{score.breakdown.lowRisk}</div>
-                <div className="text-xs text-gray-500">Low Risk</div>
+              <div className="text-xs text-gray-500">Medium Risk</div>
+            </div>
+            <div className="text-center">
+              <div className="text-yellow-600 font-bold">
+                {score.breakdown.lowRisk > 0 ? score.breakdown.lowRisk : '—'}
               </div>
-            )}
+              <div className="text-xs text-gray-500">Low Risk</div>
+            </div>
           </div>
 
           {/* Bonuses and Penalties */}
