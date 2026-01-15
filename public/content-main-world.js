@@ -109,16 +109,25 @@
   }
 
   function checkStorageAccess() {
-    const recentOps = storageOperations.filter(
-      op => Date.now() - op.timestamp < 60000
-    );
+    const now = Date.now();
+    const cutoff = now - 60000;
+    
+    // Remove old entries and keep recent ones
+    for (let i = storageOperations.length - 1; i >= 0; i--) {
+      if (storageOperations[i].timestamp < cutoff) {
+        storageOperations.splice(i, 1);
+      }
+    }
 
-    if (recentOps.length >= 10) {
+    if (storageOperations.length >= 10) {
       reportDetection({
         type: 'storage-access',
-        operations: recentOps,
-        timestamp: Date.now()
+        operations: storageOperations.slice(),
+        timestamp: now
       });
+      
+      // Clear after reporting to avoid duplicates
+      storageOperations.length = 0;
     }
   }
 
@@ -170,7 +179,10 @@
 
           formMonitoringTimeout = setTimeout(() => {
             if (monitoredFields.size > 0) {
-              const fields = Array.from(monitoredFields).map(field => ({
+              const fieldsToReport = monitoredFields;
+              monitoredFields = new Set();
+              
+              const fields = Array.from(fieldsToReport).map(field => ({
                 type: field.type || 'text',
                 name: field.name || field.id || 'unnamed',
                 monitored: true
@@ -181,8 +193,6 @@
                 fields,
                 timestamp: Date.now()
               });
-
-              monitoredFields.clear();
             }
             formMonitoringTimeout = null;
           }, 1000);
@@ -237,18 +247,22 @@
     const screenValues = {};
 
     screenProps.forEach(prop => {
-      const descriptor = Object.getOwnPropertyDescriptor(screen, prop);
-      if (descriptor && descriptor.get) {
-        screenValues[prop] = descriptor.get.call(screen);
-        
-        Object.defineProperty(screen, prop, {
-          get() {
-            deviceAPICalls.push(`screen.${prop}`);
-            checkDeviceAPIs();
-            return screenValues[prop];
-          },
-          configurable: true
-        });
+      try {
+        const descriptor = Object.getOwnPropertyDescriptor(screen, prop);
+        if (descriptor && descriptor.get) {
+          screenValues[prop] = descriptor.get.call(screen);
+          
+          Object.defineProperty(screen, prop, {
+            get() {
+              deviceAPICalls.push(`screen.${prop}`);
+              checkDeviceAPIs();
+              return screenValues[prop];
+            },
+            configurable: true
+          });
+        }
+      } catch (e) {
+        console.warn(`Failed to monitor screen.${prop}:`, e);
       }
     });
 
@@ -256,17 +270,21 @@
     const navigatorValues = {};
 
     navigatorProps.forEach(prop => {
-      if (prop in navigator) {
-        navigatorValues[prop] = navigator[prop];
-        
-        Object.defineProperty(navigator, prop, {
-          get() {
-            deviceAPICalls.push(`navigator.${prop}`);
-            checkDeviceAPIs();
-            return navigatorValues[prop];
-          },
-          configurable: true
-        });
+      try {
+        if (prop in navigator) {
+          navigatorValues[prop] = navigator[prop];
+          
+          Object.defineProperty(navigator, prop, {
+            get() {
+              deviceAPICalls.push(`navigator.${prop}`);
+              checkDeviceAPIs();
+              return navigatorValues[prop];
+            },
+            configurable: true
+          });
+        }
+      } catch (e) {
+        console.warn(`Failed to monitor navigator.${prop}:`, e);
       }
     });
   }

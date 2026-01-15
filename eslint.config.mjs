@@ -118,6 +118,7 @@ export default [
       '*.config.ts',
       '.wxt/**',
       'types/**/*.d.ts',
+      'scripts/**/*.js',
     ],
   },
 ];

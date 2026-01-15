@@ -9,6 +9,12 @@ export default defineConfig({
     version: '0.1.0',
     permissions: ['webRequest', 'storage', 'activeTab', 'tabs'],
     host_permissions: ['<all_urls>'],
+    icons: {
+      16: '/icon/icon-16.png',
+      32: '/icon/icon-32.png',
+      48: '/icon/icon-48.png',
+      128: '/icon/icon-128.png',
+    },
     web_accessible_resources: [
       {
         resources: ['content-main-world.js'],
