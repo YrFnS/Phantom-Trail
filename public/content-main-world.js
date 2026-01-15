@@ -4,6 +4,7 @@
   console.log('[Phantom Trail] Canvas detector loaded');
 
   const canvasOperations = [];
+  const storageOperations = [];
 
   function reportDetection(data) {
     window.dispatchEvent(new CustomEvent('phantom-trail-detection', {
@@ -64,8 +65,62 @@
     }
   }
 
+  function interceptStorage() {
+    ['localStorage', 'sessionStorage'].forEach(storageType => {
+      const storage = window[storageType];
+      const originalSetItem = storage.setItem;
+      const originalGetItem = storage.getItem;
+      const originalRemoveItem = storage.removeItem;
+
+      storage.setItem = function(key, value) {
+        storageOperations.push({
+          type: `${storageType}.setItem`,
+          key,
+          timestamp: Date.now()
+        });
+        checkStorageAccess();
+        return originalSetItem.call(this, key, value);
+      };
+
+      storage.getItem = function(key) {
+        storageOperations.push({
+          type: `${storageType}.getItem`,
+          key,
+          timestamp: Date.now()
+        });
+        checkStorageAccess();
+        return originalGetItem.call(this, key);
+      };
+
+      storage.removeItem = function(key) {
+        storageOperations.push({
+          type: `${storageType}.removeItem`,
+          key,
+          timestamp: Date.now()
+        });
+        checkStorageAccess();
+        return originalRemoveItem.call(this, key);
+      };
+    });
+  }
+
+  function checkStorageAccess() {
+    const recentOps = storageOperations.filter(
+      op => Date.now() - op.timestamp < 60000
+    );
+
+    if (recentOps.length >= 10) {
+      reportDetection({
+        type: 'storage-access',
+        operations: recentOps,
+        timestamp: Date.now()
+      });
+    }
+  }
+
   try {
     interceptCanvas();
+    interceptStorage();
   } catch (error) {
     console.error('[Phantom Trail] Failed to initialize canvas detector:', error);
   }

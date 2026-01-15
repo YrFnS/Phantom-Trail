@@ -12,6 +12,7 @@ export interface DetectionResult {
 
 export class InPageDetector {
   private static readonly CANVAS_FINGERPRINT_THRESHOLD = 3;
+  private static readonly STORAGE_ACCESS_THRESHOLD = 10; // 10+ operations per minute
 
   /**
    * Analyze canvas operations for fingerprinting patterns
@@ -42,6 +43,32 @@ export class InPageDetector {
       details: `${matchedOperations.length} suspicious canvas operations detected`,
       apiCalls: matchedOperations,
       frequency: matchedOperations.length,
+    };
+  }
+
+  /**
+   * Analyze storage access patterns
+   */
+  static analyzeStorageAccess(
+    operations: Array<{ type: string; key: string; timestamp: number }>
+  ): DetectionResult {
+    const recentOps = operations.filter(
+      op => Date.now() - op.timestamp < 60000 // Last minute
+    );
+
+    const detected = recentOps.length >= this.STORAGE_ACCESS_THRESHOLD;
+    const uniqueKeys = new Set(recentOps.map(op => op.key)).size;
+
+    return {
+      detected,
+      method: 'storage-access',
+      description: detected
+        ? `Excessive storage access detected - ${uniqueKeys} unique keys accessed`
+        : 'Normal storage usage',
+      riskLevel: detected ? 'medium' : 'low',
+      details: `${recentOps.length} storage operations in last minute`,
+      apiCalls: recentOps.map(op => `${op.type}(${op.key})`),
+      frequency: recentOps.length,
     };
   }
 }

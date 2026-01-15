@@ -26,42 +26,50 @@ export default defineContentScript({
 
         recentDetections.set(type, timestamp);
 
+        let detectionResult;
+
         // Analyze canvas fingerprinting
         if (type === 'canvas-fingerprint') {
-          const detectionResult = InPageDetector.analyzeCanvasFingerprint(
+          detectionResult = InPageDetector.analyzeCanvasFingerprint(
             operations || []
           );
+        } else if (type === 'storage-access') {
+          detectionResult = InPageDetector.analyzeStorageAccess(
+            operations || []
+          );
+        }
 
-          if (!detectionResult.detected) {
-            return;
-          }
+        if (!detectionResult || !detectionResult.detected) {
+          return;
+        }
 
-          // Create tracking event
-          const trackingEvent: TrackingEvent = {
-            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            timestamp: Date.now(),
-            url: window.location.href,
-            domain: window.location.hostname,
-            trackerType: 'fingerprinting',
-            riskLevel: detectionResult.riskLevel,
-            description: detectionResult.description,
-            inPageTracking: {
-              method: detectionResult.method,
-              details: detectionResult.details,
-              apiCalls: detectionResult.apiCalls,
-              frequency: detectionResult.frequency,
-            },
-          };
+        // Create tracking event
+        const trackingEvent: TrackingEvent = {
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          timestamp: Date.now(),
+          url: window.location.href,
+          domain: window.location.hostname,
+          trackerType: 'fingerprinting',
+          riskLevel: detectionResult.riskLevel,
+          description: detectionResult.description,
+          inPageTracking: {
+            method: detectionResult.method,
+            details: detectionResult.details,
+            apiCalls: detectionResult.apiCalls,
+            frequency: detectionResult.frequency,
+          },
+        };
 
-          // Send to background
-          const response =
-            await ContentMessaging.sendTrackingEvent(trackingEvent);
+        // Send to background
+        const response =
+          await ContentMessaging.sendTrackingEvent(trackingEvent);
 
-          if (response.success) {
-            console.log('[Phantom Trail] Canvas fingerprinting reported');
-          } else {
-            console.error('[Phantom Trail] Failed to report:', response.error);
-          }
+        if (response.success) {
+          console.log(
+            `[Phantom Trail] ${detectionResult.method} reported`
+          );
+        } else {
+          console.error('[Phantom Trail] Failed to report:', response.error);
         }
       } catch (error) {
         console.error('[Phantom Trail] Failed to process detection:', error);

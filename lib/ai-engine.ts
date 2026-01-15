@@ -203,6 +203,16 @@ This happens silently without network requests, making it invisible to tradition
 The fingerprint can track you across websites even in incognito mode.`;
     }
 
+    if (event.inPageTracking?.method === 'storage-access') {
+      prompt += `\n\nStorage Access Tracking Details:
+- Operations: ${event.inPageTracking.frequency || 'N/A'} in last minute
+- API Calls: ${event.inPageTracking.apiCalls?.slice(0, 5).join(', ') || 'N/A'}
+
+This website is excessively accessing browser storage (localStorage/sessionStorage).
+This can be used to track you across sessions and build a profile of your behavior.
+The data persists even after closing the browser.`;
+    }
+
     prompt += `
 
 Provide a brief, user-friendly analysis as JSON:
