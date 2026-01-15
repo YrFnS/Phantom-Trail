@@ -45,24 +45,54 @@ export default defineContentScript({
     const recentDetections = new Map<string, number>();
     const DETECTION_THROTTLE_MS = 3000;
 
-    // Monitor extension context health
+    // Enhanced context monitoring with recovery
     let contextValid = true;
+    let recoveryAttempts = 0;
+    const MAX_RECOVERY_ATTEMPTS = 3;
+    
     const contextCheckInterval = setInterval(() => {
       try {
         const wasValid = contextValid;
         contextValid = chrome.runtime?.id !== undefined;
 
         if (wasValid && !contextValid) {
-          console.warn(
-            '[Phantom Trail] Context invalidated, stopping detection'
-          );
-          clearInterval(contextCheckInterval);
+          console.warn('[Phantom Trail] Context invalidated, attempting recovery');
+          
+          // Attempt recovery with exponential backoff
+          const attemptRecovery = (attempt: number) => {
+            if (attempt > MAX_RECOVERY_ATTEMPTS) {
+              console.error('[Phantom Trail] Max recovery attempts reached, stopping');
+              clearInterval(contextCheckInterval);
+              return;
+            }
+
+            const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+            setTimeout(() => {
+              try {
+                if (chrome.runtime?.id !== undefined) {
+                  contextValid = true;
+                  recoveryAttempts = 0;
+                  console.log(`[Phantom Trail] Context recovered after ${attempt + 1} attempts`);
+                } else {
+                  attemptRecovery(attempt + 1);
+                }
+              } catch {
+                attemptRecovery(attempt + 1);
+              }
+            }, delay);
+          };
+
+          attemptRecovery(recoveryAttempts++);
         }
       } catch {
         contextValid = false;
-        clearInterval(contextCheckInterval);
+        if (recoveryAttempts < MAX_RECOVERY_ATTEMPTS) {
+          recoveryAttempts++;
+        } else {
+          clearInterval(contextCheckInterval);
+        }
       }
-    }, 5000);
+    }, 2000);
 
     // Clean up on unload
     window.addEventListener('unload', () => {

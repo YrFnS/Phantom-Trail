@@ -28,7 +28,7 @@ export class ContentMessaging {
   }
 
   /**
-   * Attempt to reconnect and flush queued events
+   * Enhanced reconnection with exponential backoff
    */
   private static async attemptReconnect(): Promise<void> {
     if (this.isReconnecting) return;
@@ -36,10 +36,21 @@ export class ContentMessaging {
     this.isReconnecting = true;
     console.log('[Phantom Trail] Attempting reconnection...');
 
-    // Wait for extension to reload
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const maxAttempts = 3;
+    let attempt = 0;
 
-    // Try to flush queue
+    while (attempt < maxAttempts && !this.isContextValid()) {
+      const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      attempt++;
+      
+      if (this.isContextValid()) {
+        console.log(`[Phantom Trail] Context recovered after ${attempt} attempts`);
+        break;
+      }
+    }
+
+    // Try to flush queue if context is valid
     if (this.isContextValid() && this.messageQueue.length > 0) {
       console.log(
         `[Phantom Trail] Flushing ${this.messageQueue.length} queued events`
@@ -72,56 +83,91 @@ export class ContentMessaging {
   static async sendTrackingEvent(
     event: TrackingEvent
   ): Promise<BackgroundResponse> {
-    // Check context before sending
-    if (!this.isContextValid()) {
-      console.warn('[Phantom Trail] Extension context invalid, queueing event');
-      if (this.messageQueue.length < this.MAX_QUEUE_SIZE) {
-        this.messageQueue.push(event);
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      // Check context before each attempt
+      if (!this.isContextValid()) {
+        console.warn('[Phantom Trail] Context invalid, attempting recovery');
+        await this.attemptReconnect();
+        
+        if (!this.isContextValid()) {
+          // Queue event if context still invalid
+          if (this.messageQueue.length < this.MAX_QUEUE_SIZE) {
+            this.messageQueue.push(event);
+            console.log(`[Phantom Trail] Event queued (${this.messageQueue.length}/${this.MAX_QUEUE_SIZE})`);
+          }
+          return { success: false, error: 'Context recovery failed' };
+        }
       }
-      this.attemptReconnect();
-      return { success: false, error: 'Context invalidated' };
+
+      try {
+        const message: ContentMessage = {
+          type: 'tracking-event',
+          payload: event,
+          timestamp: Date.now(),
+        };
+
+        // Send with timeout
+        const response = await Promise.race([
+          chrome.runtime.sendMessage(message),
+          new Promise<BackgroundResponse>((_, reject) =>
+            setTimeout(() => reject(new Error('Message timeout')), 5000)
+          ),
+        ]);
+
+        const result = (response as BackgroundResponse) || { success: true };
+        
+        // Success - flush any queued messages
+        if (result.success && this.messageQueue.length > 0) {
+          console.log(`[Phantom Trail] Flushing ${this.messageQueue.length} queued events`);
+          const queue = [...this.messageQueue];
+          this.messageQueue = [];
+          
+          // Send queued messages in background
+          queue.forEach(async (queuedEvent) => {
+            try {
+              const queuedMessage: ContentMessage = {
+                type: 'tracking-event',
+                payload: queuedEvent,
+                timestamp: Date.now(),
+              };
+              await chrome.runtime.sendMessage(queuedMessage);
+            } catch (error) {
+              console.warn('[Phantom Trail] Failed to send queued event:', error);
+            }
+          });
+        }
+
+        return result;
+      } catch (error) {
+        lastError = error as Error;
+        const errorMessage = String(error);
+        console.warn(`[Phantom Trail] Send attempt ${attempt + 1} failed:`, errorMessage);
+
+        // Handle specific error types
+        if (errorMessage.includes('Extension context invalidated') || 
+            errorMessage.includes('Could not establish connection')) {
+          // Queue event and try recovery
+          if (this.messageQueue.length < this.MAX_QUEUE_SIZE) {
+            this.messageQueue.push(event);
+          }
+          await this.attemptReconnect();
+        }
+
+        // Wait before retry with exponential backoff
+        if (attempt < maxRetries - 1) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 3000);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
 
-    try {
-      const message: ContentMessage = {
-        type: 'tracking-event',
-        payload: event,
-        timestamp: Date.now(),
-      };
-
-      // Add 5-second timeout to prevent hanging
-      const response = await Promise.race([
-        chrome.runtime.sendMessage(message),
-        new Promise<BackgroundResponse>((_, reject) =>
-          setTimeout(() => reject(new Error('Message timeout')), 5000)
-        ),
-      ]);
-
-      return (response as BackgroundResponse) || { success: true };
-    } catch (error) {
-      const errorMessage = String(error);
-      console.error('Failed to send tracking event:', errorMessage);
-
-      // Handle timeout
-      if (errorMessage.includes('Message timeout')) {
-        console.warn('[Phantom Trail] Message timeout, queueing event');
-        if (this.messageQueue.length < this.MAX_QUEUE_SIZE) {
-          this.messageQueue.push(event);
-        }
-        return { success: false, error: 'Timeout' };
-      }
-
-      // Handle context invalidation
-      if (errorMessage.includes('Extension context invalidated')) {
-        if (this.messageQueue.length < this.MAX_QUEUE_SIZE) {
-          this.messageQueue.push(event);
-        }
-        this.attemptReconnect();
-        return { success: false, error: 'Context invalidated' };
-      }
-
-      return { success: false, error: errorMessage };
-    }
+    return {
+      success: false,
+      error: `Failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`,
+    };
   }
 
   static async ping(): Promise<boolean> {
