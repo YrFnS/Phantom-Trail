@@ -183,22 +183,36 @@ export class AIEngine {
       contextPrompts[context as keyof typeof contextPrompts] ||
       contextPrompts.unknown;
 
-    return `You are a privacy expert analyzing a specific tracking event. ${contextPrompt}
+    let prompt = `You are a privacy expert analyzing a specific tracking event. ${contextPrompt}
 
 Event Details:
 - Domain: ${event.domain}
 - Tracker Type: ${event.trackerType}
 - Risk Level: ${event.riskLevel}
 - Description: ${event.description}
-- Website: ${new URL(event.url).hostname}
+- Website: ${new URL(event.url).hostname}`;
+
+    if (event.inPageTracking?.method === 'canvas-fingerprint') {
+      prompt += `\n\nCanvas Fingerprinting Details:
+- Method: Canvas API manipulation
+- Operations: ${event.inPageTracking.apiCalls?.join(', ') || 'N/A'}
+- Frequency: ${event.inPageTracking.frequency || 'N/A'} operations
+
+This website is using canvas rendering to generate a unique fingerprint of your browser. 
+This happens silently without network requests, making it invisible to traditional ad blockers.
+The fingerprint can track you across websites even in incognito mode.`;
+    }
+
+    prompt += `
 
 Provide a brief, user-friendly analysis as JSON:
 - "narrative": 1 sentence explaining what this specific tracker is doing
 - "riskAssessment": Risk level (low/medium/high/critical)
 - "recommendations": Array of 1-2 specific actions the user can take
 - "confidence": Confidence score 0-1
+`;
 
-Focus on what this individual tracker learned and actionable steps.`;
+    return prompt;
   }
 
   /**

@@ -10,6 +10,12 @@ export interface TrackingEvent {
   trackerType: TrackerType;
   riskLevel: RiskLevel;
   description: string;
+  inPageTracking?: {
+    method: InPageTrackingMethod;
+    details: string;
+    apiCalls?: string[];
+    frequency?: number;
+  };
 }
 
 export interface TrackerInfo {
@@ -45,6 +51,14 @@ export type TrackerCategory =
   | 'Unknown';
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
+
+export type InPageTrackingMethod =
+  | 'canvas-fingerprint'
+  | 'storage-access'
+  | 'mouse-tracking'
+  | 'form-monitoring'
+  | 'device-api'
+  | 'clipboard-access';
 
 export interface ExtensionSettings {
   apiKey?: string;

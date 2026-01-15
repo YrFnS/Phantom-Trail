@@ -4,6 +4,10 @@ import { StorageManager } from '../lib/storage-manager';
 import { AIEngine } from '../lib/ai-engine';
 import { ContextDetector } from '../components/LiveNarrative/LiveNarrative.context';
 import type { TrackingEvent } from '../lib/types';
+import type {
+  ContentMessage,
+  BackgroundResponse,
+} from '../lib/content-messaging';
 
 export default defineBackground({
   main() {
@@ -167,5 +171,52 @@ export default defineBackground({
     chrome.runtime.onInstalled.addListener(() => {
       console.log('Phantom Trail extension installed');
     });
+
+    // Handle messages from content scripts
+    chrome.runtime.onMessage.addListener(
+      (
+        message: ContentMessage,
+        _sender,
+        sendResponse: (response: BackgroundResponse) => void
+      ) => {
+        (async () => {
+          try {
+            if (message.type === 'ping') {
+              sendResponse({ success: true });
+              return;
+            }
+
+            if (message.type === 'tracking-event' && message.payload) {
+              const event = message.payload;
+
+              // Store the event
+              await StorageManager.addEvent(event);
+
+              // Trigger AI analysis for high-risk canvas fingerprinting
+              if (event.riskLevel === 'high' || event.riskLevel === 'critical') {
+                const context = ContextDetector.detectContext(event);
+                await AIEngine.generateEventAnalysis(event, context);
+              }
+
+              console.log(
+                'Canvas fingerprinting detected:',
+                event.inPageTracking?.method,
+                'on',
+                event.domain
+              );
+
+              sendResponse({ success: true });
+            } else {
+              sendResponse({ success: false, error: 'Invalid message type' });
+            }
+          } catch (error) {
+            console.error('Failed to handle content script message:', error);
+            sendResponse({ success: false, error: String(error) });
+          }
+        })();
+
+        return true; // Keep channel open for async response
+      }
+    );
   },
 });
