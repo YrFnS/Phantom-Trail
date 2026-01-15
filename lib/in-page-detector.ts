@@ -116,4 +116,40 @@ export class InPageDetector {
       frequency: monitoredFields.length,
     };
   }
+
+  /**
+   * Analyze device API access
+   */
+  static analyzeDeviceAPI(apiCalls: string[]): DetectionResult {
+    const suspiciousAPIs = [
+      'navigator.getBattery',
+      'navigator.geolocation',
+      'navigator.mediaDevices',
+      'navigator.clipboard',
+      'screen.width',
+      'screen.height',
+      'navigator.hardwareConcurrency',
+      'navigator.deviceMemory',
+      'navigator.platform',
+      'navigator.userAgent',
+    ];
+
+    const matchedAPIs = apiCalls.filter(call =>
+      suspiciousAPIs.some(api => call.includes(api))
+    );
+
+    const detected = matchedAPIs.length >= 3; // 3+ device APIs = fingerprinting
+
+    return {
+      detected,
+      method: 'device-api',
+      description: detected
+        ? 'Device fingerprinting detected - collecting hardware information'
+        : 'Normal device API usage',
+      riskLevel: detected ? 'high' : 'low',
+      details: `${matchedAPIs.length} device APIs accessed`,
+      apiCalls: matchedAPIs,
+      frequency: matchedAPIs.length,
+    };
+  }
 }

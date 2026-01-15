@@ -238,6 +238,17 @@ ${hasPassword
 }`;
     }
 
+    if (event.inPageTracking?.method === 'device-api') {
+      prompt += `\n\nDevice Fingerprinting Details:
+- APIs Accessed: ${event.inPageTracking.apiCalls?.join(', ') || 'N/A'}
+- Total API Calls: ${event.inPageTracking.frequency || 'N/A'}
+
+This website is collecting hardware and device information to create a unique fingerprint.
+By combining data like screen resolution, CPU cores, memory, battery status, and platform,
+they can identify your device even across different browsers and incognito mode.
+This fingerprint persists even if you clear cookies or use VPNs.`;
+    }
+
     prompt += `
 
 Provide a brief, user-friendly analysis as JSON:

@@ -8,6 +8,7 @@
   const mouseEventCount = { count: 0, startTime: Date.now() };
   const monitoredFields = new Set();
   let formMonitoringTimeout = null;
+  const deviceAPICalls = [];
 
   function reportDetection(data) {
     window.dispatchEvent(new CustomEvent('phantom-trail-detection', {
@@ -191,11 +192,102 @@
     );
   }
 
+  function monitorDeviceAPIs() {
+    const navigatorAPIs = [
+      { obj: navigator, prop: 'getBattery', name: 'navigator.getBattery' },
+      { obj: navigator.geolocation, prop: 'getCurrentPosition', name: 'navigator.geolocation.getCurrentPosition' },
+      { obj: navigator.geolocation, prop: 'watchPosition', name: 'navigator.geolocation.watchPosition' },
+    ];
+
+    navigatorAPIs.forEach(({ obj, prop, name }) => {
+      if (obj && prop in obj) {
+        const original = obj[prop];
+        if (typeof original === 'function') {
+          obj[prop] = function (...args) {
+            deviceAPICalls.push(name);
+            checkDeviceAPIs();
+            return original.apply(this, args);
+          };
+        }
+      }
+    });
+
+    if (navigator.clipboard) {
+      const originalReadText = navigator.clipboard.readText;
+      const originalRead = navigator.clipboard.read;
+
+      if (originalReadText) {
+        navigator.clipboard.readText = function () {
+          deviceAPICalls.push('navigator.clipboard.readText');
+          checkDeviceAPIs();
+          return originalReadText.apply(this);
+        };
+      }
+
+      if (originalRead) {
+        navigator.clipboard.read = function () {
+          deviceAPICalls.push('navigator.clipboard.read');
+          checkDeviceAPIs();
+          return originalRead.apply(this);
+        };
+      }
+    }
+
+    const screenProps = ['width', 'height', 'colorDepth', 'pixelDepth', 'availWidth', 'availHeight'];
+    const screenValues = {};
+
+    screenProps.forEach(prop => {
+      const descriptor = Object.getOwnPropertyDescriptor(screen, prop);
+      if (descriptor && descriptor.get) {
+        screenValues[prop] = descriptor.get.call(screen);
+        
+        Object.defineProperty(screen, prop, {
+          get() {
+            deviceAPICalls.push(`screen.${prop}`);
+            checkDeviceAPIs();
+            return screenValues[prop];
+          },
+          configurable: true
+        });
+      }
+    });
+
+    const navigatorProps = ['hardwareConcurrency', 'deviceMemory', 'platform', 'userAgent'];
+    const navigatorValues = {};
+
+    navigatorProps.forEach(prop => {
+      if (prop in navigator) {
+        navigatorValues[prop] = navigator[prop];
+        
+        Object.defineProperty(navigator, prop, {
+          get() {
+            deviceAPICalls.push(`navigator.${prop}`);
+            checkDeviceAPIs();
+            return navigatorValues[prop];
+          },
+          configurable: true
+        });
+      }
+    });
+  }
+
+  function checkDeviceAPIs() {
+    if (deviceAPICalls.length >= 3) {
+      reportDetection({
+        type: 'device-api',
+        apiCalls: [...deviceAPICalls],
+        timestamp: Date.now()
+      });
+      deviceAPICalls.length = 0;
+    }
+  }
+
   try {
     interceptCanvas();
     interceptStorage();
     monitorMouseTracking();
     monitorFormFields();
+    monitorDeviceAPIs();
   } catch (error) {
     console.error('[Phantom Trail] Failed to initialize canvas detector:', error);
   }

@@ -46,6 +46,10 @@ export default defineContentScript({
           detectionResult = InPageDetector.analyzeFormMonitoring(
             event.detail.fields || []
           );
+        } else if (type === 'device-api') {
+          detectionResult = InPageDetector.analyzeDeviceAPI(
+            event.detail.apiCalls || []
+          );
         }
 
         if (!detectionResult || !detectionResult.detected) {
