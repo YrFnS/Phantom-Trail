@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStorage } from '../../lib/hooks/useStorage';
 import { AIEngine } from '../../lib/ai-engine';
+import { isTrustedSite } from '../../lib/trusted-sites';
 import type { TrackingEvent, AIAnalysis } from '../../lib/types';
 import type {
   NarrativeState,
@@ -356,9 +357,21 @@ function detectFingerprintingPattern(
 
   if (fingerprintingEvents.length < 2) return null;
 
+  // Filter out events from trusted sites
+  const untrustedFingerprintingEvents = fingerprintingEvents.filter(event => {
+    try {
+      const domain = new URL(event.url).hostname;
+      return !isTrustedSite(domain);
+    } catch {
+      return true; // Include if URL parsing fails
+    }
+  });
+
+  if (untrustedFingerprintingEvents.length < 2) return null;
+
   // Check for multiple fingerprinting attempts from same site
   const siteCounts = new Map<string, number>();
-  fingerprintingEvents.forEach(event => {
+  untrustedFingerprintingEvents.forEach(event => {
     const site = new URL(event.url).hostname;
     siteCounts.set(site, (siteCounts.get(site) || 0) + 1);
   });
@@ -373,7 +386,7 @@ function detectFingerprintingPattern(
     id: `fingerprinting-${Date.now()}`,
     type: 'fingerprinting',
     domains: intensiveSites.map(([site]) => site),
-    events: fingerprintingEvents,
+    events: untrustedFingerprintingEvents,
     riskLevel: 'high',
     description: 'Advanced browser fingerprinting detected',
     detectedAt: Date.now(),

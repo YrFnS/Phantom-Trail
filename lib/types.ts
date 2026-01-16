@@ -83,3 +83,20 @@ export interface PrivacyScore {
   };
   recommendations: string[];
 }
+
+export interface UserTrustedSite {
+  domain: string;
+  addedAt: number;
+  reason?: string;
+  allowedMethods?: InPageTrackingMethod[];
+  temporary?: boolean; // Session-only whitelist
+}
+
+export interface SecurityContext {
+  isLoginPage: boolean;
+  isBankingPage: boolean;
+  isPaymentPage: boolean;
+  hasPasswordField: boolean;
+  hasAuthKeywords: boolean;
+  confidence: 'low' | 'medium' | 'high';
+}

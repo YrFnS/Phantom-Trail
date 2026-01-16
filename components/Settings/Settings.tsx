@@ -3,12 +3,16 @@ import { StorageManager } from '../../lib/storage-manager';
 import { AI_MODELS, DEFAULT_MODEL } from '../../lib/ai-models';
 import type { ExtensionSettings, RiskLevel } from '../../lib/types';
 import { Card, CardHeader, CardContent, Button } from '../ui';
+import { TrustedSitesSettings } from './TrustedSitesSettings';
+
+type SettingsTab = 'general' | 'trusted-sites';
 
 interface SettingsProps {
   onClose: () => void;
 }
 
 export function Settings({ onClose }: SettingsProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [settings, setSettings] = useState<ExtensionSettings>({
     enableAI: true,
     enableNotifications: true,
@@ -62,9 +66,35 @@ export function Settings({ onClose }: SettingsProps) {
               ✕
             </Button>
           </div>
+          
+          {/* Tab Navigation */}
+          <div className="flex gap-2 mt-4 border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('general')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'general'
+                  ? 'border-phantom-600 text-phantom-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              General
+            </button>
+            <button
+              onClick={() => setActiveTab('trusted-sites')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'trusted-sites'
+                  ? 'border-phantom-600 text-phantom-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Trusted Sites
+            </button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
+          {/* General Tab */}
+          {activeTab === 'general' && (
+            <div className="space-y-6">
             {/* API Key */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -173,6 +203,10 @@ export function Settings({ onClose }: SettingsProps) {
               {saving ? 'Saving...' : 'Save Settings'}
             </Button>
           </div>
+          )}
+
+          {/* Trusted Sites Tab */}
+          {activeTab === 'trusted-sites' && <TrustedSitesSettings />}
         </CardContent>
       </Card>
     </div>

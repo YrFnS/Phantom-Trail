@@ -1,6 +1,8 @@
 /* eslint-disable no-undef */
 import { ContentMessaging } from '../lib/content-messaging';
 import { InPageDetector } from '../lib/in-page-detector';
+import { isSiteTrusted } from '../lib/trusted-sites';
+import { SecurityContextDetector } from '../lib/context-detector';
 import type { TrackingEvent } from '../lib/types';
 
 // Event deduplication
@@ -144,6 +146,31 @@ export default defineContentScript({
         }
 
         if (!detectionResult || !detectionResult.detected) {
+          return;
+        }
+
+        // Detect security context
+        const currentDomain = window.location.hostname;
+        const context = SecurityContextDetector.detectContext(
+          window.location.href,
+          { 
+            hasPasswordField: document.querySelector('input[type="password"]') !== null 
+          }
+        );
+
+        // Check if this is a trusted site (hybrid check: default + user + context)
+        const trustCheck = await isSiteTrusted(
+          currentDomain,
+          detectionResult.method,
+          context
+        );
+
+        // Skip reporting if trusted
+        if (trustCheck.trusted) {
+          console.log(
+            `[Phantom Trail] Skipping ${detectionResult.method} on trusted site: ${currentDomain}`,
+            `Source: ${trustCheck.source}, Reason: ${trustCheck.reason}`
+          );
           return;
         }
 
