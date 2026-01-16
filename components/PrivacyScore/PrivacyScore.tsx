@@ -131,7 +131,7 @@ export function PrivacyScore({ score, trend, showBreakdown = false, className = 
           <ul className="space-y-1">
             {score.recommendations.map((recommendation, index) => (
               <li key={index} className="text-xs text-gray-400 flex items-start">
-                <span className="mr-2 text-neon-cyan">•</span>
+                <span className="mr-2 text-accent-teal">•</span>
                 <span>{recommendation}</span>
               </li>
             ))}

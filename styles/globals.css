@@ -1,38 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --neon-purple: #a855f7;
-  --neon-pink: #ec4899;
-  --neon-cyan: #06b6d4;
-  --neon-green: #10b981;
+  --primary-purple: #BC13FE;
+  --accent-cyan: #00F0FF;
+  --expose-red: #FF2A6D;
+  --void-black: #050A0E;
+  --hud-grey: #161B22;
+  --terminal-white: #E6EDF3;
 }
 
 body {
-  background: #0a0a0f;
-  color: #e5e7eb;
+  background: #050A0E;
+  color: #E6EDF3;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a24;
+  background: #1a1f2e;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #a855f7;
-  border-radius: 4px;
+  background: #BC13FE;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #c084fc;
+  background: #d63bff;
 }
 
 .focus-visible {
-  outline: 2px solid var(--neon-purple);
+  outline: 2px solid #BC13FE;
   outline-offset: 2px;
 }
 
@@ -42,22 +49,47 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 10px rgba(168, 85, 247, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.6); }
+  0%, 100% { box-shadow: 0 0 10px rgba(188, 19, 254, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(188, 19, 254, 0.6); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }
 
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(188, 19, 254, 0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
 .neon-border {
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(188, 19, 254, 0.3);
+  box-shadow: 0 0 10px rgba(188, 19, 254, 0.2);
 }
 
 .extension-popup {
   min-height: 500px;
   max-height: 600px;
   width: 400px;
-  background: #0a0a0f;
+  background: #0a0e1a;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }

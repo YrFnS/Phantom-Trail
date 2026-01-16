@@ -83,15 +83,19 @@ export function ExportButton({
         disabled={disabled || !hasData}
         className={`
           inline-flex items-center px-3 py-2 text-sm font-medium rounded-md
-          transition-colors duration-200
+          transition-all duration-200
           ${hasData && !disabled
-            ? 'bg-neon-purple hover:bg-purple-600 text-white'
-            : 'bg-dark-700 text-gray-500 cursor-not-allowed'
+            ? 'bg-hud text-terminal border border-plasma/30 hover:border-plasma hover:shadow-[0_0_15px_rgba(188,19,254,0.4)]'
+            : 'bg-dark-700 text-gray-500 cursor-not-allowed border border-dark-600'
           }
         `}
         title={hasData ? 'Export tracking data' : 'No data to export'}
       >
-        <span className="mr-2">📥</span>
+        <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
         Export
         <span className="ml-1">
           {isOpen ? '▲' : '▼'}
@@ -138,7 +142,7 @@ export function ExportButton({
       {isExporting && (
         <div className="absolute inset-0 flex items-center justify-center bg-dark-800 bg-opacity-75 rounded-md">
           <div className="flex items-center space-x-2 text-sm text-gray-300">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-neon-purple border-t-transparent"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-500 border-t-transparent"></div>
             <span>Exporting...</span>
           </div>
         </div>

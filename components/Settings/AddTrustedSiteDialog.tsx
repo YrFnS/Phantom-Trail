@@ -75,7 +75,7 @@ export function AddTrustedSiteDialog({
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white">
+            <h3 className="text-lg font-semibold text-terminal">
               Add Trusted Site
             </h3>
             <Button
@@ -100,7 +100,7 @@ export function AddTrustedSiteDialog({
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
                 placeholder="example.com"
-                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-neon-purple"
+                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 autoFocus
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -118,7 +118,7 @@ export function AddTrustedSiteDialog({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Why is this site trusted?"
-                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-neon-purple"
+                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
 
@@ -140,7 +140,7 @@ export function AddTrustedSiteDialog({
                       type="checkbox"
                       checked={selectedMethods.includes(method.value)}
                       onChange={() => handleMethodToggle(method.value)}
-                      className="rounded border-dark-600 text-neon-purple focus:ring-neon-purple mr-2"
+                      className="rounded border-dark-600 text-primary-500 focus:ring-primary-500 mr-2"
                     />
                     <span className="text-sm text-gray-300">{method.label}</span>
                   </label>
@@ -155,7 +155,7 @@ export function AddTrustedSiteDialog({
                   type="checkbox"
                   checked={temporary}
                   onChange={(e) => setTemporary(e.target.checked)}
-                  className="rounded border-dark-600 text-neon-purple focus:ring-neon-purple mr-2"
+                  className="rounded border-dark-600 text-primary-500 focus:ring-primary-500 mr-2"
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-300">

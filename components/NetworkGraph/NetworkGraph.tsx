@@ -228,7 +228,7 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <div className={className}>
         <Card>
           <CardHeader>
-            <h3 className="font-medium text-white">Network Graph</h3>
+            <h3 className="text-sm font-semibold text-terminal">Network Graph</h3>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-64">
@@ -248,12 +248,18 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <div className={className}>
         <Card>
           <CardHeader>
-            <h3 className="font-medium text-white">Network Graph</h3>
+            <h3 className="text-sm font-semibold text-terminal">Network Graph</h3>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <div className="text-4xl mb-3">🕸️</div>
+                <svg className="w-12 h-12 mx-auto mb-3 text-gray-600 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="2"/>
+                  <circle cx="19" cy="5" r="2"/>
+                  <circle cx="5" cy="19" r="2"/>
+                  <circle cx="19" cy="19" r="2"/>
+                  <path d="M13.5 10.5l4-4M10.5 13.5l-4 4M13.5 13.5l4 4"/>
+                </svg>
                 <p className="text-sm text-gray-400 mb-1">
                   No tracking data yet
                 </p>
@@ -273,7 +279,7 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h3 className="font-medium text-white">Network Graph</h3>
+            <h3 className="font-medium text-terminal">Network Graph</h3>
             <div className="text-xs text-gray-400">
               {data.nodes.length} domains, {data.edges.length} connections
             </div>
@@ -288,24 +294,24 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4 text-xs text-gray-400">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <div className="w-2 h-2 rounded-full bg-risk-safe"></div>
                 <span>Low Risk</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                <div className="w-2 h-2 rounded-full bg-risk-medium"></div>
                 <span>Medium Risk</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                <div className="w-2 h-2 rounded-full bg-risk-high"></div>
                 <span>High Risk</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                <div className="w-2 h-2 rounded-full bg-risk-critical"></div>
                 <span>Critical Risk</span>
               </div>
             </div>
             <div className="text-xs text-gray-500">
-              Click nodes to explore connections
+              Click nodes to explore
             </div>
           </div>
         </CardContent>

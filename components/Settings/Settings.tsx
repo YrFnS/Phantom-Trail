@@ -56,7 +56,7 @@ export function Settings({ onClose }: SettingsProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Settings</h2>
+            <h2 className="text-lg font-semibold text-terminal">Settings</h2>
             <Button
               variant="ghost"
               size="sm"
@@ -72,7 +72,7 @@ export function Settings({ onClose }: SettingsProps) {
               onClick={() => setActiveTab('general')}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'general'
-                  ? 'border-neon-purple text-neon-purple'
+                  ? 'border-primary-500 text-primary-500'
                   : 'border-transparent text-gray-400 hover:text-gray-300'
               }`}
             >
@@ -82,7 +82,7 @@ export function Settings({ onClose }: SettingsProps) {
               onClick={() => setActiveTab('trusted-sites')}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'trusted-sites'
-                  ? 'border-neon-purple text-neon-purple'
+                  ? 'border-primary-500 text-primary-500'
                   : 'border-transparent text-gray-400 hover:text-gray-300'
               }`}
             >
@@ -104,7 +104,7 @@ export function Settings({ onClose }: SettingsProps) {
                 value={apiKey}
                 onChange={e => setApiKey(e.target.value)}
                 placeholder="sk-or-v1-..."
-                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-neon-purple"
+                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
               <p className="text-xs text-gray-400 mt-1">
                 Get your free key from{' '}
@@ -112,7 +112,7 @@ export function Settings({ onClose }: SettingsProps) {
                   href="https://openrouter.ai/keys"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-neon-cyan hover:underline"
+                  className="text-accent-teal hover:underline"
                 >
                   openrouter.ai
                 </a>
@@ -129,7 +129,7 @@ export function Settings({ onClose }: SettingsProps) {
                 onChange={e =>
                   setSettings({ ...settings, aiModel: e.target.value })
                 }
-                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-neon-purple"
+                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
                 {AI_MODELS.map(model => (
                   <option key={model.id} value={model.id}>
@@ -163,7 +163,7 @@ export function Settings({ onClose }: SettingsProps) {
                 onChange={e =>
                   setSettings({ ...settings, enableAI: e.target.checked })
                 }
-                className="rounded border-dark-600 text-neon-purple focus:ring-neon-purple"
+                className="rounded border-dark-600 text-primary-500 focus:ring-primary-500"
               />
             </div>
 
@@ -180,7 +180,7 @@ export function Settings({ onClose }: SettingsProps) {
                     riskThreshold: e.target.value as RiskLevel,
                   })
                 }
-                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-neon-purple"
+                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>

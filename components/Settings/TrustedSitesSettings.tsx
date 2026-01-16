@@ -123,7 +123,7 @@ export function TrustedSitesSettings() {
       {/* Default Trusted Sites */}
       <Card>
         <CardHeader>
-          <h3 className="text-sm font-semibold text-white">
+          <h3 className="text-sm font-semibold text-terminal">
             Default Trusted Sites ({TRUSTED_SITES.length})
           </h3>
           <p className="text-xs text-gray-400 mt-1">
@@ -138,7 +138,7 @@ export function TrustedSitesSettings() {
                 className="flex items-start justify-between p-2 bg-dark-700 rounded text-xs"
               >
                 <div className="flex-1">
-                  <div className="font-medium text-white">{site.domain}</div>
+                  <div className="font-medium text-terminal">{site.domain}</div>
                   <div className="text-gray-400">{site.description}</div>
                 </div>
                 <span className="text-gray-500 ml-2">✓</span>
@@ -153,7 +153,7 @@ export function TrustedSitesSettings() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-semibold text-terminal">
                 Your Trusted Sites ({userSites.length})
               </h3>
               <p className="text-xs text-gray-400 mt-1">
@@ -214,7 +214,7 @@ export function TrustedSitesSettings() {
       {currentContext && (
         <Card>
           <CardHeader>
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-sm font-semibold text-terminal">
               Current Page Context
             </h3>
           </CardHeader>
@@ -222,7 +222,7 @@ export function TrustedSitesSettings() {
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-400">Domain:</span>
-                <span className="font-medium text-white">{currentDomain}</span>
+                <span className="font-medium text-terminal">{currentDomain}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Confidence:</span>
