@@ -22,17 +22,6 @@ function isDuplicateEvent(event: TrackingEvent): boolean {
   }
 
   recentEventSignatures.set(signature, Date.now());
-
-  // Clean up old signatures periodically
-  if (recentEventSignatures.size > 100) {
-    const cutoff = Date.now() - SIGNATURE_TTL;
-    for (const [sig, time] of recentEventSignatures.entries()) {
-      if (time < cutoff) {
-        recentEventSignatures.delete(sig);
-      }
-    }
-  }
-
   return false;
 }
 
@@ -45,11 +34,25 @@ export default defineContentScript({
     console.log('[Phantom Trail] Content script loaded');
 
     const recentDetections = new Map<string, number>();
+    // Throttle detections to 3 seconds to balance between:
+    // - Reducing duplicate events (performance)
+    // - Capturing legitimate repeated tracking (accuracy)
     const DETECTION_THROTTLE_MS = 3000;
+
+    // Clean up expired signatures every 30 seconds
+    const signatureCleanupInterval = setInterval(() => {
+      const cutoff = Date.now() - SIGNATURE_TTL;
+      for (const [sig, time] of recentEventSignatures.entries()) {
+        if (time < cutoff) {
+          recentEventSignatures.delete(sig);
+        }
+      }
+    }, 30000);
 
     // Enhanced context monitoring with recovery
     let contextValid = true;
     let recoveryAttempts = 0;
+    let isRecovering = false;
     const MAX_RECOVERY_ATTEMPTS = 3;
     
     const contextCheckInterval = setInterval(() => {
@@ -57,7 +60,7 @@ export default defineContentScript({
         const wasValid = contextValid;
         contextValid = chrome.runtime?.id !== undefined;
 
-        if (wasValid && !contextValid) {
+        if (wasValid && !contextValid && !isRecovering) {
           console.warn('[Phantom Trail] Context invalidated, attempting recovery');
           
           // Attempt recovery with exponential backoff
@@ -65,32 +68,36 @@ export default defineContentScript({
             if (attempt > MAX_RECOVERY_ATTEMPTS) {
               console.error('[Phantom Trail] Max recovery attempts reached, stopping');
               clearInterval(contextCheckInterval);
+              isRecovering = false;
               return;
             }
 
+            isRecovering = true;
             const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
             setTimeout(() => {
               try {
                 if (chrome.runtime?.id !== undefined) {
                   contextValid = true;
                   recoveryAttempts = 0;
+                  isRecovering = false;
                   console.log(`[Phantom Trail] Context recovered after ${attempt + 1} attempts`);
                 } else {
+                  isRecovering = false;
                   attemptRecovery(attempt + 1);
                 }
               } catch {
+                isRecovering = false;
                 attemptRecovery(attempt + 1);
               }
             }, delay);
           };
 
-          attemptRecovery(recoveryAttempts++);
+          attemptRecovery(recoveryAttempts);
+          recoveryAttempts++;
         }
       } catch {
         contextValid = false;
-        if (recoveryAttempts < MAX_RECOVERY_ATTEMPTS) {
-          recoveryAttempts++;
-        } else {
+        if (recoveryAttempts >= MAX_RECOVERY_ATTEMPTS) {
           clearInterval(contextCheckInterval);
         }
       }
@@ -99,6 +106,7 @@ export default defineContentScript({
     // Clean up on unload
     window.addEventListener('unload', () => {
       clearInterval(contextCheckInterval);
+      clearInterval(signatureCleanupInterval);
     });
 
     async function processDetection(event: CustomEvent) {

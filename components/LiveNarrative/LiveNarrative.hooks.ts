@@ -321,7 +321,15 @@ function detectCrossSiteTracking(
   const crossSiteTrackers = Array.from(trackerDomains.entries()).filter(
     ([, trackerEvents]) => {
       const uniqueSites = new Set(
-        trackerEvents.map(e => new URL(e.url).hostname)
+        trackerEvents
+          .map(e => {
+            try {
+              return new URL(e.url).hostname;
+            } catch {
+              return null;
+            }
+          })
+          .filter((h): h is string => h !== null)
       );
       return uniqueSites.size >= 3; // Present on 3+ different sites
     }
@@ -351,16 +359,11 @@ function detectCrossSiteTracking(
 function detectFingerprintingPattern(
   events: TrackingEvent[]
 ): TrackingPattern | null {
-  const fingerprintingEvents = events.filter(
-    e => e.trackerType === 'fingerprinting'
-  );
-
-  if (fingerprintingEvents.length < 2) return null;
-
-  // Filter out events from trusted sites
-  const untrustedFingerprintingEvents = fingerprintingEvents.filter(event => {
+  // Filter for untrusted fingerprinting events in one pass
+  const untrustedFingerprintingEvents = events.filter(e => {
+    if (e.trackerType !== 'fingerprinting') return false;
     try {
-      const domain = new URL(event.url).hostname;
+      const domain = new URL(e.url).hostname;
       return !isTrustedSite(domain);
     } catch {
       return true; // Include if URL parsing fails

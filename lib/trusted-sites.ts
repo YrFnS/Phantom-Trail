@@ -10,6 +10,13 @@
 import type { InPageTrackingMethod, UserTrustedSite, SecurityContext } from './types';
 import { UserWhitelistManager } from './user-whitelist-manager';
 
+/**
+ * Check if target domain matches pattern (exact or subdomain)
+ */
+function matchesDomain(target: string, pattern: string): boolean {
+  return target === pattern || target.endsWith(`.${pattern}`);
+}
+
 export interface TrustedSiteConfig {
   domain: string;
   reason: 'security' | 'authentication' | 'fraud-prevention';
@@ -107,9 +114,7 @@ export function isTrustedSite(domain: string): TrustedSiteConfig | null {
   if (exactMatch) return exactMatch;
   
   // Subdomain match (e.g., api.github.com matches github.com)
-  const subdomainMatch = TRUSTED_SITES.find(site => 
-    domain.endsWith(`.${site.domain}`) || domain === site.domain
-  );
+  const subdomainMatch = TRUSTED_SITES.find(site => matchesDomain(domain, site.domain));
   
   return subdomainMatch || null;
 }

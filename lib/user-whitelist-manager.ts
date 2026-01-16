@@ -61,11 +61,16 @@ export class UserWhitelistManager {
     if (exactMatch) return exactMatch;
     
     // Subdomain match
-    const subdomainMatch = whitelist.find(site => 
-      domain.endsWith(`.${site.domain}`) || domain === site.domain
-    );
+    const subdomainMatch = whitelist.find(site => this.matchesDomain(domain, site.domain));
     
     return subdomainMatch || null;
+  }
+
+  /**
+   * Check if target domain matches pattern (exact or subdomain)
+   */
+  private static matchesDomain(target: string, pattern: string): boolean {
+    return target === pattern || target.endsWith(`.${pattern}`);
   }
 
   /**
@@ -100,6 +105,27 @@ export class UserWhitelistManager {
       for (const site of imported) {
         if (!site.domain || !this.isValidDomain(site.domain)) {
           throw new Error(`Invalid domain: ${site.domain}`);
+        }
+        if (typeof site.addedAt !== 'number' || site.addedAt <= 0) {
+          throw new Error(`Invalid addedAt for ${site.domain}`);
+        }
+        if (site.allowedMethods) {
+          if (!Array.isArray(site.allowedMethods)) {
+            throw new Error(`Invalid allowedMethods for ${site.domain}`);
+          }
+          const validMethods = [
+            'canvas-fingerprint',
+            'device-api',
+            'storage-access',
+            'mouse-tracking',
+            'form-monitoring',
+            'clipboard-access',
+          ];
+          for (const method of site.allowedMethods) {
+            if (!validMethods.includes(method)) {
+              throw new Error(`Invalid method "${method}" for ${site.domain}`);
+            }
+          }
         }
       }
 

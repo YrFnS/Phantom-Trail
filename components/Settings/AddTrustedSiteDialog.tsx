@@ -171,7 +171,7 @@ export function AddTrustedSiteDialog({
             {/* Error Message */}
             {error && (
               <div className="p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
-                {error}
+                {String(error).replace(/</g, '&lt;').replace(/>/g, '&gt;')}
               </div>
             )}
 
