@@ -152,4 +152,96 @@ export class InPageDetector {
       frequency: matchedAPIs.length,
     };
   }
+
+  /**
+   * Analyze WebRTC leak detection (CRITICAL)
+   */
+  static analyzeWebRTC(): DetectionResult {
+    return {
+      detected: true,
+      method: 'webrtc-leak',
+      description: 'WebRTC connection detected - may expose real IP address even through VPN',
+      riskLevel: 'critical',
+      details: 'WebRTC can leak your real IP address, bypassing VPN protection',
+    };
+  }
+
+  /**
+   * Analyze font fingerprinting
+   */
+  static analyzeFontFingerprint(fonts: string[], count: number): DetectionResult {
+    const detected = count >= 20;
+    return {
+      detected,
+      method: 'font-fingerprint',
+      description: detected
+        ? `Font fingerprinting detected - tested ${count} fonts to identify your system`
+        : 'Normal font usage',
+      riskLevel: detected ? 'high' : 'low',
+      details: `${count} font measurements detected`,
+      apiCalls: fonts,
+      frequency: count,
+    };
+  }
+
+  /**
+   * Analyze audio fingerprinting
+   */
+  static analyzeAudioFingerprint(operations: string[]): DetectionResult {
+    const detected = operations.length >= 2;
+    return {
+      detected,
+      method: 'audio-fingerprint',
+      description: detected
+        ? 'Audio fingerprinting detected - using AudioContext to generate unique device signature'
+        : 'Normal audio usage',
+      riskLevel: detected ? 'high' : 'low',
+      details: `${operations.length} audio operations detected`,
+      apiCalls: operations,
+      frequency: operations.length,
+    };
+  }
+
+  /**
+   * Analyze WebGL fingerprinting
+   */
+  static analyzeWebGLFingerprint(parameters: number[]): DetectionResult {
+    const detected = parameters.length >= 5;
+    return {
+      detected,
+      method: 'webgl-fingerprint',
+      description: detected
+        ? 'WebGL fingerprinting detected - collecting GPU and graphics driver information'
+        : 'Normal WebGL usage',
+      riskLevel: detected ? 'high' : 'low',
+      details: `${parameters.length} WebGL parameters queried`,
+      frequency: parameters.length,
+    };
+  }
+
+  /**
+   * Analyze Battery API access
+   */
+  static analyzeBatteryAPI(): DetectionResult {
+    return {
+      detected: true,
+      method: 'battery-api',
+      description: 'Battery API accessed - can be used for device fingerprinting',
+      riskLevel: 'medium',
+      details: 'Battery status can uniquely identify devices',
+    };
+  }
+
+  /**
+   * Analyze Sensor API access
+   */
+  static analyzeSensorAPI(sensor: string): DetectionResult {
+    return {
+      detected: true,
+      method: 'sensor-api',
+      description: `Sensor API accessed (${sensor}) - can be used for fingerprinting`,
+      riskLevel: 'medium',
+      details: `Device motion/orientation sensors accessed: ${sensor}`,
+    };
+  }
 }

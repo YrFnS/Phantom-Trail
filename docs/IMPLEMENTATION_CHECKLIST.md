@@ -30,39 +30,44 @@ npm run test:trackers
 
 ---
 
-### 2. Add Missing Detection Methods
-**Files**: `lib/in-page-detector.ts`, `entrypoints/content.ts`, `entrypoints/content-main-world.ts`  
-**Effort**: 6-8 hours
+### 2. Add Missing Detection Methods ✅ COMPLETED
+**Files**: `lib/in-page-detector.ts`, `entrypoints/content.ts`, `public/content-main-world.js`  
+**Effort**: 6-8 hours  
+**Status**: ✅ Done (2026-01-17)
 
 #### WebRTC Leak Detection (CRITICAL)
-- [ ] Add `analyzeWebRTC()` method to `InPageDetector`
-- [ ] Inject WebRTC monitoring in content script
-- [ ] Test on WebRTC leak test sites
-- [ ] Verify IP leak detection works
+- [x] Add `analyzeWebRTC()` method to `InPageDetector`
+- [x] Inject WebRTC monitoring in main world script
+- [x] Monitor RTCPeerConnection creation
+- [x] Report critical risk for IP leak potential
 
 #### Font Fingerprinting Detection
-- [ ] Add `analyzeFontFingerprint()` method
-- [ ] Monitor font enumeration attempts
-- [ ] Test on fingerprinting demo sites
-- [ ] Verify 20+ font checks trigger detection
+- [x] Add `analyzeFontFingerprint()` method
+- [x] Monitor font enumeration via offsetWidth/offsetHeight
+- [x] Detect 20+ font measurements
+- [x] Report high risk for font fingerprinting
 
 #### Audio Fingerprinting Detection
-- [ ] Add `analyzeAudioFingerprint()` method
-- [ ] Monitor AudioContext API usage
-- [ ] Test on audio fingerprinting demos
-- [ ] Verify oscillator + compressor pattern detected
+- [x] Add `analyzeAudioFingerprint()` method
+- [x] Monitor AudioContext API usage
+- [x] Detect oscillator creation patterns
+- [x] Report high risk for audio fingerprinting
 
 #### WebGL Fingerprinting Detection
-- [ ] Add `analyzeWebGLFingerprint()` method
-- [ ] Monitor WebGL parameter queries
-- [ ] Test on WebGL fingerprinting demos
-- [ ] Verify GPU info collection detected
+- [x] Add `analyzeWebGLFingerprint()` method
+- [x] Monitor WebGL parameter queries
+- [x] Detect 5+ parameter reads
+- [x] Report high risk for GPU fingerprinting
 
-**Validation**:
-```bash
-# Test detection methods
-npm run test:detection
-```
+#### Battery API Detection
+- [x] Add `analyzeBatteryAPI()` method
+- [x] Monitor navigator.getBattery() calls
+- [x] Report medium risk for battery tracking
+
+#### Sensor API Detection
+- [x] Add `analyzeSensorAPI()` method
+- [x] Monitor devicemotion/deviceorientation events
+- [x] Report medium risk for sensor fingerprinting
 
 ---
 

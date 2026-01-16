@@ -58,7 +58,13 @@ export type InPageTrackingMethod =
   | 'mouse-tracking'
   | 'form-monitoring'
   | 'device-api'
-  | 'clipboard-access';
+  | 'clipboard-access'
+  | 'webrtc-leak'
+  | 'font-fingerprint'
+  | 'audio-fingerprint'
+  | 'webgl-fingerprint'
+  | 'battery-api'
+  | 'sensor-api';
 
 export interface ExtensionSettings {
   apiKey?: string;

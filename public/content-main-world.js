@@ -315,13 +315,153 @@
     }
   }
 
+  // WebRTC IP leak detection (CRITICAL)
+  function monitorWebRTC() {
+    const originalRTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+    if (!originalRTCPeerConnection) return;
+
+    window.RTCPeerConnection = function(...args) {
+      const pc = new originalRTCPeerConnection(...args);
+      
+      reportDetection({
+        type: 'webrtc-leak',
+        description: 'WebRTC connection detected - may expose real IP address',
+        timestamp: Date.now()
+      });
+
+      return pc;
+    };
+  }
+
+  // Font fingerprinting detection
+  function monitorFontFingerprint() {
+    const fontChecks = [];
+    const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+    const originalOffsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
+
+    if (originalOffsetWidth && originalOffsetHeight) {
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+        get() {
+          const value = originalOffsetWidth.get.call(this);
+          if (this.style && this.style.fontFamily) {
+            fontChecks.push(this.style.fontFamily);
+            if (fontChecks.length >= 20) {
+              reportDetection({
+                type: 'font-fingerprint',
+                fonts: [...new Set(fontChecks)].slice(0, 10),
+                count: fontChecks.length,
+                timestamp: Date.now()
+              });
+              fontChecks.length = 0;
+            }
+          }
+          return value;
+        }
+      });
+    }
+  }
+
+  // Audio fingerprinting detection
+  function monitorAudioFingerprint() {
+    const originalAudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!originalAudioContext) return;
+
+    const audioOps = [];
+    window.AudioContext = function(...args) {
+      const ctx = new originalAudioContext(...args);
+      
+      const originalCreateOscillator = ctx.createOscillator.bind(ctx);
+      ctx.createOscillator = function() {
+        audioOps.push('createOscillator');
+        if (audioOps.length >= 2) {
+          reportDetection({
+            type: 'audio-fingerprint',
+            operations: [...audioOps],
+            timestamp: Date.now()
+          });
+          audioOps.length = 0;
+        }
+        return originalCreateOscillator();
+      };
+
+      return ctx;
+    };
+  }
+
+  // WebGL fingerprinting detection
+  function monitorWebGLFingerprint() {
+    const originalGetContext = HTMLCanvasElement.prototype.getContext;
+    
+    HTMLCanvasElement.prototype.getContext = function(type, ...args) {
+      const ctx = originalGetContext.call(this, type, ...args);
+      
+      if (ctx && (type === 'webgl' || type === 'webgl2')) {
+        const originalGetParameter = ctx.getParameter.bind(ctx);
+        const glCalls = [];
+        
+        ctx.getParameter = function(param) {
+          glCalls.push(param);
+          if (glCalls.length >= 5) {
+            reportDetection({
+              type: 'webgl-fingerprint',
+              parameters: glCalls.slice(0, 10),
+              timestamp: Date.now()
+            });
+            glCalls.length = 0;
+          }
+          return originalGetParameter(param);
+        };
+      }
+      
+      return ctx;
+    };
+  }
+
+  // Battery API monitoring
+  function monitorBatteryAPI() {
+    if (navigator.getBattery) {
+      const originalGetBattery = navigator.getBattery.bind(navigator);
+      navigator.getBattery = function() {
+        reportDetection({
+          type: 'battery-api',
+          timestamp: Date.now()
+        });
+        return originalGetBattery();
+      };
+    }
+  }
+
+  // Sensor APIs monitoring
+  function monitorSensorAPIs() {
+    const sensorEvents = ['devicemotion', 'deviceorientation', 'deviceorientationabsolute'];
+    sensorEvents.forEach(eventType => {
+      const originalAddEventListener = window.addEventListener;
+      window.addEventListener = function(type, listener, options) {
+        if (sensorEvents.includes(type)) {
+          reportDetection({
+            type: 'sensor-api',
+            sensor: type,
+            timestamp: Date.now()
+          });
+        }
+        return originalAddEventListener.call(this, type, listener, options);
+      };
+    });
+  }
+
   try {
     interceptCanvas();
     interceptStorage();
     monitorMouseTracking();
     monitorFormFields();
     monitorDeviceAPIs();
+    monitorWebRTC();
+    monitorFontFingerprint();
+    monitorAudioFingerprint();
+    monitorWebGLFingerprint();
+    monitorBatteryAPI();
+    monitorSensorAPIs();
   } catch (error) {
-    console.error('[Phantom Trail] Failed to initialize canvas detector:', error);
+    console.error('[Phantom Trail] Failed to initialize detectors:', error);
   }
 })();

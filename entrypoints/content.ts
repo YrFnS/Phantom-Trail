@@ -129,7 +129,7 @@ export default defineContentScript({
 
         let detectionResult;
 
-        // Analyze canvas fingerprinting
+        // Analyze detection types
         if (type === 'canvas-fingerprint') {
           detectionResult = InPageDetector.analyzeCanvasFingerprint(
             operations || []
@@ -150,6 +150,27 @@ export default defineContentScript({
         } else if (type === 'device-api') {
           detectionResult = InPageDetector.analyzeDeviceAPI(
             event.detail.apiCalls || []
+          );
+        } else if (type === 'webrtc-leak') {
+          detectionResult = InPageDetector.analyzeWebRTC();
+        } else if (type === 'font-fingerprint') {
+          detectionResult = InPageDetector.analyzeFontFingerprint(
+            event.detail.fonts || [],
+            event.detail.count || 0
+          );
+        } else if (type === 'audio-fingerprint') {
+          detectionResult = InPageDetector.analyzeAudioFingerprint(
+            event.detail.operations || []
+          );
+        } else if (type === 'webgl-fingerprint') {
+          detectionResult = InPageDetector.analyzeWebGLFingerprint(
+            event.detail.parameters || []
+          );
+        } else if (type === 'battery-api') {
+          detectionResult = InPageDetector.analyzeBatteryAPI();
+        } else if (type === 'sensor-api') {
+          detectionResult = InPageDetector.analyzeSensorAPI(
+            event.detail.sensor || 'unknown'
           );
         }
 
