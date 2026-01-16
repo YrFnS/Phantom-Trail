@@ -5,6 +5,7 @@ import type { TrackerInfo, TrackerType, RiskLevel } from './types';
  * Based on EasyList/EasyPrivacy and Disconnect.me patterns
  */
 const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
+  // Existing trackers
   'google-analytics.com': {
     domain: 'google-analytics.com',
     name: 'Google Analytics',
@@ -109,6 +110,344 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     category: 'Analytics',
     description: 'Customer support and user tracking',
     riskLevel: 'low',
+  },
+
+  // FINGERPRINTING TRACKERS (CRITICAL RISK)
+  'fingerprint.com': {
+    domain: 'fingerprint.com',
+    name: 'FingerprintJS',
+    category: 'Fingerprinting',
+    description: 'Advanced browser fingerprinting - tracks across incognito mode and VPNs',
+    riskLevel: 'critical',
+  },
+  'fp.seon.io': {
+    domain: 'fp.seon.io',
+    name: 'SEON Fraud Prevention',
+    category: 'Fingerprinting',
+    description: 'Device fingerprinting for fraud detection and user identification',
+    riskLevel: 'critical',
+  },
+  'maxmind.com': {
+    domain: 'maxmind.com',
+    name: 'MaxMind GeoIP',
+    category: 'Fingerprinting',
+    description: 'IP geolocation and device fingerprinting',
+    riskLevel: 'high',
+  },
+  'h.online-metrix.net': {
+    domain: 'h.online-metrix.net',
+    name: 'ThreatMetrix',
+    category: 'Fingerprinting',
+    description: 'Device fingerprinting and fraud detection',
+    riskLevel: 'high',
+  },
+  'iovation.com': {
+    domain: 'iovation.com',
+    name: 'iovation Device Intelligence',
+    category: 'Fingerprinting',
+    description: 'Device fingerprinting and reputation analysis',
+    riskLevel: 'high',
+  },
+
+  // SESSION RECORDING (CRITICAL RISK)
+  'fullstory.com': {
+    domain: 'fullstory.com',
+    name: 'FullStory',
+    category: 'Analytics',
+    description: 'Records every click, keystroke, and mouse movement - complete session replay',
+    riskLevel: 'critical',
+  },
+  'logrocket.com': {
+    domain: 'logrocket.com',
+    name: 'LogRocket',
+    category: 'Analytics',
+    description: 'Session replay with console logs and network requests',
+    riskLevel: 'critical',
+  },
+  'smartlook.com': {
+    domain: 'smartlook.com',
+    name: 'Smartlook',
+    category: 'Analytics',
+    description: 'Session recording and heatmap tracking',
+    riskLevel: 'high',
+  },
+  'luckyorange.com': {
+    domain: 'luckyorange.com',
+    name: 'Lucky Orange',
+    category: 'Analytics',
+    description: 'Live visitor recording and heatmaps',
+    riskLevel: 'high',
+  },
+  'mouseflow.com': {
+    domain: 'mouseflow.com',
+    name: 'Mouseflow',
+    category: 'Analytics',
+    description: 'Session replay and form analytics',
+    riskLevel: 'high',
+  },
+  'inspectlet.com': {
+    domain: 'inspectlet.com',
+    name: 'Inspectlet',
+    category: 'Analytics',
+    description: 'Session recording and eye-tracking heatmaps',
+    riskLevel: 'high',
+  },
+
+  // SOCIAL MEDIA TRACKERS (HIGH/MEDIUM RISK)
+  'linkedin.com': {
+    domain: 'linkedin.com',
+    name: 'LinkedIn Insight Tag',
+    category: 'Social Media',
+    description: 'LinkedIn advertising and conversion tracking',
+    riskLevel: 'high',
+  },
+  'pinterest.com': {
+    domain: 'pinterest.com',
+    name: 'Pinterest Tag',
+    category: 'Social Media',
+    description: 'Pinterest advertising and analytics',
+    riskLevel: 'medium',
+  },
+  'snap.com': {
+    domain: 'snap.com',
+    name: 'Snapchat Pixel',
+    category: 'Social Media',
+    description: 'Snapchat advertising and conversion tracking',
+    riskLevel: 'high',
+  },
+  'reddit.com': {
+    domain: 'reddit.com',
+    name: 'Reddit Pixel',
+    category: 'Social Media',
+    description: 'Reddit advertising and conversion tracking',
+    riskLevel: 'medium',
+  },
+  'twitter.com': {
+    domain: 'twitter.com',
+    name: 'Twitter/X Pixel',
+    category: 'Social Media',
+    description: 'Twitter advertising and conversion tracking',
+    riskLevel: 'medium',
+  },
+  'instagram.com': {
+    domain: 'instagram.com',
+    name: 'Instagram Pixel',
+    category: 'Social Media',
+    description: 'Instagram advertising (owned by Meta/Facebook)',
+    riskLevel: 'medium',
+  },
+
+  // ADVERTISING NETWORKS (HIGH RISK)
+  'criteo.com': {
+    domain: 'criteo.com',
+    name: 'Criteo',
+    category: 'Advertising',
+    description: 'Retargeting and personalized advertising across websites',
+    riskLevel: 'high',
+  },
+  'criteo.net': {
+    domain: 'criteo.net',
+    name: 'Criteo',
+    category: 'Advertising',
+    description: 'Retargeting and personalized advertising',
+    riskLevel: 'high',
+  },
+  'taboola.com': {
+    domain: 'taboola.com',
+    name: 'Taboola',
+    category: 'Advertising',
+    description: 'Content recommendation and native advertising',
+    riskLevel: 'medium',
+  },
+  'outbrain.com': {
+    domain: 'outbrain.com',
+    name: 'Outbrain',
+    category: 'Advertising',
+    description: 'Content discovery and native advertising',
+    riskLevel: 'medium',
+  },
+  'quantcast.com': {
+    domain: 'quantcast.com',
+    name: 'Quantcast',
+    category: 'Advertising',
+    description: 'Audience measurement and real-time advertising',
+    riskLevel: 'high',
+  },
+  'adnxs.com': {
+    domain: 'adnxs.com',
+    name: 'AppNexus',
+    category: 'Advertising',
+    description: 'Programmatic advertising platform',
+    riskLevel: 'high',
+  },
+  'pubmatic.com': {
+    domain: 'pubmatic.com',
+    name: 'PubMatic',
+    category: 'Advertising',
+    description: 'Advertising exchange and supply-side platform',
+    riskLevel: 'medium',
+  },
+  'rubiconproject.com': {
+    domain: 'rubiconproject.com',
+    name: 'Rubicon Project',
+    category: 'Advertising',
+    description: 'Advertising exchange and header bidding',
+    riskLevel: 'medium',
+  },
+  'openx.net': {
+    domain: 'openx.net',
+    name: 'OpenX',
+    category: 'Advertising',
+    description: 'Programmatic advertising exchange',
+    riskLevel: 'medium',
+  },
+  'adsrvr.org': {
+    domain: 'adsrvr.org',
+    name: 'The Trade Desk',
+    category: 'Advertising',
+    description: 'Demand-side advertising platform',
+    riskLevel: 'high',
+  },
+
+  // ANALYTICS PLATFORMS (MEDIUM RISK)
+  'amplitude.com': {
+    domain: 'amplitude.com',
+    name: 'Amplitude',
+    category: 'Analytics',
+    description: 'Product analytics and user behavior tracking',
+    riskLevel: 'medium',
+  },
+  'heap.io': {
+    domain: 'heap.io',
+    name: 'Heap Analytics',
+    category: 'Analytics',
+    description: 'Automatic event tracking and user analytics',
+    riskLevel: 'medium',
+  },
+  'pendo.io': {
+    domain: 'pendo.io',
+    name: 'Pendo',
+    category: 'Analytics',
+    description: 'Product analytics and user guidance',
+    riskLevel: 'medium',
+  },
+  'kissmetrics.com': {
+    domain: 'kissmetrics.com',
+    name: 'Kissmetrics',
+    category: 'Analytics',
+    description: 'Customer analytics and behavioral tracking',
+    riskLevel: 'medium',
+  },
+  'woopra.com': {
+    domain: 'woopra.com',
+    name: 'Woopra',
+    category: 'Analytics',
+    description: 'Customer journey analytics',
+    riskLevel: 'medium',
+  },
+  'chartbeat.com': {
+    domain: 'chartbeat.com',
+    name: 'Chartbeat',
+    category: 'Analytics',
+    description: 'Real-time web analytics for publishers',
+    riskLevel: 'low',
+  },
+  'newrelic.com': {
+    domain: 'newrelic.com',
+    name: 'New Relic',
+    category: 'Analytics',
+    description: 'Application performance monitoring',
+    riskLevel: 'low',
+  },
+  'datadoghq.com': {
+    domain: 'datadoghq.com',
+    name: 'Datadog',
+    category: 'Analytics',
+    description: 'Infrastructure and application monitoring',
+    riskLevel: 'low',
+  },
+
+  // AUDIENCE MEASUREMENT (MEDIUM RISK)
+  'comscore.com': {
+    domain: 'comscore.com',
+    name: 'comScore',
+    category: 'Analytics',
+    description: 'Audience measurement and web analytics',
+    riskLevel: 'medium',
+  },
+  'scorecardresearch.com': {
+    domain: 'scorecardresearch.com',
+    name: 'ScorecardResearch',
+    category: 'Analytics',
+    description: 'Market research and audience measurement (comScore)',
+    riskLevel: 'medium',
+  },
+  'nielsen.com': {
+    domain: 'nielsen.com',
+    name: 'Nielsen',
+    category: 'Analytics',
+    description: 'Audience measurement and market research',
+    riskLevel: 'medium',
+  },
+
+  // CDN ANALYTICS (LOW RISK)
+  'cloudflare.com': {
+    domain: 'cloudflare.com',
+    name: 'Cloudflare Analytics',
+    category: 'Analytics',
+    description: 'CDN analytics and performance monitoring',
+    riskLevel: 'low',
+  },
+  'fastly.net': {
+    domain: 'fastly.net',
+    name: 'Fastly Insights',
+    category: 'Analytics',
+    description: 'CDN analytics and edge computing',
+    riskLevel: 'low',
+  },
+  'akamai.net': {
+    domain: 'akamai.net',
+    name: 'Akamai mPulse',
+    category: 'Analytics',
+    description: 'Real user monitoring and CDN analytics',
+    riskLevel: 'low',
+  },
+
+  // ADDITIONAL TRACKING SERVICES
+  'optimizely.com': {
+    domain: 'optimizely.com',
+    name: 'Optimizely',
+    category: 'Analytics',
+    description: 'A/B testing and experimentation platform',
+    riskLevel: 'medium',
+  },
+  'vwo.com': {
+    domain: 'vwo.com',
+    name: 'Visual Website Optimizer',
+    category: 'Analytics',
+    description: 'A/B testing and conversion optimization',
+    riskLevel: 'medium',
+  },
+  'crazyegg.com': {
+    domain: 'crazyegg.com',
+    name: 'Crazy Egg',
+    category: 'Analytics',
+    description: 'Heatmaps and user behavior analytics',
+    riskLevel: 'medium',
+  },
+  'branch.io': {
+    domain: 'branch.io',
+    name: 'Branch',
+    category: 'Analytics',
+    description: 'Mobile deep linking and attribution',
+    riskLevel: 'medium',
+  },
+  'appsflyer.com': {
+    domain: 'appsflyer.com',
+    name: 'AppsFlyer',
+    category: 'Analytics',
+    description: 'Mobile attribution and marketing analytics',
+    riskLevel: 'medium',
   },
 };
 
