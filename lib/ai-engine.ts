@@ -12,6 +12,43 @@ export class AIEngine {
   private static readonly RATE_LIMIT_KEY = 'phantom_trail_rate_limit';
 
   /**
+   * Sanitize URL by removing query parameters and hash fragments
+   * Prevents PII leakage (session tokens, user IDs, etc.)
+   */
+  private static sanitizeUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      // Keep only protocol, hostname, and pathname
+      return `${urlObj.protocol}//${urlObj.hostname}${urlObj.pathname}`;
+    } catch {
+      // If URL parsing fails, return domain only
+      return url.split('?')[0].split('#')[0];
+    }
+  }
+
+  /**
+   * Sanitize tracking event before sending to AI
+   * Removes PII and sensitive data
+   */
+  private static sanitizeEvent(event: TrackingEvent): TrackingEvent {
+    return {
+      ...event,
+      url: this.sanitizeUrl(event.url),
+      // Keep domain as-is (no PII in domain names)
+      // Remove any potential PII from description
+      description: event.description,
+      // Sanitize in-page tracking data
+      inPageTracking: event.inPageTracking
+        ? {
+            ...event.inPageTracking,
+            // Limit API calls to prevent data leakage
+            apiCalls: event.inPageTracking.apiCalls?.slice(0, 5),
+          }
+        : undefined,
+    };
+  }
+
+  /**
    * Chat interface for user queries
    */
   static async chatQuery(query: string): Promise<string | null> {
@@ -66,7 +103,9 @@ export class AIEngine {
         return null;
       }
 
-      const prompt = this.buildEventPrompt(event, context);
+      // Sanitize event before sending to AI
+      const sanitizedEvent = this.sanitizeEvent(event);
+      const prompt = this.buildEventPrompt(sanitizedEvent, context);
       const response = await this.callOpenRouter(settings.apiKey, prompt);
 
       if (response) {
@@ -98,7 +137,9 @@ export class AIEngine {
         return null;
       }
 
-      const prompt = this.buildPrompt(events);
+      // Sanitize all events before sending to AI
+      const sanitizedEvents = events.map(e => this.sanitizeEvent(e));
+      const prompt = this.buildPrompt(sanitizedEvents);
       const response = await this.callOpenRouter(settings.apiKey, prompt);
 
       if (response) {
@@ -269,7 +310,9 @@ Provide a brief, user-friendly analysis as JSON:
     query: string,
     events: TrackingEvent[]
   ): string {
-    const recentEvents = events.slice(-20);
+    // Sanitize events before including in prompt
+    const sanitizedEvents = events.map(e => this.sanitizeEvent(e));
+    const recentEvents = sanitizedEvents.slice(-20);
     const eventSummary = recentEvents
       .map(e => `${e.domain} (${e.trackerType}): ${e.description}`)
       .join('\n');

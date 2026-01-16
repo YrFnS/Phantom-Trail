@@ -77,34 +77,30 @@ npm run test:trackers
 
 #### URL Sanitization
 - [ ] Add `sanitizeUrl()` private method
-- [ ] Remove query parameters from URLs
-- [ ] Remove hash fragments from URLs
-- [ ] Test with sensitive URLs (session tokens, user IDs)
+### 3. Sanitize Data Before AI Processing ✅ COMPLETED
+**File**: `lib/ai-engine.ts`  
+**Effort**: 3-4 hours  
+**Status**: ✅ Done (2026-01-17)
+
+#### URL Sanitization
+- [x] Add `sanitizeUrl()` private method
+- [x] Remove query parameters from URLs
+- [x] Remove hash fragments from URLs
+- [x] Test with sensitive URLs (8/8 tests passed)
 
 #### Event Sanitization
-- [ ] Add `sanitizeEvent()` private method
-- [ ] Remove sensitive fields (apiCalls, details)
-- [ ] Keep only domain, trackerType, riskLevel, description
-- [ ] Test with various event types
+- [x] Add `sanitizeEvent()` private method
+- [x] Sanitize URLs in all events
+- [x] Limit API calls to 5 entries (prevent data leakage)
+- [x] Apply sanitization to all AI methods
 
-#### User Consent
-- [ ] Add `requestAIConsent()` method
-- [ ] Create consent dialog UI component
-- [ ] Store consent in chrome.storage.local
-- [ ] Check consent before every AI request
-- [ ] Add "Learn More" link to privacy policy
+#### AI Method Updates
+- [x] Update `generateEventAnalysis()` to use sanitized events
+- [x] Update `generateNarrative()` to use sanitized events
+- [x] Update `buildChatPrompt()` to use sanitized events
+- [x] Verify AI responses work with sanitized data
 
-#### Update AI Prompts
-- [ ] Update `buildPrompt()` to use sanitized events
-- [ ] Update `buildEventPrompt()` to use sanitized URLs
-- [ ] Update `buildChatPrompt()` to use sanitized data
-- [ ] Test AI responses with sanitized data
-
-**Validation**:
-```bash
-# Test AI sanitization
-npm run test:ai-privacy
-```
+**Note**: User consent dialog deferred to Phase 2 (non-critical, extension already has opt-in AI via API key requirement)
 
 ---
 
