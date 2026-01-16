@@ -88,9 +88,9 @@ export class StorageManager {
     try {
       const events = await this.getRecentEvents(999); // Keep last 999 events
 
-      // Remove events older than 7 days
-      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      const filteredEvents = events.filter(e => e.timestamp > sevenDaysAgo);
+      // Remove events older than 30 days (GDPR/CCPA compliance)
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const filteredEvents = events.filter(e => e.timestamp > thirtyDaysAgo);
 
       filteredEvents.push(event);
 
@@ -100,6 +100,33 @@ export class StorageManager {
     } catch (error) {
       console.error('Failed to add event:', error);
       throw new Error('Failed to save tracking event');
+    }
+  }
+
+  /**
+   * Clean up old events (30-day retention policy)
+   * Should be called periodically
+   */
+  static async cleanupOldEvents(): Promise<number> {
+    try {
+      const result = await chrome.storage.local.get(this.EVENTS_KEY);
+      const events: TrackingEvent[] = result[this.EVENTS_KEY] || [];
+      
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const filteredEvents = events.filter(e => e.timestamp > thirtyDaysAgo);
+      
+      const removedCount = events.length - filteredEvents.length;
+      
+      if (removedCount > 0) {
+        await chrome.storage.local.set({
+          [this.EVENTS_KEY]: filteredEvents,
+        });
+      }
+      
+      return removedCount;
+    } catch (error) {
+      console.error('Failed to cleanup old events:', error);
+      return 0;
     }
   }
 

@@ -170,6 +170,25 @@ export default defineBackground({
     // Handle extension installation
     chrome.runtime.onInstalled.addListener(() => {
       console.log('Phantom Trail extension installed');
+      
+      // Set up daily cleanup alarm for 30-day data retention
+      chrome.alarms.create('cleanup-old-events', {
+        periodInMinutes: 1440, // Run daily (24 hours)
+      });
+    });
+
+    // Handle periodic cleanup of old events (30-day retention)
+    chrome.alarms.onAlarm.addListener(async (alarm) => {
+      if (alarm.name === 'cleanup-old-events') {
+        try {
+          const removedCount = await StorageManager.cleanupOldEvents();
+          if (removedCount > 0) {
+            console.log(`[Phantom Trail] Cleaned up ${removedCount} events older than 30 days`);
+          }
+        } catch (error) {
+          console.error('[Phantom Trail] Failed to cleanup old events:', error);
+        }
+      }
     });
 
     // Handle messages from content scripts
