@@ -228,13 +228,13 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <div className={className}>
         <Card>
           <CardHeader>
-            <h3 className="font-medium text-gray-900">Network Graph</h3>
+            <h3 className="font-medium text-white">Network Graph</h3>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <LoadingSpinner size="lg" className="mb-3" />
-                <p className="text-sm text-gray-600">Loading network...</p>
+                <p className="text-sm text-gray-400">Loading network...</p>
               </div>
             </div>
           </CardContent>
@@ -248,13 +248,13 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <div className={className}>
         <Card>
           <CardHeader>
-            <h3 className="font-medium text-gray-900">Network Graph</h3>
+            <h3 className="font-medium text-white">Network Graph</h3>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <div className="text-4xl mb-3">🕸️</div>
-                <p className="text-sm text-gray-600 mb-1">
+                <p className="text-sm text-gray-400 mb-1">
                   No tracking data yet
                 </p>
                 <p className="text-xs text-gray-500">
@@ -273,8 +273,8 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h3 className="font-medium text-gray-900">Network Graph</h3>
-            <div className="text-xs text-gray-500">
+            <h3 className="font-medium text-white">Network Graph</h3>
+            <div className="text-xs text-gray-400">
               {data.nodes.length} domains, {data.edges.length} connections
             </div>
           </div>
@@ -282,11 +282,11 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
         <CardContent>
           <div
             ref={containerRef}
-            className="w-full h-64 border border-gray-200 rounded-lg bg-white mb-3"
+            className="w-full h-64 border border-dark-600 rounded-lg bg-dark-900 mb-3"
             style={{ height: '320px' }}
           />
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center gap-4 text-xs text-gray-400">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
                 <span>Low Risk</span>
@@ -304,7 +304,7 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
                 <span>Critical Risk</span>
               </div>
             </div>
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-gray-500">
               Click nodes to explore connections
             </div>
           </div>

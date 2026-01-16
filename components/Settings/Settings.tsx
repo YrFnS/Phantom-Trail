@@ -52,29 +52,28 @@ export function Settings({ onClose }: SettingsProps) {
   };
 
   return (
-    <div className="p-4 bg-phantom-background min-h-full">
+    <div className="p-4 min-h-full">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Settings</h2>
+            <h2 className="text-lg font-semibold text-white">Settings</h2>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
             >
               ✕
             </Button>
           </div>
           
           {/* Tab Navigation */}
-          <div className="flex gap-2 mt-4 border-b border-gray-200">
+          <div className="flex gap-2 mt-4 border-b border-dark-600">
             <button
               onClick={() => setActiveTab('general')}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'general'
-                  ? 'border-phantom-600 text-phantom-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-neon-purple text-neon-purple'
+                  : 'border-transparent text-gray-400 hover:text-gray-300'
               }`}
             >
               General
@@ -83,8 +82,8 @@ export function Settings({ onClose }: SettingsProps) {
               onClick={() => setActiveTab('trusted-sites')}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'trusted-sites'
-                  ? 'border-phantom-600 text-phantom-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-neon-purple text-neon-purple'
+                  : 'border-transparent text-gray-400 hover:text-gray-300'
               }`}
             >
               Trusted Sites
@@ -97,7 +96,7 @@ export function Settings({ onClose }: SettingsProps) {
             <div className="space-y-6">
             {/* API Key */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 OpenRouter API Key (Optional)
               </label>
               <input
@@ -105,15 +104,15 @@ export function Settings({ onClose }: SettingsProps) {
                 value={apiKey}
                 onChange={e => setApiKey(e.target.value)}
                 placeholder="sk-or-v1-..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-phantom-500 focus:border-phantom-500"
+                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-neon-purple"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Get your free key from{' '}
                 <a
                   href="https://openrouter.ai/keys"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-phantom-600 hover:underline"
+                  className="text-neon-cyan hover:underline"
                 >
                   openrouter.ai
                 </a>
@@ -122,7 +121,7 @@ export function Settings({ onClose }: SettingsProps) {
 
             {/* Model Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 AI Model
               </label>
               <select
@@ -130,7 +129,7 @@ export function Settings({ onClose }: SettingsProps) {
                 onChange={e =>
                   setSettings({ ...settings, aiModel: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-phantom-500 focus:border-phantom-500"
+                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-neon-purple"
               >
                 {AI_MODELS.map(model => (
                   <option key={model.id} value={model.id}>
@@ -143,18 +142,18 @@ export function Settings({ onClose }: SettingsProps) {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Free models have usage limits
               </p>
             </div>
 
             {/* AI Toggle */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-dark-700 rounded-lg border border-dark-600">
               <div>
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium text-gray-300">
                   AI Analysis
                 </label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-400">
                   Enable AI-powered tracking analysis
                 </p>
               </div>
@@ -164,13 +163,13 @@ export function Settings({ onClose }: SettingsProps) {
                 onChange={e =>
                   setSettings({ ...settings, enableAI: e.target.checked })
                 }
-                className="rounded border-gray-300 text-phantom-600 focus:ring-phantom-500"
+                className="rounded border-dark-600 text-neon-purple focus:ring-neon-purple"
               />
             </div>
 
             {/* Risk Threshold */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Risk Alert Threshold
               </label>
               <select
@@ -181,14 +180,14 @@ export function Settings({ onClose }: SettingsProps) {
                     riskThreshold: e.target.value as RiskLevel,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-phantom-500 focus:border-phantom-500"
+                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-neon-purple"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
                 <option value="critical">Critical Only</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Only show alerts for risks at or above this level
               </p>
             </div>

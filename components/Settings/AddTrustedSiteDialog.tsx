@@ -75,14 +75,14 @@ export function AddTrustedSiteDialog({
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-white">
               Add Trusted Site
             </h3>
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-300"
             >
               ✕
             </Button>
@@ -92,15 +92,15 @@ export function AddTrustedSiteDialog({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Domain Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Domain <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Domain <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
                 placeholder="example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-phantom-500 focus:border-phantom-500"
+                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-neon-purple"
                 autoFocus
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -110,7 +110,7 @@ export function AddTrustedSiteDialog({
 
             {/* Reason Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Reason (Optional)
               </label>
               <input
@@ -118,13 +118,13 @@ export function AddTrustedSiteDialog({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Why is this site trusted?"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-phantom-500 focus:border-phantom-500"
+                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-neon-purple focus:border-neon-purple"
               />
             </div>
 
             {/* Allowed Methods */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Allowed Methods (Optional)
               </label>
               <p className="text-xs text-gray-500 mb-2">
@@ -134,15 +134,15 @@ export function AddTrustedSiteDialog({
                 {TRACKING_METHODS.map((method) => (
                   <label
                     key={method.value}
-                    className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer"
+                    className="flex items-center p-2 hover:bg-dark-700 rounded cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={selectedMethods.includes(method.value)}
                       onChange={() => handleMethodToggle(method.value)}
-                      className="rounded border-gray-300 text-phantom-600 focus:ring-phantom-500 mr-2"
+                      className="rounded border-dark-600 text-neon-purple focus:ring-neon-purple mr-2"
                     />
-                    <span className="text-sm text-gray-700">{method.label}</span>
+                    <span className="text-sm text-gray-300">{method.label}</span>
                   </label>
                 ))}
               </div>
@@ -150,15 +150,15 @@ export function AddTrustedSiteDialog({
 
             {/* Temporary Checkbox */}
             <div>
-              <label className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+              <label className="flex items-center p-2 hover:bg-dark-700 rounded cursor-pointer">
                 <input
                   type="checkbox"
                   checked={temporary}
                   onChange={(e) => setTemporary(e.target.checked)}
-                  className="rounded border-gray-300 text-phantom-600 focus:ring-phantom-500 mr-2"
+                  className="rounded border-dark-600 text-neon-purple focus:ring-neon-purple mr-2"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-gray-300">
                     Temporary (Session only)
                   </span>
                   <p className="text-xs text-gray-500">
@@ -170,7 +170,7 @@ export function AddTrustedSiteDialog({
 
             {/* Error Message */}
             {error && (
-              <div className="p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+              <div className="p-2 bg-red-500/10 border border-red-500/30 rounded text-sm text-red-400">
                 {String(error).replace(/</g, '&lt;').replace(/>/g, '&gt;')}
               </div>
             )}

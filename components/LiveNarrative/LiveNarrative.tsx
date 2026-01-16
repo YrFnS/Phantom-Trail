@@ -30,10 +30,10 @@ const EventDisplay = React.memo(
         <CardContent className="p-3">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
-              <h3 className="font-medium text-gray-900 text-sm">
+              <h3 className="font-medium text-white text-sm">
                 {event.domain}
               </h3>
-              <p className="text-xs text-gray-600 mt-1">{event.description}</p>
+              <p className="text-xs text-gray-400 mt-1">{event.description}</p>
               {eventAnalysis?.websiteContext && (
                 <Badge variant="default" className="mt-1 text-xs">
                   {eventAnalysis.websiteContext}
@@ -51,25 +51,25 @@ const EventDisplay = React.memo(
           </div>
 
           {analysisLoading && (
-            <div className="mt-2 p-2 bg-gray-50 rounded border-l-4 border-gray-300">
+            <div className="mt-2 p-2 bg-dark-700 rounded border-l-4 border-dark-600">
               <div className="flex items-center space-x-2">
                 <LoadingSpinner size="sm" />
-                <span className="text-xs text-gray-600">Analyzing...</span>
+                <span className="text-xs text-gray-400">Analyzing...</span>
               </div>
             </div>
           )}
 
           {displayAnalysis && !analysisLoading && (
-            <div className="mt-2 p-2 bg-phantom-50 rounded border-l-4 border-phantom-400">
-              <p className="text-sm text-phantom-800">
+            <div className="mt-2 p-2 bg-neon-purple/10 rounded border-l-4 border-neon-purple">
+              <p className="text-sm text-gray-200">
                 {displayAnalysis.narrative}
               </p>
               {displayAnalysis.recommendations.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-xs text-phantom-700 font-medium">
+                  <p className="text-xs text-neon-purple font-medium">
                     Quick actions:
                   </p>
-                  <ul className="text-xs text-phantom-700 mt-1 space-y-1">
+                  <ul className="text-xs text-gray-300 mt-1 space-y-1">
                     {displayAnalysis.recommendations
                       .slice(0, 2)
                       .map((rec, index) => (
@@ -113,10 +113,10 @@ const PatternAlerts = React.memo(function PatternAlerts({
           key={index}
           className={`p-3 rounded-lg border-l-4 ${
             alert.severity === 'critical'
-              ? 'bg-red-50 border-red-400'
+              ? 'bg-red-500/10 border-red-400'
               : alert.severity === 'warning'
-                ? 'bg-yellow-50 border-yellow-400'
-                : 'bg-blue-50 border-blue-400'
+                ? 'bg-yellow-500/10 border-yellow-400'
+                : 'bg-blue-500/10 border-blue-400'
           }`}
         >
           <div className="flex items-start justify-between">
@@ -132,10 +132,10 @@ const PatternAlerts = React.memo(function PatternAlerts({
                 <h4
                   className={`font-medium text-sm ${
                     alert.severity === 'critical'
-                      ? 'text-red-800'
+                      ? 'text-red-400'
                       : alert.severity === 'warning'
-                        ? 'text-yellow-800'
-                        : 'text-blue-800'
+                        ? 'text-yellow-400'
+                        : 'text-blue-400'
                   }`}
                 >
                   Pattern Detected
@@ -144,10 +144,10 @@ const PatternAlerts = React.memo(function PatternAlerts({
               <p
                 className={`text-sm mt-1 ${
                   alert.severity === 'critical'
-                    ? 'text-red-700'
+                    ? 'text-red-300'
                     : alert.severity === 'warning'
-                      ? 'text-yellow-700'
-                      : 'text-blue-700'
+                      ? 'text-yellow-300'
+                      : 'text-blue-300'
                 }`}
               >
                 {alert.message}
@@ -156,10 +156,10 @@ const PatternAlerts = React.memo(function PatternAlerts({
                 <p
                   className={`text-xs mt-2 ${
                     alert.severity === 'critical'
-                      ? 'text-red-600'
+                      ? 'text-red-400'
                       : alert.severity === 'warning'
-                        ? 'text-yellow-600'
-                        : 'text-blue-600'
+                        ? 'text-yellow-400'
+                        : 'text-blue-400'
                   }`}
                 >
                   💡 Consider using privacy-focused browser settings or
@@ -196,12 +196,12 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
       <div className={`space-y-4 ${className}`}>
         <Card>
           <CardHeader>
-            <h2 className="font-medium text-gray-900">Live Activity</h2>
+            <h2 className="font-medium text-white">Live Activity</h2>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-3">
               <LoadingSpinner size="sm" />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-400">
                 Loading tracking data...
               </span>
             </div>
@@ -216,15 +216,15 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
       <div className={`space-y-4 ${className}`}>
         <Card>
           <CardHeader>
-            <h2 className="font-medium text-gray-900">Live Activity</h2>
+            <h2 className="font-medium text-white">Live Activity</h2>
           </CardHeader>
           <CardContent>
             <div className="text-center py-6">
               <div className="text-4xl mb-2">🔍</div>
-              <p className="text-sm text-gray-500 mb-1">
+              <p className="text-sm text-gray-400 mb-1">
                 No tracking detected yet...
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 Visit a website to see tracking activity
               </p>
             </div>
@@ -242,7 +242,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
     >
       <Card>
         <CardHeader>
-          <h2 className="font-medium text-gray-900" id="live-activity-heading">
+          <h2 className="font-medium text-white" id="live-activity-heading">
             Live Activity
           </h2>
         </CardHeader>
@@ -251,20 +251,20 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
 
           {analysis && (
             <div
-              className="mb-3 p-3 bg-phantom-50 rounded-lg border-l-4 border-phantom-400"
+              className="mb-3 p-3 bg-neon-cyan/10 rounded-lg border-l-4 border-neon-cyan"
               role="status"
               aria-live="polite"
             >
-              <p className="text-sm text-phantom-900 font-medium">
+              <p className="text-sm text-gray-200 font-medium">
                 {analysis.narrative}
               </p>
               {analysis.recommendations.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-xs text-phantom-700 font-medium">
+                  <p className="text-xs text-neon-cyan font-medium">
                     Recommendations:
                   </p>
                   <ul
-                    className="text-xs text-phantom-700 mt-1 space-y-1"
+                    className="text-xs text-gray-300 mt-1 space-y-1"
                     role="list"
                   >
                     {analysis.recommendations.map((rec, index) => (
@@ -287,16 +287,16 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
 
           {error && (
             <div
-              className="mb-3 p-2 bg-yellow-50 rounded border-l-4 border-yellow-400"
+              className="mb-3 p-2 bg-yellow-500/10 rounded border-l-4 border-yellow-500"
               role="alert"
               aria-live="assertive"
             >
-              <p className="text-sm text-yellow-800">
+              <p className="text-sm text-yellow-400">
                 {(retryCount || 0) > 0
                   ? `AI analysis retrying... (attempt ${(retryCount || 0) + 1}/3)`
                   : 'AI analysis temporarily unavailable'}
               </p>
-              <p className="text-xs text-yellow-600 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Tracker detection continues to work normally
               </p>
             </div>
@@ -328,7 +328,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
               aria-live="polite"
             >
               <LoadingSpinner size="sm" />
-              <span className="text-xs text-gray-600 ml-2">Analyzing...</span>
+              <span className="text-xs text-gray-400 ml-2">Analyzing...</span>
             </div>
           )}
         </CardContent>

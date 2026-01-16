@@ -39,7 +39,7 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
       <Card className={cn('p-8', className)}>
         <div className="flex items-center justify-center">
           <LoadingSpinner />
-          <span className="ml-2 text-gray-600">Loading dashboard...</span>
+          <span className="ml-2 text-gray-400">Loading dashboard...</span>
         </div>
       </Card>
     );
@@ -48,7 +48,7 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
   if (error) {
     return (
       <Card className={cn('p-4', className)}>
-        <div className="text-center text-red-600">
+        <div className="text-center text-red-400">
           <p>Error loading dashboard: {error}</p>
         </div>
       </Card>
@@ -58,7 +58,7 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
   if (!metrics) {
     return (
       <Card className={cn('p-8', className)}>
-        <div className="text-center text-gray-500">
+        <div className="text-center text-gray-400">
           <p>No tracking data available yet.</p>
           <p className="text-sm mt-2">
             Browse some websites to see your privacy dashboard.
@@ -115,18 +115,18 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
       {
         label: 'Risk Score',
         data: metrics.riskTrend.map(point => point.riskScore),
-        borderColor: '#0284c7',
-        backgroundColor: 'rgba(2, 132, 199, 0.1)',
+        borderColor: '#a855f7',
+        backgroundColor: 'rgba(168, 85, 247, 0.1)',
         borderWidth: 2,
       },
     ],
   };
 
   const getRiskBadgeColor = (score: number) => {
-    if (score >= 80) return 'bg-red-100 text-red-800';
-    if (score >= 60) return 'bg-orange-100 text-orange-800';
-    if (score >= 40) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-green-100 text-green-800';
+    if (score >= 80) return 'bg-red-500/20 text-red-400';
+    if (score >= 60) return 'bg-orange-500/20 text-orange-400';
+    if (score >= 40) return 'bg-yellow-500/20 text-yellow-400';
+    return 'bg-green-500/20 text-green-400';
   };
 
   const getRiskLevel = (score: number) => {
@@ -142,7 +142,7 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-white">
               Privacy Risk Score
             </h3>
             <Badge className={getRiskBadgeColor(metrics.overallRiskScore)}>
@@ -152,10 +152,10 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-4">
-            <div className="text-3xl font-bold text-phantom-600">
+            <div className="text-3xl font-bold text-neon-purple">
               {metrics.overallRiskScore}/100
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-400">
               Based on {metrics.totalEvents} tracking events
             </div>
           </div>
@@ -165,7 +165,7 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
       {/* Risk Distribution Chart */}
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-white">
             Risk Distribution
           </h3>
         </CardHeader>
@@ -179,6 +179,9 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
                 plugins: {
                   legend: {
                     position: 'bottom',
+                    labels: {
+                      color: '#9ca3af',
+                    },
                   },
                 },
               }}
@@ -190,7 +193,7 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
       {/* Risk Trend */}
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-white">
             Risk Trend (Last 12 Hours)
           </h3>
         </CardHeader>
@@ -205,6 +208,20 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
                   y: {
                     beginAtZero: true,
                     max: 100,
+                    ticks: {
+                      color: '#9ca3af',
+                    },
+                    grid: {
+                      color: '#24243a',
+                    },
+                  },
+                  x: {
+                    ticks: {
+                      color: '#9ca3af',
+                    },
+                    grid: {
+                      color: '#24243a',
+                    },
                   },
                 },
                 plugins: {
@@ -221,7 +238,7 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
       {/* Top Trackers */}
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900">Top Trackers</h3>
+          <h3 className="text-lg font-semibold text-white">Top Trackers</h3>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -231,15 +248,15 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
                 className="flex items-center justify-between"
               >
                 <div className="flex-1">
-                  <div className="font-medium text-gray-900">
+                  <div className="font-medium text-white">
                     {tracker.domain}
                   </div>
-                  <div className="text-sm text-gray-500 capitalize">
+                  <div className="text-sm text-gray-400 capitalize">
                     {tracker.category}
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-400">
                     {tracker.count} events
                   </span>
                   <Badge
@@ -258,7 +275,7 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
       {recommendations.length > 0 && (
         <Card>
           <CardHeader>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-white">
               Privacy Recommendations
             </h3>
           </CardHeader>
@@ -266,8 +283,8 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
             <div className="space-y-2">
               {recommendations.map((rec, index) => (
                 <div key={index} className="flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-phantom-500 rounded-full mt-2 flex-shrink-0" />
-                  <p className="text-sm text-gray-700">{rec}</p>
+                  <div className="w-2 h-2 bg-neon-purple rounded-full mt-2 flex-shrink-0" />
+                  <p className="text-sm text-gray-300">{rec}</p>
                 </div>
               ))}
             </div>

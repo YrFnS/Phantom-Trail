@@ -14,11 +14,11 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const variants = {
-    default: 'bg-gray-100 text-gray-800 border-gray-200',
-    low: 'bg-green-100 text-green-800 border-green-200',
-    medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    high: 'bg-orange-100 text-orange-800 border-orange-200',
-    critical: 'bg-red-100 text-red-800 border-red-200',
+    default: 'bg-dark-700 text-gray-300 border-dark-600',
+    low: 'bg-green-500/20 text-green-400 border-green-500/30',
+    medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    high: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    critical: 'bg-red-500/20 text-red-400 border-red-500/30',
   };
 
   return (

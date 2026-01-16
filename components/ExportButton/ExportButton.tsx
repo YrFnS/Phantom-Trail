@@ -85,8 +85,8 @@ export function ExportButton({
           inline-flex items-center px-3 py-2 text-sm font-medium rounded-md
           transition-colors duration-200
           ${hasData && !disabled
-            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            ? 'bg-neon-purple hover:bg-purple-600 text-white'
+            : 'bg-dark-700 text-gray-500 cursor-not-allowed'
           }
         `}
         title={hasData ? 'Export tracking data' : 'No data to export'}
@@ -100,9 +100,9 @@ export function ExportButton({
 
       {/* Dropdown Menu */}
       {isOpen && hasData && (
-        <div className="absolute right-0 mt-2 w-72 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+        <div className="absolute right-0 mt-2 w-72 bg-dark-800 rounded-md shadow-lg border border-dark-600 z-50">
           <div className="py-1">
-            <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+            <div className="px-4 py-2 text-xs text-gray-400 border-b border-dark-600">
               Export {events.length} tracking event{events.length !== 1 ? 's' : ''}
             </div>
             
@@ -112,7 +112,7 @@ export function ExportButton({
                 onClick={() => handleExport(option.format)}
                 disabled={isExporting}
                 className={`
-                  w-full text-left px-4 py-3 hover:bg-gray-50 
+                  w-full text-left px-4 py-3 hover:bg-dark-700
                   transition-colors duration-150
                   ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
@@ -120,10 +120,10 @@ export function ExportButton({
                 <div className="flex items-start space-x-3">
                   <span className="text-lg">{option.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-white">
                       {option.label}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-gray-400 mt-1">
                       {option.description}
                     </div>
                   </div>
@@ -136,9 +136,9 @@ export function ExportButton({
 
       {/* Loading Indicator */}
       {isExporting && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-md">
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+        <div className="absolute inset-0 flex items-center justify-center bg-dark-800 bg-opacity-75 rounded-md">
+          <div className="flex items-center space-x-2 text-sm text-gray-300">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-neon-purple border-t-transparent"></div>
             <span>Exporting...</span>
           </div>
         </div>
@@ -149,8 +149,8 @@ export function ExportButton({
         <div className={`
           absolute top-full left-0 right-0 mt-2 p-3 rounded-md text-sm z-40
           ${exportStatus.type === 'success' 
-            ? 'bg-green-50 text-green-800 border border-green-200' 
-            : 'bg-red-50 text-red-800 border border-red-200'
+            ? 'bg-green-500/10 text-green-400 border border-green-500/30' 
+            : 'bg-red-500/10 text-red-400 border border-red-500/30'
           }
         `}>
           <div className="flex items-center">
@@ -160,7 +160,7 @@ export function ExportButton({
             <span>{exportStatus.message}</span>
             <button
               onClick={() => setExportStatus({ type: null, message: '' })}
-              className="ml-auto text-gray-400 hover:text-gray-600"
+              className="ml-auto text-gray-400 hover:text-gray-300"
             >
               ✕
             </button>
