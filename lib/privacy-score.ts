@@ -36,24 +36,24 @@ export function calculatePrivacyScore(
     excessiveTrackingPenalty: events.length > 10,
   };
 
-  // Deduct points per tracker type
+  // Deduct points per tracker type (REBALANCED)
   events.forEach(event => {
     switch (event.riskLevel) {
       case 'critical':
-        score -= 25;
+        score -= 30; // Was 25
         breakdown.criticalRisk++;
         breakdown.highRisk++; // Critical counts as high-risk for display
         break;
       case 'high':
-        score -= 15;
+        score -= 18; // Was 15
         breakdown.highRisk++;
         break;
       case 'medium':
-        score -= 8;
+        score -= 10; // Was 8
         breakdown.mediumRisk++;
         break;
       case 'low':
-        score -= 3;
+        score -= 5; // Was 3
         breakdown.lowRisk++;
         break;
     }
@@ -69,6 +69,24 @@ export function calculatePrivacyScore(
     score -= 20;
   }
 
+  // NEW: Cross-site tracking penalty (3+ unique tracker companies)
+  const uniqueCompanies = new Set(
+    events.map(e => extractCompany(e.domain))
+  );
+  if (uniqueCompanies.size >= 3) {
+    score -= 15;
+  }
+
+  // NEW: Persistent tracking penalty (fingerprinting detected)
+  const hasPersistentTracking = events.some(
+    e => e.inPageTracking?.method && 
+    ['canvas-fingerprint', 'font-fingerprint', 'audio-fingerprint', 
+     'webgl-fingerprint', 'webrtc-leak'].includes(e.inPageTracking.method)
+  );
+  if (hasPersistentTracking) {
+    score -= 20;
+  }
+
   // Ensure score stays within bounds
   score = Math.max(0, Math.min(100, score));
 
@@ -76,7 +94,7 @@ export function calculatePrivacyScore(
   const { grade, color } = getGradeAndColor(score);
 
   // Generate recommendations
-  const recommendations = generateRecommendations(breakdown, score);
+  const recommendations = generateRecommendations(breakdown, score, uniqueCompanies.size, hasPersistentTracking);
 
   return {
     score,
@@ -85,6 +103,17 @@ export function calculatePrivacyScore(
     breakdown,
     recommendations,
   };
+}
+
+/**
+ * Extract company name from tracker domain
+ */
+function extractCompany(domain: string): string {
+  // Remove common prefixes and get root domain
+  const cleaned = domain.replace(/^(www\.|analytics\.|tracking\.|ads\.)/, '');
+  const parts = cleaned.split('.');
+  // Return second-level domain (e.g., "google" from "google.com")
+  return parts.length >= 2 ? parts[parts.length - 2] : cleaned;
 }
 
 /**
@@ -103,12 +132,26 @@ function getGradeAndColor(score: number): { grade: PrivacyScore['grade']; color:
  */
 function generateRecommendations(
   breakdown: PrivacyScore['breakdown'],
-  score: number
+  score: number,
+  crossSiteTrackers: number,
+  hasPersistentTracking: boolean
 ): string[] {
   const recommendations: string[] = [];
 
+  if (breakdown.criticalRisk > 0) {
+    recommendations.push(`${breakdown.criticalRisk} critical-risk trackers detected. Immediate action recommended.`);
+  }
+
   if (breakdown.highRisk > 0) {
     recommendations.push(`${breakdown.highRisk} high-risk trackers detected. Consider using an ad blocker.`);
+  }
+
+  if (crossSiteTrackers >= 3) {
+    recommendations.push(`Cross-site tracking detected (${crossSiteTrackers} companies). Your data is being shared across multiple sites.`);
+  }
+
+  if (hasPersistentTracking) {
+    recommendations.push('Persistent fingerprinting detected. This tracking works even in incognito mode.');
   }
 
   if (breakdown.excessiveTrackingPenalty) {
