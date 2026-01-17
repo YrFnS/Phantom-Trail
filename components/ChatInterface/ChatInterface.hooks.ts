@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { AIAnalysisPrompts } from '../../lib/ai-analysis-prompts';
-import { AIEngine } from '../../lib/ai-engine';
 import type { ChatMessage, ChatHookReturn } from './ChatInterface.types';
 
 /**
@@ -30,24 +29,6 @@ export function useChat(): ChatHookReturn {
       setError(null);
 
       try {
-        // Check rate limit status first
-        const rateLimitStatus = await AIEngine.getRateLimitStatus();
-        if (!rateLimitStatus.canMakeRequest) {
-          const waitTime = rateLimitStatus.retryAfter || (rateLimitStatus.resetTime - Date.now());
-          const waitSeconds = Math.ceil(waitTime / 1000);
-          
-          const rateLimitMessage: ChatMessage = {
-            id: `assistant-${Date.now()}`,
-            type: 'assistant',
-            content: `I'm currently rate limited. Please wait ${waitSeconds} seconds before asking again. You have ${rateLimitStatus.requestsRemaining} requests remaining.`,
-            timestamp: Date.now(),
-          };
-          
-          setMessages(prev => [...prev, rateLimitMessage]);
-          setLoading(false);
-          return;
-        }
-
         const response = await AIAnalysisPrompts.processQuery(messageContent.trim());
 
         if (response) {

@@ -12,9 +12,15 @@ export function RateLimitStatus({ className = '', showDetails = false }: RateLim
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
   useEffect(() => {
+    let mounted = true;
+
     const updateStatus = async () => {
+      if (!mounted) return;
+      
       try {
         const rateLimitStatus = await AIEngine.getRateLimitStatus();
+        if (!mounted) return;
+        
         setStatus(rateLimitStatus);
         
         if (!rateLimitStatus.canMakeRequest) {
@@ -24,13 +30,18 @@ export function RateLimitStatus({ className = '', showDetails = false }: RateLim
           setTimeRemaining(0);
         }
       } catch (error) {
+        if (!mounted) return;
         console.error('Failed to get rate limit status:', error);
       }
     };
 
     updateStatus();
     const interval = setInterval(updateStatus, 1000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   if (!status) {

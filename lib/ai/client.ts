@@ -19,7 +19,7 @@ export class AIClient {
   private static readonly MAX_RETRIES = 3;
 
   /**
-   * Make API request to OpenRouter with retry logic
+   * Make API request to OpenRouter with retry logic and timeout limits
    */
   static async makeRequest(
     events: TrackingEvent[],
@@ -55,8 +55,17 @@ export class AIClient {
     };
 
     let lastError: APIError | null = null;
+    const maxRetryTime = 30000; // 30 seconds total retry limit
+    const startTime = Date.now();
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      // Check if we've exceeded total retry time
+      if (Date.now() - startTime > maxRetryTime) {
+        const timeoutError = new Error('Retry timeout exceeded') as APIError;
+        timeoutError.status = 408;
+        throw timeoutError;
+      }
+
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.REQUEST_TIMEOUT);

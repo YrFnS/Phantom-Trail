@@ -9,19 +9,34 @@ export interface RateLimitStatus {
  * Enhanced rate limiting for AI API requests with exponential backoff
  */
 export class RateLimiter {
-  private static readonly MAX_REQUESTS_PER_MINUTE = 20; // Increased from 10
+  private static readonly DEFAULT_MAX_REQUESTS = 20;
   private static readonly RATE_LIMIT_KEY = 'phantom_trail_rate_limit';
   private static readonly BACKOFF_KEY = 'phantom_trail_backoff';
   private static readonly MAX_BACKOFF_MS = 5 * 60 * 1000; // 5 minutes max
+  private static readonly SETTINGS_KEY = 'phantom_trail_settings';
+
+  /**
+   * Get max requests per minute from settings or default
+   */
+  private static async getMaxRequests(): Promise<number> {
+    try {
+      const result = await chrome.storage.local.get(this.SETTINGS_KEY);
+      const settings = result[this.SETTINGS_KEY] || {};
+      return settings.maxRequestsPerMinute || this.DEFAULT_MAX_REQUESTS;
+    } catch {
+      return this.DEFAULT_MAX_REQUESTS;
+    }
+  }
 
   /**
    * Check if we can make an AI request with detailed status
    */
   static async getStatus(): Promise<RateLimitStatus> {
     try {
-      const [rateLimitResult, backoffResult] = await Promise.all([
+      const [rateLimitResult, backoffResult, maxRequests] = await Promise.all([
         chrome.storage.session.get(this.RATE_LIMIT_KEY),
-        chrome.storage.session.get(this.BACKOFF_KEY)
+        chrome.storage.session.get(this.BACKOFF_KEY),
+        this.getMaxRequests()
       ]);
 
       const rateLimit = rateLimitResult[this.RATE_LIMIT_KEY] || { 
@@ -45,19 +60,30 @@ export class RateLimiter {
 
       // Check if we're in backoff period
       const inBackoff = now < backoff.until;
-      const rateLimitExceeded = rateLimit.count >= this.MAX_REQUESTS_PER_MINUTE;
+      const rateLimitExceeded = rateLimit.count >= maxRequests;
 
       return {
         canMakeRequest: !inBackoff && !rateLimitExceeded,
-        requestsRemaining: Math.max(0, this.MAX_REQUESTS_PER_MINUTE - rateLimit.count),
+        requestsRemaining: Math.max(0, maxRequests - rateLimit.count),
         resetTime: rateLimit.resetTime,
         retryAfter: inBackoff ? backoff.until - now : undefined
       };
     } catch (error) {
-      console.error('Rate limit check failed:', error);
+      const errorType = error instanceof Error ? error.name : 'UnknownError';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('QuotaExceededError') || errorMessage.includes('quota')) {
+        console.error('Storage quota exceeded for rate limiting:', error);
+      } else if (errorMessage.includes('InvalidAccessError')) {
+        console.error('Storage access denied for rate limiting:', error);
+      } else {
+        console.error(`Rate limit check failed (${errorType}):`, error);
+      }
+      
+      const maxRequests = await this.getMaxRequests();
       return {
         canMakeRequest: true,
-        requestsRemaining: this.MAX_REQUESTS_PER_MINUTE,
+        requestsRemaining: maxRequests,
         resetTime: Date.now() + 60 * 1000
       };
     }
