@@ -5,6 +5,7 @@ import { ChatInterface } from '../../components/ChatInterface';
 import { RiskDashboard } from '../../components/RiskDashboard';
 import { Settings } from '../../components/Settings';
 import { ExportButton } from '../../components/ExportButton';
+import { RateLimitStatus } from '../../components/RateLimitStatus';
 import { StorageManager } from '../../lib/storage-manager';
 import { calculatePrivacyScore } from '../../lib/privacy-score';
 import type { TrackingEvent, PrivacyScore as PrivacyScoreType } from '../../lib/types';
@@ -144,13 +145,16 @@ function App() {
           )}
           
           {overallScore && (
-            <div className="text-[10px] text-gray-500">
-              Recent Activity: <span className={`font-medium ${
-                overallScore.color === 'green' ? 'text-green-400' : 
-                overallScore.color === 'yellow' ? 'text-yellow-400' : 
-                overallScore.color === 'orange' ? 'text-orange-400' : 
-                'text-red-400'
-              }`}>{overallScore.grade} ({overallScore.score})</span> • {events.length} events
+            <div className="flex items-center justify-between text-[10px] text-gray-500">
+              <div>
+                Recent Activity: <span className={`font-medium ${
+                  overallScore.color === 'green' ? 'text-green-400' : 
+                  overallScore.color === 'yellow' ? 'text-yellow-400' : 
+                  overallScore.color === 'orange' ? 'text-orange-400' : 
+                  'text-red-400'
+                }`}>{overallScore.grade} ({overallScore.score})</span> • {events.length} events
+              </div>
+              <RateLimitStatus className="ml-2" />
             </div>
           )}
         </header>

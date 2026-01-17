@@ -1,18 +1,26 @@
 import type { AIAnalysis, TrackingEvent } from './types';
-import { DataSanitizer, RateLimiter, AICache, AIClient } from './ai';
+import { DataSanitizer, RateLimiter, AICache, AIClient, type APIError } from './ai';
 
 /**
- * Main AI engine orchestrating all AI functionality
+ * Main AI engine orchestrating all AI functionality with enhanced error handling
  */
 export class AIEngine {
   /**
-   * Analyze tracking events with AI
+   * Analyze tracking events with AI and proper error handling
    */
   static async analyzeEvents(events: TrackingEvent[]): Promise<AIAnalysis | null> {
     try {
-      // Check rate limiting
-      if (!(await RateLimiter.canMakeRequest())) {
-        console.warn('AI request rate limited');
+      // Check if AI is available
+      if (!(await this.isAvailable())) {
+        console.warn('AI not available - no API key configured');
+        return null;
+      }
+
+      // Check rate limiting with detailed status
+      const rateLimitStatus = await RateLimiter.getStatus();
+      if (!rateLimitStatus.canMakeRequest) {
+        const waitTime = rateLimitStatus.retryAfter || (rateLimitStatus.resetTime - Date.now());
+        console.warn(`AI request rate limited. Wait ${Math.ceil(waitTime / 1000)}s`);
         return null;
       }
 
@@ -25,8 +33,7 @@ export class AIEngine {
         return cached;
       }
 
-      // Make AI request
-      await RateLimiter.recordRequest();
+      // Make AI request with enhanced error handling
       const analysis = await AIClient.makeRequest(sanitizedEvents);
 
       // Cache the result
@@ -34,6 +41,13 @@ export class AIEngine {
 
       return analysis;
     } catch (error) {
+      const apiError = error as APIError;
+      
+      if (apiError.isRateLimit) {
+        console.warn('AI request rate limited by API');
+        return null;
+      }
+
       console.error('AI analysis failed:', error);
       return null;
     }
@@ -61,10 +75,18 @@ export class AIEngine {
   }
 
   /**
-   * Chat query handler (compatibility method)
+   * Chat query handler with rate limit awareness
    */
   static async chatQuery(_query: string, events?: TrackingEvent[]): Promise<string> {
     try {
+      // Check rate limiting first
+      const rateLimitStatus = await RateLimiter.getStatus();
+      if (!rateLimitStatus.canMakeRequest) {
+        const waitTime = rateLimitStatus.retryAfter || (rateLimitStatus.resetTime - Date.now());
+        const waitSeconds = Math.ceil(waitTime / 1000);
+        return `I'm currently rate limited. Please wait ${waitSeconds} seconds before asking again.`;
+      }
+
       // If no events provided, get recent events
       const eventsToAnalyze = events || [];
       
@@ -72,10 +94,18 @@ export class AIEngine {
       if (analysis) {
         return `${analysis.narrative}\n\nRecommendations: ${analysis.recommendations.join(', ')}`;
       }
-      return 'Unable to analyze tracking data at this time.';
+      return 'Unable to analyze tracking data at this time. This might be due to rate limiting or API issues.';
     } catch (error) {
+      const apiError = error as APIError;
+      
+      if (apiError.isRateLimit) {
+        const waitTime = apiError.retryAfter || 60000; // Default 1 minute
+        const waitSeconds = Math.ceil(waitTime / 1000);
+        return `I'm currently rate limited. Please wait ${waitSeconds} seconds before asking again.`;
+      }
+
       console.error('Chat query failed:', error);
-      return 'Sorry, I encountered an error processing your request.';
+      return 'Sorry, I encountered an error processing your request. Please try again later.';
     }
   }
 
@@ -90,5 +120,19 @@ export class AIEngine {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Get current rate limit status for UI display
+   */
+  static async getRateLimitStatus() {
+    return RateLimiter.getStatus();
+  }
+
+  /**
+   * Wait for rate limit to reset (for UI components)
+   */
+  static async waitForRateLimit(onProgress?: (timeRemaining: number) => void): Promise<void> {
+    return RateLimiter.waitForReset(onProgress);
   }
 }

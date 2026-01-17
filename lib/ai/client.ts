@@ -1,16 +1,25 @@
 import type { AIAnalysis, TrackingEvent, RiskLevel } from '../types';
 import { DEFAULT_MODEL, FALLBACK_MODEL } from '../ai-models';
 import { StorageManager } from '../storage-manager';
+import { RateLimiter } from './rate-limiter';
 import { jsonrepair } from 'jsonrepair';
 
+export interface APIError extends Error {
+  status?: number;
+  retryAfter?: number;
+  isRateLimit?: boolean;
+}
+
 /**
- * OpenRouter API client for AI requests
+ * OpenRouter API client for AI requests with enhanced error handling
  */
 export class AIClient {
   private static readonly API_BASE = 'https://openrouter.ai/api/v1';
+  private static readonly REQUEST_TIMEOUT = 30000; // 30 seconds
+  private static readonly MAX_RETRIES = 3;
 
   /**
-   * Make API request to OpenRouter
+   * Make API request to OpenRouter with retry logic
    */
   static async makeRequest(
     events: TrackingEvent[],
@@ -21,6 +30,15 @@ export class AIClient {
 
     if (!apiKey) {
       throw new Error('OpenRouter API key not configured');
+    }
+
+    // Check rate limiting before making request
+    const rateLimitStatus = await RateLimiter.getStatus();
+    if (!rateLimitStatus.canMakeRequest) {
+      const error = new Error('Rate limit exceeded') as APIError;
+      error.isRateLimit = true;
+      error.retryAfter = rateLimitStatus.retryAfter;
+      throw error;
     }
 
     const systemPrompt = this.buildSystemPrompt();
@@ -36,43 +54,100 @@ export class AIClient {
       temperature: 0.7,
     };
 
-    try {
-      const response = await fetch(`${this.API_BASE}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://phantom-trail.extension',
-          'X-Title': 'Phantom Trail Extension',
-        },
-        body: JSON.stringify(requestBody),
-      });
+    let lastError: APIError | null = null;
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Rate limited by OpenRouter API');
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.REQUEST_TIMEOUT);
+
+        const response = await fetch(`${this.API_BASE}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://phantom-trail.extension',
+            'X-Title': 'Phantom Trail Extension',
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const error = new Error(`API request failed: ${response.status}`) as APIError;
+          error.status = response.status;
+
+          if (response.status === 429) {
+            error.isRateLimit = true;
+            // Try to get retry-after header
+            const retryAfter = response.headers.get('retry-after');
+            if (retryAfter) {
+              error.retryAfter = parseInt(retryAfter) * 1000; // Convert to ms
+            }
+            
+            // Record rate limit for backoff
+            await RateLimiter.recordRateLimit();
+            throw error;
+          }
+
+          // For 5xx errors, retry
+          if (response.status >= 500 && attempt < this.MAX_RETRIES) {
+            lastError = error;
+            await this.delay(Math.pow(2, attempt) * 1000); // Exponential backoff
+            continue;
+          }
+
+          throw error;
         }
-        throw new Error(`API request failed: ${response.status}`);
-      }
 
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
 
-      if (!content) {
-        throw new Error('No content in API response');
-      }
+        if (!content) {
+          throw new Error('No content in API response');
+        }
 
-      return this.parseAIResponse(content);
-    } catch (error) {
-      console.error('AI API request failed:', error);
-      
-      // Try fallback model if primary fails
-      if (modelId === DEFAULT_MODEL) {
-        return this.makeRequest(events, FALLBACK_MODEL);
+        // Record successful request
+        await RateLimiter.recordRequest();
+
+        return this.parseAIResponse(content);
+      } catch (error) {
+        lastError = error as APIError;
+
+        // Don't retry on rate limits or client errors
+        if (lastError.isRateLimit || (lastError.status && lastError.status < 500)) {
+          break;
+        }
+
+        // Don't retry on last attempt
+        if (attempt === this.MAX_RETRIES) {
+          break;
+        }
+
+        console.warn(`API request attempt ${attempt} failed:`, error);
+        await this.delay(Math.pow(2, attempt) * 1000); // Exponential backoff
       }
-      
-      throw error;
     }
+
+    // Try fallback model if primary fails and it's not a rate limit
+    if (modelId === DEFAULT_MODEL && !lastError?.isRateLimit) {
+      try {
+        return await this.makeRequest(events, FALLBACK_MODEL);
+      } catch (fallbackError) {
+        console.error('Fallback model also failed:', fallbackError);
+      }
+    }
+
+    throw lastError || new Error('All retry attempts failed');
+  }
+
+  /**
+   * Delay helper for retry logic
+   */
+  private static delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

@@ -29,6 +29,7 @@ export default [
         fetch: 'readonly',
         URL: 'readonly',
         URLSearchParams: 'readonly',
+        AbortController: 'readonly',
         
         // Chrome extension globals
         chrome: 'readonly',

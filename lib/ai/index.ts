@@ -1,4 +1,4 @@
 export { DataSanitizer } from './sanitizer';
-export { RateLimiter } from './rate-limiter';
+export { RateLimiter, type RateLimitStatus } from './rate-limiter';
 export { AICache } from './cache';
-export { AIClient } from './client';
+export { AIClient, type APIError } from './client';
