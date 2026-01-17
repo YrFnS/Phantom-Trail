@@ -186,7 +186,7 @@ export class AIAnalysisPrompts {
     
     if (result.recommendations.length > 0) {
       response += `\n## Recommendations\n`;
-      result.recommendations.forEach((rec, i) => {
+      result.recommendations.forEach((rec: string, i: number) => {
         response += `${i + 1}. ${rec}\n`;
       });
     }
