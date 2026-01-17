@@ -29,7 +29,7 @@ export function Settings({ onClose }: SettingsProps) {
     try {
       const currentSettings = await StorageManager.getSettings();
       setSettings(currentSettings);
-      setApiKey(currentSettings.apiKey || '');
+      setApiKey(currentSettings.openRouterApiKey || '');
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -40,7 +40,7 @@ export function Settings({ onClose }: SettingsProps) {
     try {
       const newSettings = {
         ...settings,
-        apiKey: apiKey.trim() || undefined,
+        openRouterApiKey: apiKey.trim() || undefined,
       };
       await StorageManager.saveSettings(newSettings);
       onClose();

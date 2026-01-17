@@ -67,7 +67,6 @@ export type InPageTrackingMethod =
   | 'sensor-api';
 
 export interface ExtensionSettings {
-  apiKey?: string;
   openRouterApiKey?: string;
   enableAI: boolean;
   enableNotifications: boolean;

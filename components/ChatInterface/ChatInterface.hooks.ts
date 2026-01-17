@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { AIEngine } from '../../lib/ai-engine';
+import { AIAnalysisPrompts } from '../../lib/ai-analysis-prompts';
 import type { ChatMessage, ChatHookReturn } from './ChatInterface.types';
 
 /**
@@ -29,7 +29,7 @@ export function useChat(): ChatHookReturn {
       setError(null);
 
       try {
-        const response = await AIEngine.chatQuery(messageContent.trim());
+        const response = await AIAnalysisPrompts.processQuery(messageContent.trim());
 
         if (response) {
           const assistantMessage: ChatMessage = {
@@ -42,13 +42,13 @@ export function useChat(): ChatHookReturn {
           setMessages(prev => [...prev, assistantMessage]);
         } else {
           setError(
-            'AI chat is temporarily unavailable. Please try again later.'
+            'Unable to process your request. Please try asking about tracking patterns, privacy risks, or specific trackers.'
           );
         }
       } catch (err) {
         console.error('Chat message failed:', err);
         setError(
-          'Failed to send message. Please check your API key and try again.'
+          'Failed to process your request. Please try again or check your API key for AI features.'
         );
       } finally {
         setLoading(false);

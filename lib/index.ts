@@ -3,4 +3,6 @@ export * from './storage-manager';
 export * from './tracker-db';
 export * from './ai-engine';
 export * from './ai-models';
+export * from './tracking-analysis';
+export * from './ai-analysis-prompts';
 export * from './hooks/useStorage';

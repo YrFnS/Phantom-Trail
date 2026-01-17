@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import { useChat } from './ChatInterface.hooks';
+import { AnalysisResult } from './AnalysisResult';
 import type {
   ChatInterfaceProps,
   MessageDisplayProps,
@@ -14,17 +15,29 @@ function MessageDisplay({ message }: MessageDisplayProps) {
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-        <div className={`max-w-[75%] px-2.5 py-1.5 rounded-lg text-xs ${
-          isUser
-            ? 'bg-hud text-terminal border border-plasma/30'
-            : 'bg-dark-700/50 text-gray-200 border border-dark-600/50'
-        }`}>
-        <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
-        <p
-          className={`text-[10px] mt-1 ${isUser ? 'text-purple-300' : 'text-gray-500'}`}
-        >
-          {new Date(message.timestamp).toLocaleTimeString()}
-        </p>
+      <div className={`max-w-[90%] ${isUser ? 'max-w-[75%]' : ''}`}>
+        {isUser ? (
+          <div className="px-2.5 py-1.5 rounded-lg text-xs bg-hud text-terminal border border-plasma/30">
+            <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+            <p className="text-[10px] mt-1 text-purple-300">
+              {new Date(message.timestamp).toLocaleTimeString()}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {/* Check if content looks like analysis result (starts with #) */}
+            {message.content.startsWith('#') ? (
+              <AnalysisResult content={message.content} />
+            ) : (
+              <div className="bg-dark-700/50 text-gray-200 border border-dark-600/50 px-2.5 py-1.5 rounded-lg text-xs">
+                <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+              </div>
+            )}
+            <p className="text-[10px] text-gray-500 px-1">
+              {new Date(message.timestamp).toLocaleTimeString()}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -44,6 +57,19 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
     clearChat,
   } = useChat();
 
+  const examplePrompts = [
+    "Analyze my tracking patterns",
+    "What's my privacy risk?",
+    "Show me tracking timeline",
+    "Audit this website's privacy"
+  ];
+
+  const handleExampleClick = (prompt: string) => {
+    if (!loading) {
+      sendMessage(prompt);
+    }
+  };
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (inputValue.trim() && !loading) {
@@ -62,7 +88,7 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
     <div className={`flex flex-col h-full ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between px-1 mb-2">
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Assistant</h2>
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Privacy Assistant</h2>
         {messages.length > 0 && (
           <button
             onClick={clearChat}
@@ -74,16 +100,28 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto mb-2 space-y-2 min-h-[300px]">
+      <div className="flex-1 overflow-y-auto mb-2 space-y-3 min-h-[300px]">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-500 mt-16">
-            <svg className="w-12 h-12 mx-auto mb-2 text-gray-600 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <div className="text-center text-gray-500 mt-8">
+            <svg className="w-12 h-12 mx-auto mb-3 text-gray-600 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
-            <p className="text-xs mb-1">Ask about your privacy</p>
-            <p className="text-[10px] text-gray-600">
-              Try: &ldquo;What trackers did I see?&rdquo;
-            </p>
+            <p className="text-xs mb-3 font-medium">Ask about your privacy</p>
+            
+            {/* Example prompts */}
+            <div className="space-y-2">
+              <p className="text-[10px] text-gray-600 mb-2">Try these examples:</p>
+              {examplePrompts.map((prompt, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleExampleClick(prompt)}
+                  className="block w-full text-[10px] text-left px-2 py-1.5 bg-dark-700/30 hover:bg-dark-700/50 border border-dark-600/30 hover:border-dark-600/50 rounded text-gray-400 hover:text-gray-300 transition-colors"
+                  disabled={loading}
+                >
+                  &ldquo;{prompt}&rdquo;
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <>
@@ -94,7 +132,7 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
               <div className="flex justify-start">
                 <div className="bg-dark-700/50 border border-dark-600/50 px-2 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
                   <LoadingSpinner size="sm" />
-                  <span className="text-gray-400">Thinking...</span>
+                  <span className="text-gray-400">Analyzing...</span>
                 </div>
               </div>
             )}
@@ -118,7 +156,7 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
             setInputValue(e.target.value)
           }
           onKeyDown={handleKeyPress}
-          placeholder="Ask about your privacy..."
+          placeholder="Ask about tracking patterns, privacy risks, or specific trackers..."
           className="flex-1 px-2 py-1.5 bg-dark-700/50 border border-dark-600/50 rounded-md text-xs text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
           disabled={loading}
         />
