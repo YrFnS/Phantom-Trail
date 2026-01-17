@@ -130,7 +130,7 @@ export default defineBackground({
 
         if (isHighRisk || isHighRiskContext) {
           // Trigger immediate individual event analysis for high-risk events
-          await AIEngine.generateEventAnalysis(event, context);
+          await AIEngine.generateEventAnalysis(event);
           console.log(
             'High-risk event analyzed immediately:',
             event.domain,
@@ -217,8 +217,7 @@ export default defineBackground({
 
               // Trigger AI analysis for high-risk events
               if (event.riskLevel === 'high' || event.riskLevel === 'critical') {
-                const context = ContextDetector.detectContext(event);
-                await AIEngine.generateEventAnalysis(event, context);
+                await AIEngine.generateEventAnalysis(event);
               }
 
               console.log(

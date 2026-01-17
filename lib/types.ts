@@ -68,6 +68,7 @@ export type InPageTrackingMethod =
 
 export interface ExtensionSettings {
   apiKey?: string;
+  openRouterApiKey?: string;
   enableAI: boolean;
   enableNotifications: boolean;
   riskThreshold: RiskLevel;

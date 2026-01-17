@@ -65,10 +65,7 @@ export function useEventAnalysis(event: TrackingEvent | null) {
         const context = ContextDetector.detectContext(targetEvent);
 
         // Generate AI analysis with context
-        const aiAnalysis = await AIEngine.generateEventAnalysis(
-          targetEvent,
-          context
-        );
+        const aiAnalysis = await AIEngine.generateEventAnalysis(targetEvent);
 
         if (aiAnalysis) {
           const eventAnalysis: EventAnalysis = {
