@@ -152,3 +152,17 @@ export interface Anomaly {
   value: number;
   baseline: number;
 }
+
+export interface ComparisonData {
+  categoryComparison: {
+    percentile: number;
+    betterThanAverage: boolean;
+    insight: string;
+  };
+  userComparison?: {
+    percentile: number;
+    betterThanUsual: boolean;
+    insight: string;
+  };
+  trustLevel: 'high' | 'medium' | 'low';
+}

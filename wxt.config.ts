@@ -36,7 +36,7 @@ export default defineConfig({
           warn(warning);
         },
       },
-      chunkSizeWarningLimit: 1000, // Increase limit for Cytoscape.js
+      chunkSizeWarningLimit: 1200, // Increase limit but keep dynamic imports for better UX
     },
     define: {
       // Ensure proper environment variables
@@ -45,7 +45,7 @@ export default defineConfig({
       ),
     },
     optimizeDeps: {
-      include: ['cytoscape'],
+      include: ['cytoscape', 'vis-network', 'chart.js'],
     },
   }),
 });

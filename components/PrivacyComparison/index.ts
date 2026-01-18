@@ -1,0 +1,1 @@
+export { PrivacyComparisonCard } from './PrivacyComparisonCard';

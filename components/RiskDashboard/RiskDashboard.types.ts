@@ -6,6 +6,7 @@ import type { RiskLevel } from '../../lib/types';
 
 export interface RiskDashboardProps {
   className?: string;
+  currentDomain?: string;
 }
 
 export interface RiskMetrics {

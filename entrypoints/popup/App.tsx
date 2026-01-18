@@ -1,14 +1,23 @@
-import { useState, useEffect } from 'react';
-import { LiveNarrative } from '../../components/LiveNarrative';
-import { NetworkGraph } from '../../components/NetworkGraph';
-import { ChatInterface } from '../../components/ChatInterface';
-import { RiskDashboard } from '../../components/RiskDashboard';
-import { Settings } from '../../components/Settings';
-import { ExportButton } from '../../components/ExportButton';
-import { RateLimitStatus } from '../../components/RateLimitStatus';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { StorageManager } from '../../lib/storage-manager';
 import { calculatePrivacyScore } from '../../lib/privacy-score';
+import { ExportButton } from '../../components/ExportButton';
+import { RateLimitStatus } from '../../components/RateLimitStatus';
+import { Settings } from '../../components/Settings';
 import type { TrackingEvent, PrivacyScore as PrivacyScoreType } from '../../lib/types';
+
+// Lazy load heavy components to reduce initial bundle size
+const LiveNarrative = lazy(() => import('../../components/LiveNarrative').then(m => ({ default: m.LiveNarrative })));
+const NetworkGraph = lazy(() => import('../../components/NetworkGraph').then(m => ({ default: m.NetworkGraph })));
+const ChatInterface = lazy(() => import('../../components/ChatInterface').then(m => ({ default: m.ChatInterface })));
+const RiskDashboard = lazy(() => import('../../components/RiskDashboard').then(m => ({ default: m.RiskDashboard })));
+
+// Loading component for lazy-loaded components
+const ComponentLoader = () => (
+  <div className="flex items-center justify-center h-32">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-plasma"></div>
+  </div>
+);
 
 const EMPTY_PRIVACY_SCORE: PrivacyScoreType = {
   score: 100,
@@ -227,10 +236,12 @@ function App() {
           {/* Content area */}
           <main className="flex-1 overflow-y-auto p-3">
             <div className="animate-fade-in">
-              {activeView === 'narrative' && <LiveNarrative />}
-              {activeView === 'network' && <NetworkGraph />}
-              {activeView === 'dashboard' && <RiskDashboard />}
-              {activeView === 'chat' && <ChatInterface />}
+              <Suspense fallback={<ComponentLoader />}>
+                {activeView === 'narrative' && <LiveNarrative />}
+                {activeView === 'network' && <NetworkGraph />}
+                {activeView === 'dashboard' && <RiskDashboard currentDomain={currentDomain} />}
+                {activeView === 'chat' && <ChatInterface />}
+              </Suspense>
             </div>
           </main>
         </div>

@@ -15,6 +15,7 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { PrivacyTrendsChart } from '../PrivacyTrends';
+import { PrivacyComparisonCard } from '../PrivacyComparison';
 import { cn } from '../../lib/utils/cn';
 import { useRiskMetrics } from './RiskDashboard.hooks';
 import type { RiskDashboardProps } from './RiskDashboard.types';
@@ -32,7 +33,7 @@ ChartJS.register(
   Legend
 );
 
-export function RiskDashboard({ className }: RiskDashboardProps) {
+export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) {
   const { metrics, loading, error, recommendations } = useRiskMetrics();
 
   if (loading) {
@@ -246,6 +247,13 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
       <div className="mt-4">
         <PrivacyTrendsChart days={7} />
       </div>
+
+      {/* Privacy Comparison */}
+      {currentDomain && (
+        <div className="mt-4">
+          <PrivacyComparisonCard domain={currentDomain} />
+        </div>
+      )}
     </div>
   );
 }
