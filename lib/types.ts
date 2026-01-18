@@ -10,6 +10,7 @@ export interface TrackingEvent {
   trackerType: TrackerType;
   riskLevel: RiskLevel;
   description: string;
+  privacyScore?: number; // Optional privacy score for the event
   inPageTracking?: {
     method: InPageTrackingMethod;
     details: string;

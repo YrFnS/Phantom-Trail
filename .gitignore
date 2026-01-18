@@ -40,7 +40,4 @@ logs/
 *.tsbuildinfo
 log.txt
 docs/RECOMMENDATIONS.md
-assets/Screenshot 2026-01-16 220038.png
-assets/Screenshot 2026-01-16 220045.png
-assets/image1.png
-assets/image.png
+assets/screenshots/*

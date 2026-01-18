@@ -93,7 +93,7 @@ export default [
   },
   {
     // Separate config for sync-related files (temporary relaxed rules)
-    files: ['lib/sync-manager.ts', 'lib/conflict-resolver.ts', 'lib/storage-manager.ts'],
+    files: ['lib/sync-manager.ts', 'lib/conflict-resolver.ts', 'lib/storage-manager.ts', 'lib/privacy-predictor.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off', // Temporarily allow any types in sync files
     },
