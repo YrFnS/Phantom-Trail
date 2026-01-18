@@ -1,6 +1,8 @@
 import { TrackingAnalysis, type AnalysisResult, type PatternData, type RiskData, type TrackerData, type WebsiteData, type TimelineData, type TrackerPattern } from './tracking-analysis';
 import { AIEngine } from './ai-engine';
 import { StorageManager } from './storage-manager';
+import { PrivacyCoach } from './ai-coaching';
+import { PrivacyInsights } from './privacy-insights';
 import type { TrackingEvent, PrivacyScore } from './types';
 
 export interface AnalysisQuery {
@@ -148,15 +150,40 @@ export class AIAnalysisPrompts {
   }
 
   /**
-   * Handle general chat queries with AI
+   * Handle general chat queries with AI and personalized coaching context
    */
   private static async handleChatQuery(query: string): Promise<string> {
     // Get recent tracking events for context
     const recentEvents = await this.getRecentEvents(24 * 60 * 60 * 1000); // Last 24 hours
     
+    // Get personalized insights for coaching context
+    let personalizedPrompt = query;
+    try {
+      const insights = await PrivacyInsights.getStoredInsights();
+      if (insights && this.isCoachingQuery(query)) {
+        personalizedPrompt = PrivacyCoach.createPersonalizedPrompt(query, insights);
+      }
+    } catch (error) {
+      console.warn('Failed to load personalized context:', error);
+    }
+    
     // Use AI engine for natural language response
-    const response = await AIEngine.chatQuery(query, recentEvents);
+    const response = await AIEngine.chatQuery(personalizedPrompt, recentEvents);
     return response;
+  }
+
+  /**
+   * Check if query is coaching-related and should use personalized context
+   */
+  private static isCoachingQuery(query: string): boolean {
+    const lowerQuery = query.toLowerCase();
+    const coachingKeywords = [
+      'improve', 'better', 'help', 'advice', 'recommend', 'suggest',
+      'goal', 'progress', 'achievement', 'privacy score', 'how can i',
+      'what should i', 'tips', 'guidance', 'coach', 'personal'
+    ];
+    
+    return coachingKeywords.some(keyword => lowerQuery.includes(keyword));
   }
 
   /**

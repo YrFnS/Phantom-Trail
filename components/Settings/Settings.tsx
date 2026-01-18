@@ -5,8 +5,9 @@ import type { ExtensionSettings, RiskLevel } from '../../lib/types';
 import { Card, CardHeader, CardContent, Button } from '../ui';
 import { TrustedSitesSettings } from './TrustedSitesSettings';
 import { NotificationSettings } from './NotificationSettings';
+import { ShortcutSettings } from './ShortcutSettings';
 
-type SettingsTab = 'general' | 'notifications' | 'trusted-sites';
+type SettingsTab = 'general' | 'notifications' | 'trusted-sites' | 'shortcuts';
 
 interface SettingsProps {
   onClose: () => void;
@@ -98,6 +99,16 @@ export function Settings({ onClose }: SettingsProps) {
               }`}
             >
               Trusted Sites
+            </button>
+            <button
+              onClick={() => setActiveTab('shortcuts')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'shortcuts'
+                  ? 'border-primary-500 text-primary-500'
+                  : 'border-transparent text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Shortcuts
             </button>
           </div>
         </CardHeader>
@@ -222,6 +233,9 @@ export function Settings({ onClose }: SettingsProps) {
 
           {/* Trusted Sites Tab */}
           {activeTab === 'trusted-sites' && <TrustedSitesSettings />}
+
+          {/* Shortcuts Tab */}
+          {activeTab === 'shortcuts' && <ShortcutSettings />}
         </CardContent>
       </Card>
     </div>

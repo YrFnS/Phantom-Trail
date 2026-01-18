@@ -1,283 +1,174 @@
-import { useState, useEffect } from 'react';
-import { UserWhitelistManager } from '../../lib/user-whitelist-manager';
-import { TRUSTED_SITES } from '../../lib/trusted-sites';
-import { SecurityContextDetector } from '../../lib/context-detector';
-import type { UserTrustedSite, SecurityContext } from '../../lib/types';
-import { Card, CardHeader, CardContent, Button } from '../ui';
-import { AddTrustedSiteDialog } from './AddTrustedSiteDialog';
+import React, { useState, useEffect } from 'react';
+import { TrustLevel } from '../../lib/trusted-sites-manager';
+import { TrustedSites } from '../TrustedSites';
 
-export function TrustedSitesSettings() {
-  const [userSites, setUserSites] = useState<UserTrustedSite[]>([]);
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [currentContext, setCurrentContext] = useState<SecurityContext | null>(null);
-  const [currentDomain, setCurrentDomain] = useState<string>('');
+interface TrustedSitesSettingsProps {
+  className?: string;
+}
+
+export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({ className = '' }) => {
+  const [settings, setSettings] = useState({
+    autoSuggestTrust: true,
+    verificationInterval: 30,
+    defaultTrustLevel: TrustLevel.PARTIAL_TRUST,
+    inheritSubdomains: true
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUserSites();
-    detectCurrentContext();
+    loadSettings();
   }, []);
 
-  const loadUserSites = async () => {
+  const loadSettings = async () => {
     try {
-      const sites = await UserWhitelistManager.getUserWhitelist();
-      setUserSites(sites);
+      // This would load from the trusted sites storage
+      // For now, using defaults
+      setLoading(false);
     } catch (error) {
-      console.error('Failed to load user sites:', error);
-    } finally {
+      console.error('Failed to load trusted sites settings:', error);
       setLoading(false);
     }
   };
 
-  const detectCurrentContext = async () => {
+  const handleSettingChange = async (key: string, value: string | number | boolean) => {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab?.url) {
-        const url = new URL(tab.url);
-        // Only set domain for http/https URLs (not chrome-extension://)
-        if (url.protocol === 'http:' || url.protocol === 'https:') {
-          setCurrentDomain(url.hostname);
-          const context = SecurityContextDetector.detectContext(tab.url);
-          setCurrentContext(context);
-        }
-      }
+      const newSettings = { ...settings, [key]: value };
+      setSettings(newSettings);
+      // In a full implementation, we'd save to storage here
     } catch (error) {
-      console.error('Failed to detect context:', error);
+      console.error('Failed to update setting:', error);
     }
-  };
-
-  const handleRemoveSite = async (domain: string) => {
-    try {
-      await UserWhitelistManager.removeTrustedSite(domain);
-      await loadUserSites();
-    } catch (error) {
-      console.error('Failed to remove site:', error);
-    }
-  };
-
-  const handleAddSite = async (site: UserTrustedSite) => {
-    try {
-      await UserWhitelistManager.addTrustedSite(site);
-      await loadUserSites();
-      setShowAddDialog(false);
-    } catch (error) {
-      console.error('Failed to add site:', error);
-      throw error;
-    }
-  };
-
-  const handleExport = async () => {
-    try {
-      const json = await UserWhitelistManager.exportWhitelist();
-      // eslint-disable-next-line no-undef
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'phantom-trail-whitelist.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Failed to export:', error);
-    }
-  };
-
-  const handleImport = async () => {
-    try {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'application/json';
-      input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) {
-          const text = await file.text();
-          await UserWhitelistManager.importWhitelist(text);
-          await loadUserSites();
-        }
-      };
-      input.click();
-    } catch (error) {
-      console.error('Failed to import:', error);
-    }
-  };
-
-  const getConfidenceBadge = (confidence: string) => {
-    const colors = {
-      high: 'bg-green-500/20 text-green-400',
-      medium: 'bg-yellow-500/20 text-yellow-400',
-      low: 'bg-dark-700 text-gray-400',
-    };
-    return colors[confidence as keyof typeof colors] || colors.low;
   };
 
   if (loading) {
     return (
-      <div className="p-4 text-center text-gray-400">
-        Loading trusted sites...
+      <div className={`p-4 ${className}`}>
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-3 bg-gray-200 rounded"></div>
+            <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Default Trusted Sites */}
-      <Card>
-        <CardHeader>
-          <h3 className="text-sm font-semibold text-terminal">
-            Default Trusted Sites ({TRUSTED_SITES.length})
-          </h3>
-          <p className="text-xs text-gray-400 mt-1">
-            Pre-configured sites that use fingerprinting for security
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {TRUSTED_SITES.map((site) => (
-              <div
-                key={site.domain}
-                className="flex items-start justify-between p-2 bg-dark-700 rounded text-xs"
-              >
-                <div className="flex-1">
-                  <div className="font-medium text-terminal">{site.domain}</div>
-                  <div className="text-gray-400">{site.description}</div>
-                </div>
-                <span className="text-gray-500 ml-2">✓</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* User Trusted Sites */}
-      <Card>
-        <CardHeader>
+    <div className={`space-y-6 ${className}`}>
+      {/* Main Trusted Sites Management */}
+      <TrustedSites />
+      
+      {/* Settings Section */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Trust Settings</h3>
+        
+        <div className="space-y-4">
+          {/* Auto Suggest Trust */}
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-terminal">
-                Your Trusted Sites ({userSites.length})
-              </h3>
-              <p className="text-xs text-gray-400 mt-1">
-                Sites you&apos;ve added to the whitelist
+              <label className="text-sm font-medium text-gray-700">
+                Auto-suggest trusted sites
+              </label>
+              <p className="text-xs text-gray-500">
+                Automatically suggest sites to trust based on your browsing patterns
               </p>
             </div>
-            <Button
-              size="sm"
-              onClick={() => setShowAddDialog(true)}
-              className="text-xs"
-            >
-              + Add Site
-            </Button>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.autoSuggestTrust}
+                onChange={(e) => handleSettingChange('autoSuggestTrust', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
           </div>
-        </CardHeader>
-        <CardContent>
-          {userSites.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-sm">
-              No custom trusted sites yet
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {userSites.map((site) => (
-                <div
-                  key={site.domain}
-                  className="flex items-start justify-between p-2 bg-dark-700 rounded text-xs"
-                >
-                  <div className="flex-1">
-                    <div className="font-medium text-white">
-                      {site.domain}
-                      {site.temporary && (
-                        <span className="ml-2 text-orange-400">(Session only)</span>
-                      )}
-                    </div>
-                    {site.reason && (
-                      <div className="text-gray-400">{site.reason}</div>
-                    )}
-                    <div className="text-gray-500 mt-1">
-                      Added {new Date(site.addedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleRemoveSite(site.domain)}
-                    className="text-red-400 hover:text-red-300 text-xs"
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Current Page Context */}
-      {currentContext && (
-        <Card>
-          <CardHeader>
-            <h3 className="text-sm font-semibold text-terminal">
-              Current Page Context
-            </h3>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Domain:</span>
-                <span className="font-medium text-terminal">{currentDomain}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Confidence:</span>
-                <span
-                  className={`px-2 py-0.5 rounded ${getConfidenceBadge(currentContext.confidence)}`}
-                >
-                  {currentContext.confidence.toUpperCase()}
-                </span>
-              </div>
-              {currentContext.isLoginPage && (
-                <div className="text-green-400">✓ Login page detected</div>
-              )}
-              {currentContext.isBankingPage && (
-                <div className="text-green-400">✓ Banking site detected</div>
-              )}
-              {currentContext.isPaymentPage && (
-                <div className="text-green-400">✓ Payment page detected</div>
-              )}
-              {currentContext.hasPasswordField && (
-                <div className="text-green-400">✓ Password field present</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          {/* Default Trust Level */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Default trust level for new sites
+            </label>
+            <select
+              value={settings.defaultTrustLevel}
+              onChange={(e) => handleSettingChange('defaultTrustLevel', e.target.value as TrustLevel)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={TrustLevel.PARTIAL_TRUST}>Partial Trust</option>
+              <option value={TrustLevel.FULL_TRUST}>Full Trust</option>
+              <option value={TrustLevel.CONDITIONAL}>Conditional Trust</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              This will be the default trust level when you add new trusted sites
+            </p>
+          </div>
 
-      {/* Export/Import */}
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={handleExport}
-          disabled={userSites.length === 0}
-          className="flex-1 text-xs"
-        >
-          Export Whitelist
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={handleImport}
-          className="flex-1 text-xs"
-        >
-          Import Whitelist
-        </Button>
+          {/* Verification Interval */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Trust verification interval (days)
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="365"
+              value={settings.verificationInterval}
+              onChange={(e) => handleSettingChange('verificationInterval', parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              How often to re-evaluate trusted sites for changes in their privacy practices
+            </p>
+          </div>
+
+          {/* Inherit Subdomains */}
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Trust subdomains automatically
+              </label>
+              <p className="text-xs text-gray-500">
+                When you trust example.com, also trust subdomain.example.com
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.inheritSubdomains}
+                onChange={(e) => handleSettingChange('inheritSubdomains', e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+
+        {/* Trust Level Explanations */}
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          <h4 className="text-sm font-medium text-gray-900 mb-3">Trust Level Explanations</h4>
+          <div className="space-y-2 text-xs text-gray-600">
+            <div className="flex items-start space-x-2">
+              <span className="text-green-600">🛡️</span>
+              <div>
+                <span className="font-medium">Full Trust:</span> No monitoring, privacy score boosted to minimum B+ (85)
+              </div>
+            </div>
+            <div className="flex items-start space-x-2">
+              <span className="text-yellow-600">⚡</span>
+              <div>
+                <span className="font-medium">Partial Trust:</span> Reduced monitoring, privacy score boosted by 15 points
+              </div>
+            </div>
+            <div className="flex items-start space-x-2">
+              <span className="text-blue-600">⚙️</span>
+              <div>
+                <span className="font-medium">Conditional Trust:</span> Trust with specific conditions (e.g., max trackers allowed)
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* Add Site Dialog */}
-      {showAddDialog && (
-        <AddTrustedSiteDialog
-          onClose={() => setShowAddDialog(false)}
-          onAdd={handleAddSite}
-          currentDomain={currentDomain}
-        />
-      )}
     </div>
   );
-}
+};

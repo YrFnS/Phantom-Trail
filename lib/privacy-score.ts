@@ -1,4 +1,5 @@
 import type { TrackingEvent } from './types';
+import { TrustedSitesManager } from './trusted-sites-manager';
 
 export interface PrivacyScore {
   score: number;
@@ -12,12 +13,18 @@ export interface PrivacyScore {
     criticalRisk: number;
     httpsBonus: boolean;
     excessiveTrackingPenalty: boolean;
+    trustAdjustment?: {
+      applied: boolean;
+      domain: string;
+      adjustment: number;
+      reason: string;
+    };
   };
   recommendations: string[];
 }
 
 /**
- * Calculate privacy score based on tracking events
+ * Calculate privacy score based on tracking events (synchronous version)
  */
 export function calculatePrivacyScore(
   events: TrackingEvent[],
@@ -94,7 +101,12 @@ export function calculatePrivacyScore(
   const { grade, color } = getGradeAndColor(score);
 
   // Generate recommendations
-  const recommendations = generateRecommendations(breakdown, score, uniqueCompanies.size, hasPersistentTracking);
+  const recommendations = generateRecommendations(
+    breakdown, 
+    score, 
+    uniqueCompanies.size, 
+    hasPersistentTracking
+  );
 
   return {
     score,
@@ -103,6 +115,69 @@ export function calculatePrivacyScore(
     breakdown,
     recommendations,
   };
+}
+
+/**
+ * Calculate privacy score with trust adjustments (async version)
+ */
+export async function calculatePrivacyScoreWithTrust(
+  events: TrackingEvent[],
+  isHttps: boolean = true,
+  domain?: string
+): Promise<PrivacyScore> {
+  // Start with base calculation
+  const baseScore = calculatePrivacyScore(events, isHttps);
+  
+  // Apply trust adjustment if domain is provided
+  if (domain) {
+    const originalScore = baseScore.score;
+    const adjustedScore = await TrustedSitesManager.adjustScoreForTrust(originalScore, domain);
+    
+    if (adjustedScore !== originalScore) {
+      const trustedSite = await TrustedSitesManager.getTrustedSite(domain);
+      const trustAdjustment = {
+        applied: true,
+        domain,
+        adjustment: adjustedScore - originalScore,
+        reason: trustedSite?.reason || 'Trusted site adjustment applied'
+      };
+
+      // Recalculate grade and color with adjusted score
+      const { grade, color } = getGradeAndColor(adjustedScore);
+      
+      // Generate recommendations with trust context
+      const recommendations = generateRecommendations(
+        { ...baseScore.breakdown, trustAdjustment }, 
+        adjustedScore, 
+        new Set(events.map(e => extractCompany(e.domain))).size, 
+        events.some(e => e.inPageTracking?.method && 
+          ['canvas-fingerprint', 'font-fingerprint', 'audio-fingerprint', 
+           'webgl-fingerprint', 'webrtc-leak'].includes(e.inPageTracking.method)),
+        domain
+      );
+
+      return {
+        ...baseScore,
+        score: adjustedScore,
+        grade,
+        color,
+        breakdown: { ...baseScore.breakdown, trustAdjustment },
+        recommendations,
+      };
+    }
+  }
+
+  return baseScore;
+}
+
+/**
+ * Calculate privacy score based on tracking events (synchronous version for backward compatibility)
+ */
+export function calculatePrivacyScoreSync(
+  events: TrackingEvent[],
+  isHttps: boolean = true
+): PrivacyScore {
+  return calculatePrivacyScore(events, isHttps);
 }
 
 /**
@@ -134,9 +209,19 @@ function generateRecommendations(
   breakdown: PrivacyScore['breakdown'],
   score: number,
   crossSiteTrackers: number,
-  hasPersistentTracking: boolean
+  hasPersistentTracking: boolean,
+  domain?: string
 ): string[] {
   const recommendations: string[] = [];
+
+  // Trust-related recommendations first
+  if (breakdown.trustAdjustment?.applied) {
+    if (breakdown.trustAdjustment.adjustment > 0) {
+      recommendations.push(`✅ Score boosted for trusted site: ${breakdown.trustAdjustment.reason}`);
+    }
+  } else if (domain && score < 80) {
+    recommendations.push(`Consider adding ${domain} to trusted sites if you use it regularly.`);
+  }
 
   if (breakdown.criticalRisk > 0) {
     recommendations.push(`${breakdown.criticalRisk} critical-risk trackers detected. Immediate action recommended.`);

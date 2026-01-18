@@ -4,6 +4,7 @@ import { calculatePrivacyScore } from '../../lib/privacy-score';
 import { ExportButton } from '../../components/ExportButton';
 import { RateLimitStatus } from '../../components/RateLimitStatus';
 import { Settings } from '../../components/Settings';
+import { QuickTrustButton } from '../../components/TrustedSites';
 import type { TrackingEvent, PrivacyScore as PrivacyScoreType } from '../../lib/types';
 
 // Lazy load heavy components to reduce initial bundle size
@@ -11,6 +12,7 @@ const LiveNarrative = lazy(() => import('../../components/LiveNarrative').then(m
 const NetworkGraph = lazy(() => import('../../components/NetworkGraph').then(m => ({ default: m.NetworkGraph })));
 const ChatInterface = lazy(() => import('../../components/ChatInterface').then(m => ({ default: m.ChatInterface })));
 const RiskDashboard = lazy(() => import('../../components/RiskDashboard').then(m => ({ default: m.RiskDashboard })));
+const PrivacyCoachDashboard = lazy(() => import('../../components/PrivacyCoach').then(m => ({ default: m.PrivacyCoachDashboard })));
 
 // Loading component for lazy-loaded components
 const ComponentLoader = () => (
@@ -38,7 +40,7 @@ const EMPTY_PRIVACY_SCORE: PrivacyScoreType = {
 function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState<
-    'narrative' | 'network' | 'chat' | 'dashboard'
+    'narrative' | 'network' | 'chat' | 'dashboard' | 'coach'
   >('narrative');
   const [events, setEvents] = useState<TrackingEvent[]>([]);
   const [currentSiteScore, setCurrentSiteScore] = useState<PrivacyScoreType | null>(null);
@@ -147,8 +149,15 @@ function App() {
                   {currentSiteScore.grade}
                 </span>
               </div>
-              <div className="text-[10px] text-gray-400 truncate">
-                {currentDomain || 'Unknown'} • {currentSiteScore.breakdown.totalTrackers} trackers
+              <div className="text-[10px] text-gray-400 truncate flex items-center justify-between">
+                <span>{currentDomain || 'Unknown'} • {currentSiteScore.breakdown.totalTrackers} trackers</span>
+                {currentDomain && (
+                  <QuickTrustButton 
+                    domain={currentDomain} 
+                    size="sm"
+                    className="ml-2"
+                  />
+                )}
               </div>
             </div>
           )}
@@ -231,6 +240,19 @@ function App() {
               </svg>
               <span>AI</span>
             </button>
+            <button
+              onClick={() => setActiveView('coach')}
+              className={`h-12 flex flex-col items-center justify-center rounded-r-lg transition-all text-[9px] ${
+                activeView === 'coach'
+                  ? 'bg-hud text-terminal border-l-2 border-plasma shadow-[0_0_15px_rgba(188,19,254,0.4)]'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-dark-700/50'
+              }`}
+            >
+              <svg className="w-4 h-4 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+              <span>Coach</span>
+            </button>
           </nav>
 
           {/* Content area */}
@@ -241,6 +263,7 @@ function App() {
                 {activeView === 'network' && <NetworkGraph />}
                 {activeView === 'dashboard' && <RiskDashboard currentDomain={currentDomain} />}
                 {activeView === 'chat' && <ChatInterface />}
+                {activeView === 'coach' && <PrivacyCoachDashboard />}
               </Suspense>
             </div>
           </main>

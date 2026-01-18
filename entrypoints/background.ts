@@ -5,6 +5,7 @@ import { AIEngine } from '../lib/ai-engine';
 import { NotificationManager } from '../lib/notification-manager';
 import { PrivacyTrends } from '../lib/privacy-trends';
 import { calculatePrivacyScore } from '../lib/privacy-score';
+import { KeyboardShortcuts } from '../lib/keyboard-shortcuts';
 import { ContextDetector } from '../components/LiveNarrative/LiveNarrative.context';
 import type { TrackingEvent } from '../lib/types';
 import type {
@@ -332,5 +333,14 @@ export default defineBackground({
         return false;
       }
     );
+
+    // Handle keyboard shortcuts
+    chrome.commands.onCommand.addListener(async (command) => {
+      try {
+        await KeyboardShortcuts.handleCommand(command);
+      } catch (error) {
+        console.error('Shortcut execution failed:', error);
+      }
+    });
   },
 });

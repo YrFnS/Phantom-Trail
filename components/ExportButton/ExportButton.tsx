@@ -89,7 +89,7 @@ export function ExportButton({
             : 'bg-dark-700 text-gray-500 cursor-not-allowed border border-dark-600'
           }
         `}
-        title={hasData ? 'Export tracking data' : 'No data to export'}
+        title={hasData ? 'Export tracking data (Ctrl+Shift+E)' : 'No data to export'}
       >
         <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
