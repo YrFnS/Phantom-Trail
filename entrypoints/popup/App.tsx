@@ -5,6 +5,7 @@ import { ExportButton } from '../../components/ExportButton';
 import { RateLimitStatus } from '../../components/RateLimitStatus';
 import { Settings } from '../../components/Settings';
 import { QuickTrustButton } from '../../components/TrustedSites';
+import { ThemeToggle } from '../../components/ui';
 import type { TrackingEvent, PrivacyScore as PrivacyScoreType } from '../../lib/types';
 
 // Lazy load heavy components to reduce initial bundle size
@@ -94,37 +95,38 @@ function App() {
 
   if (showSettings) {
     return (
-      <div className="extension-popup bg-phantom-background">
+      <div className="extension-popup bg-[var(--bg-primary)]">
         <Settings onClose={() => setShowSettings(false)} />
       </div>
     );
   }
 
   return (
-    <div className="extension-popup relative">
+    <div className="extension-popup relative bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="relative z-10">
         {/* Compact header */}
-        <header className="px-4 pt-3 pb-2 border-b border-dark-600/50">
+        <header className="px-4 pt-3 pb-2 border-b border-[var(--border-primary)]">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-hud border border-plasma/30 flex items-center justify-center">
-                <svg className="w-5 h-5 text-plasma" viewBox="0 0 24 24" fill="currentColor">
+              <div className="w-8 h-8 rounded-lg bg-[var(--bg-secondary)] border border-[var(--accent-primary)]/30 flex items-center justify-center">
+                <svg className="w-5 h-5 text-[var(--accent-primary)]" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C8.13 2 5 5.13 5 9v11l2-1.5 2 1.5 2-1.5 2 1.5 2-1.5 2 1.5V9c0-3.87-3.13-7-7-7zm-2 9c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
                 </svg>
               </div>
               <div className="leading-tight">
-                <h1 className="text-sm font-bold text-terminal tracking-tight">Phantom Trail</h1>
-                <p className="text-[10px] text-gray-500">Privacy Monitor</p>
+                <h1 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">Phantom Trail</h1>
+                <p className="text-[10px] text-[var(--text-secondary)]">Privacy Monitor</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <ThemeToggle size="sm" />
               <ExportButton 
                 events={events} 
                 privacyScore={overallScore || EMPTY_PRIVACY_SCORE}
               />
               <button
                 onClick={() => setShowSettings(true)}
-                className="w-7 h-7 rounded-md hover:bg-hud hover:border hover:border-plasma/30 text-gray-400 hover:text-terminal transition-all flex items-center justify-center"
+                className="w-7 h-7 rounded-md hover:bg-[var(--bg-tertiary)] hover:border hover:border-[var(--accent-primary)]/30 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center justify-center"
                 title="Settings"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -139,17 +141,17 @@ function App() {
           {currentSiteScore && (
             <div className="mb-2">
               <div className="flex items-baseline justify-between mb-1">
-                <span className="text-[10px] text-gray-500 uppercase tracking-wide">Current Site</span>
+                <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wide">Current Site</span>
                 <span className={`text-xl font-bold ${
-                  currentSiteScore.color === 'green' ? 'text-green-400' : 
-                  currentSiteScore.color === 'yellow' ? 'text-yellow-400' : 
-                  currentSiteScore.color === 'orange' ? 'text-orange-400' : 
-                  'text-red-400'
+                  currentSiteScore.color === 'green' ? 'text-[var(--success)]' : 
+                  currentSiteScore.color === 'yellow' ? 'text-[var(--warning)]' : 
+                  currentSiteScore.color === 'orange' ? 'text-[var(--warning)]' : 
+                  'text-[var(--error)]'
                 }`}>
                   {currentSiteScore.grade}
                 </span>
               </div>
-              <div className="text-[10px] text-gray-400 truncate flex items-center justify-between">
+              <div className="text-[10px] text-[var(--text-secondary)] truncate flex items-center justify-between">
                 <span>{currentDomain || 'Unknown'} • {currentSiteScore.breakdown.totalTrackers} trackers</span>
                 {currentDomain && (
                   <QuickTrustButton 
@@ -163,13 +165,13 @@ function App() {
           )}
           
           {overallScore && (
-            <div className="flex items-center justify-between text-[10px] text-gray-500">
+            <div className="flex items-center justify-between text-[10px] text-[var(--text-secondary)]">
               <div>
                 Recent Activity: <span className={`font-medium ${
-                  overallScore.color === 'green' ? 'text-green-400' : 
-                  overallScore.color === 'yellow' ? 'text-yellow-400' : 
-                  overallScore.color === 'orange' ? 'text-orange-400' : 
-                  'text-red-400'
+                  overallScore.color === 'green' ? 'text-[var(--success)]' : 
+                  overallScore.color === 'yellow' ? 'text-[var(--warning)]' : 
+                  overallScore.color === 'orange' ? 'text-[var(--warning)]' : 
+                  'text-[var(--error)]'
                 }`}>{overallScore.grade} ({overallScore.score})</span> • {events.length} events
               </div>
               <RateLimitStatus className="ml-2" />
@@ -179,13 +181,13 @@ function App() {
 
         {/* Side tab navigation */}
         <div className="flex h-[calc(100vh-120px)] max-h-[480px]">
-          <nav className="w-16 border-r border-dark-600/50 flex flex-col py-2 gap-1">
+          <nav className="w-16 border-r border-[var(--border-primary)] flex flex-col py-2 gap-1">
             <button
               onClick={() => setActiveView('narrative')}
               className={`h-12 flex flex-col items-center justify-center rounded-r-lg transition-all text-[9px] ${
                 activeView === 'narrative'
-                  ? 'bg-hud text-terminal border-l-2 border-plasma shadow-[0_0_15px_rgba(188,19,254,0.4)]'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-dark-700/50'
+                  ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--accent-primary)] shadow-[0_0_15px_rgba(var(--accent-primary),0.4)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
               }`}
             >
               <svg className="w-4 h-4 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -198,8 +200,8 @@ function App() {
               onClick={() => setActiveView('network')}
               className={`h-12 flex flex-col items-center justify-center rounded-r-lg transition-all text-[9px] ${
                 activeView === 'network'
-                  ? 'bg-hud text-terminal border-l-2 border-plasma shadow-[0_0_15px_rgba(188,19,254,0.4)]'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-dark-700/50'
+                  ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--accent-primary)] shadow-[0_0_15px_rgba(var(--accent-primary),0.4)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
               }`}
             >
               <svg className="w-4 h-4 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -215,8 +217,8 @@ function App() {
               onClick={() => setActiveView('dashboard')}
               className={`h-12 flex flex-col items-center justify-center rounded-r-lg transition-all text-[9px] ${
                 activeView === 'dashboard'
-                  ? 'bg-hud text-terminal border-l-2 border-plasma shadow-[0_0_15px_rgba(188,19,254,0.4)]'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-dark-700/50'
+                  ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--accent-primary)] shadow-[0_0_15px_rgba(var(--accent-primary),0.4)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
               }`}
             >
               <svg className="w-4 h-4 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -231,8 +233,8 @@ function App() {
               onClick={() => setActiveView('chat')}
               className={`h-12 flex flex-col items-center justify-center rounded-r-lg transition-all text-[9px] ${
                 activeView === 'chat'
-                  ? 'bg-hud text-terminal border-l-2 border-plasma shadow-[0_0_15px_rgba(188,19,254,0.4)]'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-dark-700/50'
+                  ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--accent-primary)] shadow-[0_0_15px_rgba(var(--accent-primary),0.4)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
               }`}
             >
               <svg className="w-4 h-4 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -244,8 +246,8 @@ function App() {
               onClick={() => setActiveView('coach')}
               className={`h-12 flex flex-col items-center justify-center rounded-r-lg transition-all text-[9px] ${
                 activeView === 'coach'
-                  ? 'bg-hud text-terminal border-l-2 border-plasma shadow-[0_0_15px_rgba(188,19,254,0.4)]'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-dark-700/50'
+                  ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--accent-primary)] shadow-[0_0_15px_rgba(var(--accent-primary),0.4)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
               }`}
             >
               <svg className="w-4 h-4 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

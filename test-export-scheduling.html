@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Scheduling Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .schedule-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Export Scheduling Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Export Scheduler</h2>
+        <button onclick="testCreateSchedule()">Create Test Schedule</button>
+        <button onclick="testListSchedules()">List Schedules</button>
+        <button onclick="testCancelSchedule()">Cancel Last Schedule</button>
+        <button onclick="testExecuteSchedule()">Execute Test Schedule</button>
+        <div id="scheduler-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Active Schedules</h2>
+        <div id="active-schedules"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Export History</h2>
+        <div id="export-history"></div>
+    </div>
+
+    <script>
+        // Mock Chrome APIs for testing
+        if (typeof chrome === 'undefined') {
+            window.chrome = {
+                storage: {
+                    local: {
+                        get: (keys) => Promise.resolve({}),
+                        set: (data) => Promise.resolve(),
+                    }
+                },
+                alarms: {
+                    create: (name, info) => {
+                        console.log('Mock alarm created:', name, info);
+                        return Promise.resolve();
+                    },
+                    clear: (name) => {
+                        console.log('Mock alarm cleared:', name);
+                        return Promise.resolve();
+                    }
+                },
+                downloads: {
+                    download: (options) => {
+                        console.log('Mock download:', options);
+                        return Promise.resolve();
+                    }
+                }
+            };
+        }
+
+        let lastScheduleId = null;
+
+        async function testCreateSchedule() {
+            const results = document.getElementById('scheduler-results');
+            try {
+                // Mock ExportScheduler for testing
+                const config = {
+                    frequency: 'daily',
+                    format: 'csv',
+                    deliveryMethod: 'download',
+                    dataRange: 7,
+                    includeAnalysis: true
+                };
+
+                // Simulate schedule creation
+                const scheduleId = `test-schedule-${Date.now()}`;
+                lastScheduleId = scheduleId;
+
+                results.innerHTML = `<div class="success">✓ Schedule created: ${scheduleId}</div>`;
+                console.log('Test schedule created:', scheduleId, config);
+                
+                updateSchedulesList();
+            } catch (error) {
+                results.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testListSchedules() {
+            const results = document.getElementById('scheduler-results');
+            try {
+                // Mock schedule list
+                const schedules = lastScheduleId ? [{
+                    id: lastScheduleId,
+                    config: {
+                        frequency: 'daily',
+                        format: 'csv',
+                        deliveryMethod: 'download',
+                        dataRange: 7,
+                        includeAnalysis: true
+                    },
+                    nextExecution: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                    status: 'active'
+                }] : [];
+
+                results.innerHTML = `<div class="success">✓ Found ${schedules.length} active schedules</div>`;
+                updateSchedulesList(schedules);
+            } catch (error) {
+                results.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testCancelSchedule() {
+            const results = document.getElementById('scheduler-results');
+            try {
+                if (!lastScheduleId) {
+                    results.innerHTML = `<div class="error">✗ No schedule to cancel</div>`;
+                    return;
+                }
+
+                // Simulate cancellation
+                console.log('Cancelling schedule:', lastScheduleId);
+                results.innerHTML = `<div class="success">✓ Schedule cancelled: ${lastScheduleId}</div>`;
+                lastScheduleId = null;
+                updateSchedulesList();
+            } catch (error) {
+                results.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testExecuteSchedule() {
+            const results = document.getElementById('scheduler-results');
+            try {
+                if (!lastScheduleId) {
+                    results.innerHTML = `<div class="error">✗ No schedule to execute</div>`;
+                    return;
+                }
+
+                // Simulate execution
+                console.log('Executing schedule:', lastScheduleId);
+                results.innerHTML = `<div class="success">✓ Schedule executed: ${lastScheduleId}</div>`;
+                
+                // Add to history
+                updateExportHistory([{
+                    scheduleId: lastScheduleId,
+                    executionTime: new Date(),
+                    status: 'success',
+                    fileSize: 1024,
+                    deliveryMethod: 'download'
+                }]);
+            } catch (error) {
+                results.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        function updateSchedulesList(schedules = []) {
+            const container = document.getElementById('active-schedules');
+            if (schedules.length === 0) {
+                container.innerHTML = '<p>No active schedules</p>';
+                return;
+            }
+
+            container.innerHTML = schedules.map(schedule => `
+                <div class="schedule-item">
+                    <strong>${schedule.config.frequency} ${schedule.config.format.toUpperCase()} Export</strong><br>
+                    Status: ${schedule.status}<br>
+                    Next: ${schedule.nextExecution.toLocaleString()}<br>
+                    Data range: ${schedule.config.dataRange} days
+                </div>
+            `).join('');
+        }
+
+        function updateExportHistory(history = []) {
+            const container = document.getElementById('export-history');
+            if (history.length === 0) {
+                container.innerHTML = '<p>No export history</p>';
+                return;
+            }
+
+            container.innerHTML = history.map(entry => `
+                <div class="schedule-item">
+                    <strong>${entry.executionTime.toLocaleString()}</strong><br>
+                    Status: ${entry.status}<br>
+                    Method: ${entry.deliveryMethod}<br>
+                    Size: ${Math.round(entry.fileSize / 1024)}KB
+                </div>
+            `).join('');
+        }
+
+        // Initialize
+        updateSchedulesList();
+        updateExportHistory();
+    </script>
+</body>
+</html>

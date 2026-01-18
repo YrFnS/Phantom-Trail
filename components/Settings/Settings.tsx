@@ -6,8 +6,11 @@ import { Card, CardHeader, CardContent, Button } from '../ui';
 import { TrustedSitesSettings } from './TrustedSitesSettings';
 import { NotificationSettings } from './NotificationSettings';
 import { ShortcutSettings } from './ShortcutSettings';
+import { ThemeSettings } from './ThemeSettings';
+import { ExportScheduling } from './ExportScheduling';
+import { BadgeSettingsComponent } from './BadgeSettings';
 
-type SettingsTab = 'general' | 'notifications' | 'trusted-sites' | 'shortcuts';
+type SettingsTab = 'general' | 'appearance' | 'badge' | 'export' | 'notifications' | 'trusted-sites' | 'shortcuts';
 
 interface SettingsProps {
   onClose: () => void;
@@ -79,6 +82,36 @@ export function Settings({ onClose }: SettingsProps) {
               }`}
             >
               General
+            </button>
+            <button
+              onClick={() => setActiveTab('appearance')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'appearance'
+                  ? 'border-primary-500 text-primary-500'
+                  : 'border-transparent text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Appearance
+            </button>
+            <button
+              onClick={() => setActiveTab('badge')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'badge'
+                  ? 'border-primary-500 text-primary-500'
+                  : 'border-transparent text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Badge
+            </button>
+            <button
+              onClick={() => setActiveTab('export')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'export'
+                  ? 'border-primary-500 text-primary-500'
+                  : 'border-transparent text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Export
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
@@ -224,6 +257,21 @@ export function Settings({ onClose }: SettingsProps) {
               {saving ? 'Saving...' : 'Save Settings'}
             </Button>
           </div>
+          )}
+
+          {/* Appearance Tab */}
+          {activeTab === 'appearance' && (
+            <ThemeSettings />
+          )}
+
+          {/* Badge Tab */}
+          {activeTab === 'badge' && (
+            <BadgeSettingsComponent />
+          )}
+
+          {/* Export Tab */}
+          {activeTab === 'export' && (
+            <ExportScheduling />
           )}
 
           {/* Notifications Tab */}

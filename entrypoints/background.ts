@@ -7,6 +7,8 @@ import { PrivacyTrends } from '../lib/privacy-trends';
 import { calculatePrivacyScore } from '../lib/privacy-score';
 import { KeyboardShortcuts } from '../lib/keyboard-shortcuts';
 import { ContextDetector } from '../components/LiveNarrative/LiveNarrative.context';
+import { ExportScheduler } from '../lib/export-scheduler';
+import { BadgeManager } from '../lib/badge-manager';
 import type { TrackingEvent } from '../lib/types';
 import type {
   ContentMessage,
@@ -94,6 +96,24 @@ export default defineBackground({
 
               // Store the event
               await StorageManager.addEvent(event);
+
+              // Update privacy badge for the current tab
+              try {
+                if (details.tabId && details.tabId !== -1) {
+                  // Get recent events for this tab's domain to calculate score
+                  const recentEvents = await StorageManager.getRecentEvents(50);
+                  const domainEvents = recentEvents.filter(e => 
+                    e.domain === event.domain || e.url.includes(event.domain)
+                  );
+                  
+                  if (domainEvents.length > 0) {
+                    const privacyScore = calculatePrivacyScore(domainEvents, true);
+                    await BadgeManager.updateBadge(details.tabId, privacyScore);
+                  }
+                }
+              } catch (badgeError) {
+                console.error('Failed to update privacy badge:', badgeError);
+              }
 
               // Show notification for critical/high-risk events
               if (event.riskLevel === 'critical' || event.riskLevel === 'high') {
@@ -240,6 +260,15 @@ export default defineBackground({
         } catch (error) {
           console.error('[Phantom Trail] Failed to generate daily snapshot:', error);
         }
+      } else if (alarm.name.startsWith('export-schedule-')) {
+        // Handle scheduled exports
+        try {
+          const scheduleId = alarm.name.replace('export-schedule-', '');
+          await ExportScheduler.executeScheduledExport(scheduleId);
+          console.log(`[Phantom Trail] Executed scheduled export: ${scheduleId}`);
+        } catch (error) {
+          console.error('[Phantom Trail] Failed to execute scheduled export:', error);
+        }
       }
     });
 
@@ -340,6 +369,34 @@ export default defineBackground({
         await KeyboardShortcuts.handleCommand(command);
       } catch (error) {
         console.error('Shortcut execution failed:', error);
+      }
+    });
+
+    // Clean up badge data when tabs are closed
+    chrome.tabs.onRemoved.addListener((tabId) => {
+      BadgeManager.cleanupTab(tabId);
+    });
+
+    // Update badge when switching tabs
+    chrome.tabs.onActivated.addListener(async (activeInfo) => {
+      try {
+        const tab = await chrome.tabs.get(activeInfo.tabId);
+        if (tab.url && tab.url.startsWith('http')) {
+          const domain = new URL(tab.url).hostname;
+          const recentEvents = await StorageManager.getRecentEvents(50);
+          const domainEvents = recentEvents.filter(e => 
+            e.domain === domain || e.url.includes(domain)
+          );
+          
+          if (domainEvents.length > 0) {
+            const privacyScore = calculatePrivacyScore(domainEvents, true);
+            await BadgeManager.updateBadge(activeInfo.tabId, privacyScore);
+          } else {
+            await BadgeManager.clearBadge(activeInfo.tabId);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update badge on tab switch:', error);
       }
     });
   },

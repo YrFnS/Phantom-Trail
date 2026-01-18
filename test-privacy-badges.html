@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Badge Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .badge-preview {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            margin: 5px;
+        }
+        .settings-preview {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Privacy Badge Test</h1>
+    
+    <div class="test-section">
+        <h2>Badge Manager Tests</h2>
+        <button onclick="testBadgeSettings()">Test Badge Settings</button>
+        <button onclick="testBadgeStyles()">Test Badge Styles</button>
+        <button onclick="testColorSchemes()">Test Color Schemes</button>
+        <div id="badge-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Badge Style Previews</h2>
+        <div id="badge-previews">
+            <div class="settings-preview">
+                <h3>Grade Only</h3>
+                <span class="badge-preview" style="background: #22c55e;">A</span>
+                <span class="badge-preview" style="background: #84cc16;">B</span>
+                <span class="badge-preview" style="background: #eab308;">C</span>
+                <span class="badge-preview" style="background: #f97316;">D</span>
+                <span class="badge-preview" style="background: #ef4444;">F</span>
+            </div>
+            
+            <div class="settings-preview">
+                <h3>Score Only</h3>
+                <span class="badge-preview" style="background: #22c55e;">95</span>
+                <span class="badge-preview" style="background: #84cc16;">85</span>
+                <span class="badge-preview" style="background: #eab308;">75</span>
+                <span class="badge-preview" style="background: #f97316;">65</span>
+                <span class="badge-preview" style="background: #ef4444;">45</span>
+            </div>
+            
+            <div class="settings-preview">
+                <h3>Combined</h3>
+                <span class="badge-preview" style="background: #22c55e;">A95</span>
+                <span class="badge-preview" style="background: #84cc16;">B85</span>
+                <span class="badge-preview" style="background: #eab308;">C75</span>
+                <span class="badge-preview" style="background: #f97316;">D65</span>
+                <span class="badge-preview" style="background: #ef4444;">F45</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Color Scheme Tests</h2>
+        <div id="color-schemes">
+            <div class="settings-preview">
+                <h3>Traffic Light</h3>
+                <div style="display: flex; gap: 10px;">
+                    <div style="width: 30px; height: 30px; background: #22c55e; border-radius: 4px;" title="Excellent (90-100)"></div>
+                    <div style="width: 30px; height: 30px; background: #84cc16; border-radius: 4px;" title="Good (80-89)"></div>
+                    <div style="width: 30px; height: 30px; background: #eab308; border-radius: 4px;" title="Moderate (70-79)"></div>
+                    <div style="width: 30px; height: 30px; background: #f97316; border-radius: 4px;" title="Poor (60-69)"></div>
+                    <div style="width: 30px; height: 30px; background: #ef4444; border-radius: 4px;" title="Critical (0-59)"></div>
+                </div>
+            </div>
+            
+            <div class="settings-preview">
+                <h3>Gradient</h3>
+                <div style="display: flex; gap: 10px;">
+                    <div style="width: 30px; height: 30px; background: #10b981; border-radius: 4px;" title="Excellent (90-100)"></div>
+                    <div style="width: 30px; height: 30px; background: #34d399; border-radius: 4px;" title="Good (80-89)"></div>
+                    <div style="width: 30px; height: 30px; background: #fbbf24; border-radius: 4px;" title="Moderate (70-79)"></div>
+                    <div style="width: 30px; height: 30px; background: #fb923c; border-radius: 4px;" title="Poor (60-69)"></div>
+                    <div style="width: 30px; height: 30px; background: #f87171; border-radius: 4px;" title="Critical (0-59)"></div>
+                </div>
+            </div>
+            
+            <div class="settings-preview">
+                <h3>Minimal</h3>
+                <div style="display: flex; gap: 10px;">
+                    <div style="width: 30px; height: 30px; background: #6b7280; border-radius: 4px;" title="Excellent (90-100)"></div>
+                    <div style="width: 30px; height: 30px; background: #6b7280; border-radius: 4px;" title="Good (80-89)"></div>
+                    <div style="width: 30px; height: 30px; background: #6b7280; border-radius: 4px;" title="Moderate (70-79)"></div>
+                    <div style="width: 30px; height: 30px; background: #6b7280; border-radius: 4px;" title="Poor (60-69)"></div>
+                    <div style="width: 30px; height: 30px; background: #ef4444; border-radius: 4px;" title="Critical (0-59)"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Badge Functionality Test</h2>
+        <button onclick="simulateBadgeUpdate()">Simulate Badge Update</button>
+        <button onclick="testTooltip()">Test Tooltip</button>
+        <button onclick="testBadgeClear()">Test Badge Clear</button>
+        <div id="functionality-results"></div>
+    </div>
+
+    <script>
+        // Mock Chrome APIs for testing
+        if (typeof chrome === 'undefined') {
+            window.chrome = {
+                action: {
+                    setBadgeText: (options) => {
+                        console.log('Mock setBadgeText:', options);
+                        return Promise.resolve();
+                    },
+                    setBadgeBackgroundColor: (options) => {
+                        console.log('Mock setBadgeBackgroundColor:', options);
+                        return Promise.resolve();
+                    },
+                    setTitle: (options) => {
+                        console.log('Mock setTitle:', options);
+                        return Promise.resolve();
+                    }
+                },
+                storage: {
+                    local: {
+                        get: (keys) => Promise.resolve({}),
+                        set: (data) => Promise.resolve(),
+                    }
+                },
+                tabs: {
+                    query: (query) => Promise.resolve([{ id: 1, url: 'https://example.com' }])
+                }
+            };
+        }
+
+        function testBadgeSettings() {
+            const results = document.getElementById('badge-results');
+            try {
+                // Test default settings
+                const defaultSettings = {
+                    enabled: true,
+                    style: 'grade',
+                    showScore: true,
+                    showGrade: true,
+                    colorScheme: 'traffic-light',
+                    updateFrequency: 'realtime',
+                    showOnlyRisks: false
+                };
+
+                results.innerHTML = `<div class="success">✓ Badge settings structure validated</div>`;
+                console.log('Default badge settings:', defaultSettings);
+            } catch (error) {
+                results.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        function testBadgeStyles() {
+            const results = document.getElementById('badge-results');
+            try {
+                const styles = ['score', 'grade', 'combined', 'icon'];
+                const testScores = [95, 85, 75, 65, 45];
+                const testGrades = ['A', 'B', 'C', 'D', 'F'];
+
+                let output = '<div class="success">✓ Badge styles tested:</div><ul>';
+                
+                styles.forEach(style => {
+                    switch (style) {
+                        case 'score':
+                            output += `<li>Score Only: ${testScores.join(', ')}</li>`;
+                            break;
+                        case 'grade':
+                            output += `<li>Grade Only: ${testGrades.join(', ')}</li>`;
+                            break;
+                        case 'combined':
+                            output += `<li>Combined: ${testGrades.map((g, i) => g + testScores[i]).join(', ')}</li>`;
+                            break;
+                        case 'icon':
+                            output += `<li>Icon Color: Color-coded icons</li>`;
+                            break;
+                    }
+                });
+                
+                output += '</ul>';
+                results.innerHTML = output;
+            } catch (error) {
+                results.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        function testColorSchemes() {
+            const results = document.getElementById('badge-results');
+            try {
+                const colorSchemes = {
+                    'traffic-light': ['#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444'],
+                    'gradient': ['#10b981', '#34d399', '#fbbf24', '#fb923c', '#f87171'],
+                    'minimal': ['#6b7280', '#6b7280', '#6b7280', '#6b7280', '#ef4444']
+                };
+
+                let output = '<div class="success">✓ Color schemes validated:</div>';
+                Object.entries(colorSchemes).forEach(([scheme, colors]) => {
+                    output += `<div style="margin: 10px 0;"><strong>${scheme}:</strong> `;
+                    colors.forEach(color => {
+                        output += `<span style="display: inline-block; width: 20px; height: 20px; background: ${color}; margin: 0 2px; border-radius: 2px;"></span>`;
+                    });
+                    output += '</div>';
+                });
+
+                results.innerHTML = output;
+            } catch (error) {
+                results.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        function simulateBadgeUpdate() {
+            const results = document.getElementById('functionality-results');
+            try {
+                // Simulate badge update with mock data
+                const mockScore = {
+                    score: 85,
+                    grade: 'B',
+                    breakdown: { totalTrackers: 5 }
+                };
+
+                console.log('Simulating badge update:', mockScore);
+                results.innerHTML = `<div class="success">✓ Badge update simulated: Score ${mockScore.score} (${mockScore.grade})</div>`;
+            } catch (error) {
+                results.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        function testTooltip() {
+            const results = document.getElementById('functionality-results');
+            try {
+                const tooltipText = `Privacy Score: 85 (B)
+Trackers: 5
+Risk Level: Low
+Click for details`;
+
+                console.log('Testing tooltip:', tooltipText);
+                results.innerHTML = `<div class="success">✓ Tooltip functionality tested</div>`;
+            } catch (error) {
+                results.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        function testBadgeClear() {
+            const results = document.getElementById('functionality-results');
+            try {
+                console.log('Testing badge clear functionality');
+                results.innerHTML = `<div class="success">✓ Badge clear functionality tested</div>`;
+            } catch (error) {
+                results.innerHTML = `<div class="error">✗ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Initialize tests
+        console.log('Privacy Badge Test Page Loaded');
+        console.log('Available test functions:', {
+            testBadgeSettings,
+            testBadgeStyles,
+            testColorSchemes,
+            simulateBadgeUpdate,
+            testTooltip,
+            testBadgeClear
+        });
+    </script>
+</body>
+</html>

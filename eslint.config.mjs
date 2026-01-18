@@ -30,6 +30,9 @@ export default [
         URL: 'readonly',
         URLSearchParams: 'readonly',
         AbortController: 'readonly',
+        Event: 'readonly',
+        CustomEvent: 'readonly',
+        Blob: 'readonly',
         
         // Chrome extension globals
         chrome: 'readonly',

@@ -7,7 +7,7 @@ export default defineConfig({
     description:
       'AI-native Chrome extension that makes invisible data collection visible in real-time',
     version: '0.1.0',
-    permissions: ['webRequest', 'storage', 'activeTab', 'tabs', 'alarms', 'notifications'],
+    permissions: ['webRequest', 'storage', 'activeTab', 'tabs', 'alarms', 'notifications', 'downloads'],
     host_permissions: ['<all_urls>'],
     commands: {
       'toggle-popup': {
