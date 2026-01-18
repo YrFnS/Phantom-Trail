@@ -1,4 +1,4 @@
-import type { ExtensionSettings, TrackingEvent } from './types';
+import type { ExtensionSettings, TrackingEvent, DailySnapshot, WeeklyReport } from './types';
 
 /**
  * Chrome storage wrapper for type-safe storage operations
@@ -6,6 +6,8 @@ import type { ExtensionSettings, TrackingEvent } from './types';
 export class StorageManager {
   private static readonly SETTINGS_KEY = 'phantom_trail_settings';
   private static readonly EVENTS_KEY = 'phantom_trail_events';
+  private static readonly DAILY_SNAPSHOTS_KEY = 'phantom_trail_daily_snapshots';
+  private static readonly WEEKLY_REPORTS_KEY = 'phantom_trail_weekly_reports';
 
   /**
    * Get extension settings from storage
@@ -139,6 +141,106 @@ export class StorageManager {
     } catch (error) {
       console.error('Failed to clear events:', error);
       throw new Error('Failed to clear events');
+    }
+  }
+
+  /**
+   * Store daily privacy snapshot
+   */
+  static async storeDailySnapshot(snapshot: DailySnapshot): Promise<void> {
+    try {
+      const result = await chrome.storage.local.get(this.DAILY_SNAPSHOTS_KEY);
+      const snapshots: Record<string, DailySnapshot> = result[this.DAILY_SNAPSHOTS_KEY] || {};
+      
+      snapshots[snapshot.date] = snapshot;
+      
+      // Keep only last 90 days
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const cutoffDate = ninetyDaysAgo.toISOString().split('T')[0];
+      
+      Object.keys(snapshots).forEach(date => {
+        if (date < cutoffDate) {
+          delete snapshots[date];
+        }
+      });
+      
+      await chrome.storage.local.set({
+        [this.DAILY_SNAPSHOTS_KEY]: snapshots,
+      });
+    } catch (error) {
+      console.error('Failed to store daily snapshot:', error);
+    }
+  }
+
+  /**
+   * Get daily snapshots for date range
+   */
+  static async getDailySnapshots(days: number = 30): Promise<DailySnapshot[]> {
+    try {
+      const result = await chrome.storage.local.get(this.DAILY_SNAPSHOTS_KEY);
+      const snapshots: Record<string, DailySnapshot> = result[this.DAILY_SNAPSHOTS_KEY] || {};
+      
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      const startDateStr = startDate.toISOString().split('T')[0];
+      
+      return Object.values(snapshots)
+        .filter(snapshot => snapshot.date >= startDateStr)
+        .sort((a, b) => a.date.localeCompare(b.date));
+    } catch (error) {
+      console.error('Failed to get daily snapshots:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Store weekly report
+   */
+  static async storeWeeklyReport(report: WeeklyReport): Promise<void> {
+    try {
+      const result = await chrome.storage.local.get(this.WEEKLY_REPORTS_KEY);
+      const reports: Record<string, WeeklyReport> = result[this.WEEKLY_REPORTS_KEY] || {};
+      
+      reports[report.weekStart] = report;
+      
+      // Keep only last 12 weeks
+      const twelveWeeksAgo = new Date();
+      twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84);
+      const cutoffDate = twelveWeeksAgo.toISOString().split('T')[0];
+      
+      Object.keys(reports).forEach(weekStart => {
+        if (weekStart < cutoffDate) {
+          delete reports[weekStart];
+        }
+      });
+      
+      await chrome.storage.local.set({
+        [this.WEEKLY_REPORTS_KEY]: reports,
+      });
+    } catch (error) {
+      console.error('Failed to store weekly report:', error);
+    }
+  }
+
+  /**
+   * Get weekly reports
+   */
+  static async getWeeklyReports(weeks: number = 12): Promise<WeeklyReport[]> {
+    try {
+      const result = await chrome.storage.local.get(this.WEEKLY_REPORTS_KEY);
+      const reports: Record<string, WeeklyReport> = result[this.WEEKLY_REPORTS_KEY] || {};
+      
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - (weeks * 7));
+      const startDateStr = startDate.toISOString().split('T')[0];
+      
+      return Object.values(reports)
+        .filter(report => report.weekStart >= startDateStr)
+        .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+    } catch (error) {
+      console.error('Failed to get weekly reports:', error);
+      return [];
     }
   }
 }

@@ -3,6 +3,7 @@ import { TrackerDatabase } from '../lib/tracker-db';
 import { StorageManager } from '../lib/storage-manager';
 import { AIEngine } from '../lib/ai-engine';
 import { NotificationManager } from '../lib/notification-manager';
+import { PrivacyTrends } from '../lib/privacy-trends';
 import { calculatePrivacyScore } from '../lib/privacy-score';
 import { ContextDetector } from '../components/LiveNarrative/LiveNarrative.context';
 import type { TrackingEvent } from '../lib/types';
@@ -188,6 +189,15 @@ export default defineBackground({
         periodInMinutes: 1440, // Run daily (24 hours)
         when: Date.now() + (24 * 60 * 60 * 1000) // Start tomorrow
       });
+
+      // Set up daily snapshot generation
+      chrome.alarms.create('daily-snapshot', {
+        periodInMinutes: 1440, // Run daily (24 hours)
+        when: Date.now() + (23 * 60 * 60 * 1000) // Run at 11 PM
+      });
+
+      // Initialize trend tracking
+      PrivacyTrends.initializeTrendTracking();
     });
 
     // Handle periodic cleanup of old events (30-day retention)
@@ -206,11 +216,28 @@ export default defineBackground({
           // Generate daily privacy summary
           const events = await StorageManager.getRecentEvents(100);
           if (events.length > 0) {
-            const score = calculatePrivacyScore(events);
+            const score = calculatePrivacyScore(events, true);
             await NotificationManager.showDailySummary(score);
           }
         } catch (error) {
           console.error('[Phantom Trail] Failed to show daily summary:', error);
+        }
+      } else if (alarm.name === 'daily-snapshot') {
+        try {
+          // Generate and store daily privacy snapshot
+          const snapshot = await PrivacyTrends.generateDailySnapshot();
+          await StorageManager.storeDailySnapshot(snapshot);
+          
+          // Generate weekly report if it's Sunday
+          const today = new Date();
+          if (today.getDay() === 0) { // Sunday
+            const weeklyReport = await PrivacyTrends.generateWeeklyReport();
+            await StorageManager.storeWeeklyReport(weeklyReport);
+          }
+          
+          console.log('[Phantom Trail] Daily snapshot generated');
+        } catch (error) {
+          console.error('[Phantom Trail] Failed to generate daily snapshot:', error);
         }
       }
     });

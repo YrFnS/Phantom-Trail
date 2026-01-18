@@ -115,3 +115,40 @@ export interface SecurityContext {
   hasAuthKeywords: boolean;
   confidence: 'low' | 'medium' | 'high';
 }
+
+export interface TrendData {
+  date: string;
+  privacyScore: number;
+  trackingEvents: number;
+  riskDistribution: Record<RiskLevel, number>;
+  topTrackers: string[];
+}
+
+export interface DailySnapshot {
+  date: string;
+  privacyScore: number;
+  eventCounts: {
+    total: number;
+    byRisk: Record<RiskLevel, number>;
+    byType: Record<TrackerType, number>;
+  };
+  topDomains: Array<{domain: string; count: number}>;
+}
+
+export interface WeeklyReport {
+  weekStart: string;
+  averageScore: number;
+  scoreChange: number;
+  newTrackers: string[];
+  improvedSites: string[];
+  riskySites: string[];
+}
+
+export interface Anomaly {
+  date: string;
+  type: 'score_drop' | 'tracking_spike' | 'new_tracker';
+  severity: 'low' | 'medium' | 'high';
+  description: string;
+  value: number;
+  baseline: number;
+}

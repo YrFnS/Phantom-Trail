@@ -14,6 +14,7 @@ import { Line, Doughnut } from 'react-chartjs-2';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { PrivacyTrendsChart } from '../PrivacyTrends';
 import { cn } from '../../lib/utils/cn';
 import { useRiskMetrics } from './RiskDashboard.hooks';
 import type { RiskDashboardProps } from './RiskDashboard.types';
@@ -240,6 +241,11 @@ export function RiskDashboard({ className }: RiskDashboardProps) {
           </div>
         </div>
       )}
+
+      {/* Privacy Trends */}
+      <div className="mt-4">
+        <PrivacyTrendsChart days={7} />
+      </div>
     </div>
   );
 }
