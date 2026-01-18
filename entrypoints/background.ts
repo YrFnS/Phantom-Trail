@@ -2,6 +2,8 @@ import { defineBackground } from 'wxt/utils/define-background';
 import { TrackerDatabase } from '../lib/tracker-db';
 import { StorageManager } from '../lib/storage-manager';
 import { AIEngine } from '../lib/ai-engine';
+import { NotificationManager } from '../lib/notification-manager';
+import { calculatePrivacyScore } from '../lib/privacy-score';
 import { ContextDetector } from '../components/LiveNarrative/LiveNarrative.context';
 import type { TrackingEvent } from '../lib/types';
 import type {
@@ -91,6 +93,11 @@ export default defineBackground({
               // Store the event
               await StorageManager.addEvent(event);
 
+              // Show notification for critical/high-risk events
+              if (event.riskLevel === 'critical' || event.riskLevel === 'high') {
+                await NotificationManager.showPrivacyAlert(event);
+              }
+
               // Trigger AI analysis for significant events
               await triggerAIAnalysisIfNeeded(event);
 
@@ -175,6 +182,12 @@ export default defineBackground({
       chrome.alarms.create('cleanup-old-events', {
         periodInMinutes: 1440, // Run daily (24 hours)
       });
+
+      // Set up daily privacy summary alarm
+      chrome.alarms.create('daily-privacy-summary', {
+        periodInMinutes: 1440, // Run daily (24 hours)
+        when: Date.now() + (24 * 60 * 60 * 1000) // Start tomorrow
+      });
     });
 
     // Handle periodic cleanup of old events (30-day retention)
@@ -188,6 +201,51 @@ export default defineBackground({
         } catch (error) {
           console.error('[Phantom Trail] Failed to cleanup old events:', error);
         }
+      } else if (alarm.name === 'daily-privacy-summary') {
+        try {
+          // Generate daily privacy summary
+          const events = await StorageManager.getRecentEvents(100);
+          if (events.length > 0) {
+            const score = calculatePrivacyScore(events);
+            await NotificationManager.showDailySummary(score);
+          }
+        } catch (error) {
+          console.error('[Phantom Trail] Failed to show daily summary:', error);
+        }
+      }
+    });
+
+    // Handle notification clicks
+    chrome.notifications.onClicked.addListener(async (notificationId) => {
+      try {
+        // Open extension popup when notification is clicked
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabs[0]?.id) {
+          await chrome.action.openPopup();
+        }
+        
+        // Clear the notification
+        await chrome.notifications.clear(notificationId);
+      } catch (error) {
+        console.error('Failed to handle notification click:', error);
+      }
+    });
+
+    // Handle notification button clicks
+    chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
+      try {
+        if (buttonIndex === 0) {
+          // "View Details" button - open popup
+          const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (tabs[0]?.id) {
+            await chrome.action.openPopup();
+          }
+        }
+        
+        // Clear the notification
+        await chrome.notifications.clear(notificationId);
+      } catch (error) {
+        console.error('Failed to handle notification button click:', error);
       }
     });
 
@@ -214,6 +272,11 @@ export default defineBackground({
 
               // Store the event
               await StorageManager.addEvent(event);
+
+              // Show notification for high-risk events
+              if (event.riskLevel === 'high' || event.riskLevel === 'critical') {
+                await NotificationManager.showPrivacyAlert(event);
+              }
 
               // Trigger AI analysis for high-risk events
               if (event.riskLevel === 'high' || event.riskLevel === 'critical') {

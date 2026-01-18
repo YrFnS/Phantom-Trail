@@ -4,8 +4,9 @@ import { AI_MODELS, DEFAULT_MODEL } from '../../lib/ai-models';
 import type { ExtensionSettings, RiskLevel } from '../../lib/types';
 import { Card, CardHeader, CardContent, Button } from '../ui';
 import { TrustedSitesSettings } from './TrustedSitesSettings';
+import { NotificationSettings } from './NotificationSettings';
 
-type SettingsTab = 'general' | 'trusted-sites';
+type SettingsTab = 'general' | 'notifications' | 'trusted-sites';
 
 interface SettingsProps {
   onClose: () => void;
@@ -77,6 +78,16 @@ export function Settings({ onClose }: SettingsProps) {
               }`}
             >
               General
+            </button>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'notifications'
+                  ? 'border-primary-500 text-primary-500'
+                  : 'border-transparent text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              Notifications
             </button>
             <button
               onClick={() => setActiveTab('trusted-sites')}
@@ -202,6 +213,11 @@ export function Settings({ onClose }: SettingsProps) {
               {saving ? 'Saving...' : 'Save Settings'}
             </Button>
           </div>
+          )}
+
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <NotificationSettings />
           )}
 
           {/* Trusted Sites Tab */}

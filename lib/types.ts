@@ -72,6 +72,15 @@ export interface ExtensionSettings {
   enableNotifications: boolean;
   riskThreshold: RiskLevel;
   aiModel?: string;
+  notifications?: NotificationSettings;
+}
+
+export interface NotificationSettings {
+  enabled: boolean;
+  criticalOnly: boolean;
+  dailySummary: boolean;
+  weeklyReport: boolean;
+  quietHours: { start: string; end: string };
 }
 
 export interface PrivacyScore {
