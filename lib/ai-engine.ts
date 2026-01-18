@@ -1,19 +1,37 @@
 import type { AIAnalysis, TrackingEvent } from './types';
 import { DataSanitizer, RateLimiter, AICache, AIClient, type APIError } from './ai';
+import { ErrorRecovery, type ErrorContext } from './error-recovery';
+import { CircuitBreaker } from './circuit-breaker';
+import { OfflineMode } from './offline-mode';
 
 /**
  * Main AI engine orchestrating all AI functionality with enhanced error handling
  */
 export class AIEngine {
+  private static circuitBreaker = new CircuitBreaker({
+    failureThreshold: 3,
+    recoveryTimeout: 30000, // 30 seconds
+    halfOpenMaxCalls: 2
+  });
+
+  private static offlineMode = OfflineMode.getInstance();
+
   /**
    * Analyze tracking events with AI and proper error handling
    */
   static async analyzeEvents(events: TrackingEvent[]): Promise<AIAnalysis | null> {
+    const context: ErrorContext = {
+      operation: 'analyzeEvents',
+      timestamp: Date.now(),
+      systemState: { eventsCount: events.length },
+      retryCount: 0
+    };
+
     try {
       // Check if AI is available
       if (!(await this.isAvailable())) {
         console.warn('AI not available - no API key configured');
-        return null;
+        return await this.offlineMode.handleAPIFailure(events);
       }
 
       // Check rate limiting with detailed status
@@ -21,7 +39,7 @@ export class AIEngine {
       if (!rateLimitStatus.canMakeRequest) {
         const waitTime = rateLimitStatus.retryAfter || (rateLimitStatus.resetTime - Date.now());
         console.warn(`AI request rate limited. Wait ${Math.ceil(waitTime / 1000)}s`);
-        return null;
+        return await this.offlineMode.handleAPIFailure(events);
       }
 
       // Sanitize events before processing
@@ -33,11 +51,16 @@ export class AIEngine {
         return cached;
       }
 
-      // Make AI request with enhanced error handling
-      const analysis = await AIClient.makeRequest(sanitizedEvents);
+      // Make AI request with circuit breaker protection
+      const analysis = await this.circuitBreaker.execute(async () => {
+        return await AIClient.makeRequest(sanitizedEvents);
+      });
 
       // Cache the result
       await AICache.store(sanitizedEvents, analysis);
+      
+      // Cache for offline mode
+      await this.offlineMode.cacheAnalysis(sanitizedEvents, analysis);
 
       return analysis;
     } catch (error) {
@@ -46,11 +69,23 @@ export class AIEngine {
       if (apiError.isRateLimit) {
         console.warn('AI request rate limited by API');
         await RateLimiter.recordRateLimit();
-        return null;
+        return await this.offlineMode.handleAPIFailure(events);
       }
 
-      console.error('AI analysis failed:', error);
-      return null;
+      // Handle error with recovery system
+      const recoveryResult = await ErrorRecovery.handleAPIError(apiError, context);
+      
+      if (recoveryResult.success) {
+        // Retry the operation if recovery was successful
+        context.retryCount++;
+        if (context.retryCount < 3) {
+          return await this.analyzeEvents(events);
+        }
+      }
+
+      // Fall back to offline mode
+      console.warn('AI analysis failed, using offline mode:', error);
+      return await this.offlineMode.handleAPIFailure(events);
     }
   }
 

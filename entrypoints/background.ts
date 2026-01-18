@@ -10,6 +10,8 @@ import { ContextDetector } from '../components/LiveNarrative/LiveNarrative.conte
 import { ExportScheduler } from '../lib/export-scheduler';
 import { BadgeManager } from '../lib/badge-manager';
 import { SyncManager } from '../lib/sync-manager';
+import { PerformanceMonitor } from '../lib/performance-monitor';
+import { ErrorRecovery } from '../lib/error-recovery';
 import type { TrackingEvent } from '../lib/types';
 import type {
   ContentMessage,
@@ -19,6 +21,14 @@ import type {
 export default defineBackground({
   main() {
     console.log('Phantom Trail background script loaded');
+
+    // Initialize performance monitoring
+    const performanceMonitor = PerformanceMonitor.getInstance();
+    // const taskScheduler = new TaskScheduler(); // TODO: Implement task scheduling
+    // const cacheOptimizer = new CacheOptimizer(50); // TODO: Implement cache optimization
+
+    // Start performance monitoring
+    performanceMonitor.startMonitoring();
 
     // Track significant events for AI analysis
     let significantEventCount = 0;
@@ -95,8 +105,18 @@ export default defineBackground({
                 event.riskLevel = 'medium';
               }
 
-              // Store the event
-              await StorageManager.addEvent(event);
+              // Store the event with error recovery
+              try {
+                await StorageManager.addEvent(event);
+              } catch (storageError) {
+                const recoveryResult = await ErrorRecovery.handleStorageError(storageError as Error);
+                if (recoveryResult.success) {
+                  // Retry storage operation
+                  await StorageManager.addEvent(event);
+                } else {
+                  console.error('Failed to store event after recovery attempt:', storageError);
+                }
+              }
 
               // Update privacy badge for the current tab
               try {

@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Fix Dependencies After Agent Work",
+  "description": "Automatically reinstall dependencies and fix linting issues when agent execution completes",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "powershell.exe -Command \"cd 'C:\\Users\\Itokoro\\Phantom-Trail'; if (Test-Path node_modules) { Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue }; pnpm install; echo 'Dependencies refreshed after Kiro CLI work'\""
+  }
+}

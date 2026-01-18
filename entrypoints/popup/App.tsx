@@ -6,6 +6,7 @@ import { RateLimitStatus } from '../../components/RateLimitStatus';
 import { Settings } from '../../components/Settings';
 import { QuickTrustButton } from '../../components/TrustedSites';
 import { ThemeToggle } from '../../components/ui';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 import type { TrackingEvent, PrivacyScore as PrivacyScoreType } from '../../lib/types';
 
 // Lazy load heavy components to reduce initial bundle size
@@ -260,13 +261,15 @@ function App() {
           {/* Content area */}
           <main className="flex-1 overflow-y-auto p-3">
             <div className="animate-fade-in">
-              <Suspense fallback={<ComponentLoader />}>
-                {activeView === 'narrative' && <LiveNarrative />}
-                {activeView === 'network' && <NetworkGraph />}
-                {activeView === 'dashboard' && <RiskDashboard currentDomain={currentDomain} />}
-                {activeView === 'chat' && <ChatInterface />}
-                {activeView === 'coach' && <PrivacyCoachDashboard />}
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense fallback={<ComponentLoader />}>
+                  {activeView === 'narrative' && <LiveNarrative />}
+                  {activeView === 'network' && <NetworkGraph />}
+                  {activeView === 'dashboard' && <RiskDashboard currentDomain={currentDomain} />}
+                  {activeView === 'chat' && <ChatInterface />}
+                  {activeView === 'coach' && <PrivacyCoachDashboard />}
+                </Suspense>
+              </ErrorBoundary>
             </div>
           </main>
         </div>
