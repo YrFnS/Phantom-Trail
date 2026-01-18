@@ -9,6 +9,7 @@ import { KeyboardShortcuts } from '../lib/keyboard-shortcuts';
 import { ContextDetector } from '../components/LiveNarrative/LiveNarrative.context';
 import { ExportScheduler } from '../lib/export-scheduler';
 import { BadgeManager } from '../lib/badge-manager';
+import { SyncManager } from '../lib/sync-manager';
 import type { TrackingEvent } from '../lib/types';
 import type {
   ContentMessage,
@@ -197,7 +198,7 @@ export default defineBackground({
     }
 
     // Handle extension installation
-    chrome.runtime.onInstalled.addListener(() => {
+    chrome.runtime.onInstalled.addListener(async () => {
       console.log('Phantom Trail extension installed');
       
       // Set up daily cleanup alarm for 30-day data retention
@@ -217,8 +218,23 @@ export default defineBackground({
         when: Date.now() + (23 * 60 * 60 * 1000) // Run at 11 PM
       });
 
+      // Set up sync check alarm (every 30 minutes)
+      chrome.alarms.create('sync-check', {
+        periodInMinutes: 30
+      });
+
       // Initialize trend tracking
       PrivacyTrends.initializeTrendTracking();
+
+      // Check if sync should be enabled on first install
+      try {
+        const syncSettings = await SyncManager.getSyncSettings();
+        if (syncSettings.enabled) {
+          await SyncManager.syncNow();
+        }
+      } catch (error) {
+        console.error('Failed to perform initial sync:', error);
+      }
     });
 
     // Handle periodic cleanup of old events (30-day retention)
@@ -259,6 +275,23 @@ export default defineBackground({
           console.log('[Phantom Trail] Daily snapshot generated');
         } catch (error) {
           console.error('[Phantom Trail] Failed to generate daily snapshot:', error);
+        }
+      } else if (alarm.name === 'sync-check') {
+        try {
+          // Periodic sync check
+          const syncSettings = await SyncManager.getSyncSettings();
+          if (syncSettings.enabled) {
+            const now = Date.now();
+            const timeSinceLastSync = now - syncSettings.lastSyncTime;
+            
+            // Sync if it's been more than 1 hour since last sync
+            if (timeSinceLastSync > 3600000) {
+              await SyncManager.syncNow();
+              console.log('[Phantom Trail] Periodic sync completed');
+            }
+          }
+        } catch (error) {
+          console.error('[Phantom Trail] Failed to perform periodic sync:', error);
         }
       } else if (alarm.name.startsWith('export-schedule-')) {
         // Handle scheduled exports
@@ -397,6 +430,19 @@ export default defineBackground({
         }
       } catch (error) {
         console.error('Failed to update badge on tab switch:', error);
+      }
+    });
+
+    // Handle browser startup - check for sync
+    chrome.runtime.onStartup.addListener(async () => {
+      try {
+        const syncSettings = await SyncManager.getSyncSettings();
+        if (syncSettings.enabled) {
+          await SyncManager.syncNow();
+          console.log('[Phantom Trail] Startup sync completed');
+        }
+      } catch (error) {
+        console.error('[Phantom Trail] Failed to perform startup sync:', error);
       }
     });
   },

@@ -268,4 +268,163 @@ export class StorageManager {
       throw new Error(`Failed to save ${key}`);
     }
   }
+
+  /**
+   * Generic remove method for any storage key
+   */
+  static async remove(key: string): Promise<void> {
+    try {
+      await chrome.storage.local.remove(key);
+    } catch (error) {
+      console.error(`Failed to remove ${key}:`, error);
+      throw new Error(`Failed to remove ${key}`);
+    }
+  }
+
+  /**
+   * Get multiple keys at once
+   */
+  static async getMultiple(keys: string[]): Promise<Record<string, any>> {
+    try {
+      return await chrome.storage.local.get(keys);
+    } catch (error) {
+      console.error('Failed to get multiple keys:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Set multiple key-value pairs at once
+   */
+  static async setMultiple(items: Record<string, any>): Promise<void> {
+    try {
+      await chrome.storage.local.set(items);
+    } catch (error) {
+      console.error('Failed to set multiple items:', error);
+      throw new Error('Failed to save multiple items');
+    }
+  }
+
+  /**
+   * Get all storage data (for sync purposes)
+   */
+  static async getAllData(): Promise<Record<string, any>> {
+    try {
+      return await chrome.storage.local.get(null);
+    } catch (error) {
+      console.error('Failed to get all data:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Get storage usage information
+   */
+  static async getStorageInfo(): Promise<{ bytesInUse: number; quota: number }> {
+    try {
+      const bytesInUse = await chrome.storage.local.getBytesInUse();
+      const quota = chrome.storage.local.QUOTA_BYTES || 5242880; // 5MB default
+      return { bytesInUse, quota };
+    } catch (error) {
+      console.error('Failed to get storage info:', error);
+      return { bytesInUse: 0, quota: 5242880 };
+    }
+  }
+
+  /**
+   * Sync-specific methods
+   */
+
+  /**
+   * Get syncable data (excludes sensitive information)
+   */
+  static async getSyncableData(): Promise<Record<string, any>> {
+    try {
+      const allData = await this.getAllData();
+      
+      // Define keys that should be synced
+      const syncableKeys = [
+        'extensionSettings',
+        'trustedSites',
+        'privacyGoals',
+        'exportSchedules',
+        'uiPreferences',
+        'privacyPreferences'
+      ];
+
+      const syncableData: Record<string, any> = {};
+      for (const key of syncableKeys) {
+        if (allData[key] !== undefined) {
+          syncableData[key] = allData[key];
+        }
+      }
+
+      return syncableData;
+    } catch (error) {
+      console.error('Failed to get syncable data:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Set syncable data (used when receiving sync data)
+   */
+  static async setSyncableData(data: Record<string, any>): Promise<void> {
+    try {
+      // Filter out any non-syncable keys for security
+      const allowedKeys = [
+        'extensionSettings',
+        'trustedSites',
+        'privacyGoals',
+        'exportSchedules',
+        'uiPreferences',
+        'privacyPreferences'
+      ];
+
+      const filteredData: Record<string, any> = {};
+      for (const key of allowedKeys) {
+        if (data[key] !== undefined) {
+          filteredData[key] = data[key];
+        }
+      }
+
+      await this.setMultiple(filteredData);
+    } catch (error) {
+      console.error('Failed to set syncable data:', error);
+      throw new Error('Failed to apply sync data');
+    }
+  }
+
+  /**
+   * Check if a key should be synced
+   */
+  static isSyncableKey(key: string): boolean {
+    const syncableKeys = [
+      'extensionSettings',
+      'trustedSites',
+      'privacyGoals',
+      'exportSchedules',
+      'uiPreferences',
+      'privacyPreferences'
+    ];
+
+    return syncableKeys.includes(key);
+  }
+
+  /**
+   * Get non-syncable keys (for privacy protection)
+   */
+  static getNonSyncableKeys(): string[] {
+    return [
+      this.EVENTS_KEY, // Raw tracking events
+      this.DAILY_SNAPSHOTS_KEY, // Privacy scores
+      this.WEEKLY_REPORTS_KEY, // Analytics data
+      'chatHistory', // AI conversation history
+      'apiKeys', // Service credentials
+      'deviceId', // Device identification
+      'syncSettings', // Sync configuration
+      'syncStatus', // Sync status
+      'syncError' // Sync errors
+    ];
+  }
 }
