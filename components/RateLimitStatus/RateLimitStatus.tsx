@@ -95,7 +95,7 @@ export function RateLimitStatus({ className = '', showDetails = false }: RateLim
               'Checking availability...'
             )
           ) : (
-            `Resets ${formatTime(status.resetTime - Date.now())}`
+            `Resets ${formatTime(Math.max(0, status.resetTime - Date.now()))}`
           )}
         </div>
       )}

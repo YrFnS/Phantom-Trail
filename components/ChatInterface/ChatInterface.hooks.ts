@@ -54,7 +54,9 @@ export function useChat(): ChatHookReturn {
           const rateLimitMessage: ChatMessage = {
             id: `assistant-${Date.now()}`,
             type: 'assistant',
-            content: 'I\'m currently rate limited by the AI service. Please wait a moment before asking again.',
+            content: errorMessage.includes('wait') 
+              ? errorMessage 
+              : 'I\'m currently rate limited by the AI service. Please wait a moment before asking again.',
             timestamp: Date.now(),
           };
           

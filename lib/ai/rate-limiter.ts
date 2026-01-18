@@ -9,10 +9,11 @@ export interface RateLimitStatus {
  * Enhanced rate limiting for AI API requests with exponential backoff
  */
 export class RateLimiter {
-  private static readonly DEFAULT_MAX_REQUESTS = 20;
+  private static readonly DEFAULT_MAX_REQUESTS = 60; // Increased from 20 to 60
   private static readonly RATE_LIMIT_KEY = 'phantom_trail_rate_limit';
   private static readonly BACKOFF_KEY = 'phantom_trail_backoff';
-  private static readonly MAX_BACKOFF_MS = 5 * 60 * 1000; // 5 minutes max
+  private static readonly MAX_BACKOFF_MS = 2 * 60 * 1000; // Reduced from 5 minutes to 2 minutes
+  private static readonly MIN_BACKOFF_MS = 2000; // Minimum 2 seconds
   private static readonly SETTINGS_KEY = 'phantom_trail_settings';
 
   /**
@@ -138,9 +139,9 @@ export class RateLimiter {
       const now = Date.now();
       backoff.attempts++;
       
-      // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 32s, up to 5 minutes
+      // More conservative exponential backoff: 2s, 4s, 8s, 16s, 32s, up to 2 minutes
       const backoffMs = Math.min(
-        Math.pow(2, backoff.attempts - 1) * 1000,
+        Math.max(this.MIN_BACKOFF_MS, Math.pow(2, backoff.attempts) * 1000),
         this.MAX_BACKOFF_MS
       );
       
@@ -164,6 +165,50 @@ export class RateLimiter {
       await chrome.storage.session.remove(this.BACKOFF_KEY);
     } catch (error) {
       console.error('Failed to clear backoff:', error);
+    }
+  }
+
+  /**
+   * Reset rate limiting state (for debugging or manual reset)
+   */
+  static async resetRateLimit(): Promise<void> {
+    try {
+      await Promise.all([
+        chrome.storage.session.remove(this.RATE_LIMIT_KEY),
+        chrome.storage.session.remove(this.BACKOFF_KEY)
+      ]);
+      console.log('Rate limit state reset');
+    } catch (error) {
+      console.error('Failed to reset rate limit state:', error);
+    }
+  }
+
+  /**
+   * Get debug information about current rate limiting state
+   */
+  static async getDebugInfo(): Promise<{
+    rateLimit: unknown;
+    backoff: unknown;
+    status: RateLimitStatus;
+    maxRequests: number;
+  }> {
+    try {
+      const [rateLimitResult, backoffResult, maxRequests, status] = await Promise.all([
+        chrome.storage.session.get(this.RATE_LIMIT_KEY),
+        chrome.storage.session.get(this.BACKOFF_KEY),
+        this.getMaxRequests(),
+        this.getStatus()
+      ]);
+
+      return {
+        rateLimit: rateLimitResult[this.RATE_LIMIT_KEY],
+        backoff: backoffResult[this.BACKOFF_KEY],
+        status,
+        maxRequests
+      };
+    } catch (error) {
+      console.error('Failed to get debug info:', error);
+      throw error;
     }
   }
 

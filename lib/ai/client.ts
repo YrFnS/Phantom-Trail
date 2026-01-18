@@ -37,7 +37,7 @@ export class AIClient {
     if (!rateLimitStatus.canMakeRequest) {
       const error = new Error('Rate limit exceeded') as APIError;
       error.isRateLimit = true;
-      error.retryAfter = rateLimitStatus.retryAfter;
+      error.retryAfter = rateLimitStatus.retryAfter || (rateLimitStatus.resetTime - Date.now());
       throw error;
     }
 

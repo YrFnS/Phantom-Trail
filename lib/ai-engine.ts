@@ -45,6 +45,7 @@ export class AIEngine {
       
       if (apiError.isRateLimit) {
         console.warn('AI request rate limited by API');
+        await RateLimiter.recordRateLimit();
         return null;
       }
 
@@ -134,5 +135,19 @@ export class AIEngine {
    */
   static async waitForRateLimit(onProgress?: (timeRemaining: number) => void): Promise<void> {
     return RateLimiter.waitForReset(onProgress);
+  }
+
+  /**
+   * Reset rate limiting (for debugging)
+   */
+  static async resetRateLimit(): Promise<void> {
+    return RateLimiter.resetRateLimit();
+  }
+
+  /**
+   * Get debug information about rate limiting
+   */
+  static async getDebugInfo() {
+    return RateLimiter.getDebugInfo();
   }
 }
