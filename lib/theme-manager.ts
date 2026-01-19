@@ -22,7 +22,14 @@ const DEFAULT_THEME_CONFIG: ThemeConfig = {
 const STORAGE_KEY = 'phantom-trail-theme';
 
 export class ThemeManager {
-  private static mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  private static getMediaQuery() {
+    // Check if we're in a browser context (not service worker)
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)');
+    }
+    // Fallback for service worker context
+    return { matches: false };
+  }
 
   static async getCurrentTheme(): Promise<Theme> {
     try {
@@ -45,10 +52,12 @@ export class ThemeManager {
       await chrome.storage.local.set({ [STORAGE_KEY]: config });
       this.applyTheme(theme);
       
-      // Dispatch theme change event
-      window.dispatchEvent(new CustomEvent('themechange', { 
-        detail: { theme } 
-      }) as CustomEvent<{ theme: Theme }>);
+      // Dispatch theme change event (only in browser context)
+      if (typeof window !== 'undefined' && window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('themechange', { 
+          detail: { theme } 
+        }) as CustomEvent<{ theme: Theme }>);
+      }
     } catch (error) {
       console.error('Failed to set theme:', error);
     }
@@ -68,7 +77,8 @@ export class ThemeManager {
   }
 
   static getSystemTheme(): Theme {
-    return this.mediaQuery.matches ? Theme.DARK : Theme.LIGHT;
+    const mediaQuery = this.getMediaQuery();
+    return mediaQuery.matches ? Theme.DARK : Theme.LIGHT;
   }
 
   static async setAutoTheme(enabled: boolean): Promise<void> {
@@ -98,11 +108,17 @@ export class ThemeManager {
   }
 
   private static setupSystemThemeListener(): void {
-    this.mediaQuery.addEventListener('change', async () => {
-      const currentTheme = await this.getCurrentTheme();
-      if (currentTheme === Theme.AUTO) {
-        this.applyTheme(Theme.AUTO);
+    // Only set up listener in browser context (not service worker)
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      const mediaQuery = this.getMediaQuery();
+      if ('addEventListener' in mediaQuery) {
+        mediaQuery.addEventListener('change', async () => {
+          const currentTheme = await this.getCurrentTheme();
+          if (currentTheme === Theme.AUTO) {
+            this.applyTheme(Theme.AUTO);
+          }
+        });
       }
-    });
+    }
   }
 }

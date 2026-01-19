@@ -10,6 +10,7 @@ import type {
   PatternAlert,
 } from './LiveNarrative.types';
 import { Card, CardHeader, CardContent, Badge, LoadingSpinner } from '../ui';
+import { PrivacyActions } from '../PrivacyActions';
 
 /**
  * Individual event display component with AI analysis
@@ -192,6 +193,13 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
               <p className="text-xs text-yellow-400">AI analysis unavailable</p>
             </div>
           )}
+
+          {/* Privacy Actions - Show recommendations based on detected events */}
+          <PrivacyActions 
+            events={events} 
+            currentDomain={events[0]?.domain || ''} 
+            className="mb-2"
+          />
 
           <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
             {events.map(event => (

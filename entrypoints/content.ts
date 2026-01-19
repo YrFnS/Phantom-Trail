@@ -1,4 +1,5 @@
 /* eslint-disable no-undef */
+import { defineContentScript } from 'wxt/utils/define-content-script';
 import { ContentMessaging } from '../lib/content-messaging';
 import { InPageDetector } from '../lib/in-page-detector';
 import { isSiteTrusted } from '../lib/trusted-sites';
@@ -62,10 +63,20 @@ export default defineContentScript({
     let isRecovering = false;
     const MAX_RECOVERY_ATTEMPTS = 3;
     
+    // Check context validity more robustly
+    function checkContextValidity(): boolean {
+      try {
+        // Multiple checks to ensure context is truly valid
+        return !!(chrome?.runtime?.id && chrome?.runtime?.sendMessage);
+      } catch {
+        return false;
+      }
+    }
+    
     const contextCheckInterval = setInterval(() => {
       try {
         const wasValid = contextValid;
-        contextValid = chrome.runtime?.id !== undefined;
+        contextValid = checkContextValidity();
 
         if (wasValid && !contextValid && !isRecovering) {
           console.warn('[Phantom Trail] Context invalidated, attempting recovery');
@@ -83,7 +94,7 @@ export default defineContentScript({
             const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
             setTimeout(() => {
               try {
-                if (chrome.runtime?.id !== undefined) {
+                if (checkContextValidity()) {
                   contextValid = true;
                   recoveryAttempts = 0;
                   isRecovering = false;

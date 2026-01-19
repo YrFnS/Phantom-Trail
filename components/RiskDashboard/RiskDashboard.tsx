@@ -16,9 +16,12 @@ import { Badge } from '../ui/Badge';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { PrivacyTrendsChart } from '../PrivacyTrends';
 import { PrivacyComparisonCard } from '../PrivacyComparison';
+import { PrivacyToolsStatus } from '../PrivacyToolsStatus';
 import { cn } from '../../lib/utils/cn';
 import { useRiskMetrics } from './RiskDashboard.hooks';
+import { useStorage } from '../../lib/hooks/useStorage';
 import type { RiskDashboardProps } from './RiskDashboard.types';
+import type { TrackingEvent } from '../../lib/types';
 
 // Register Chart.js components
 ChartJS.register(
@@ -35,6 +38,9 @@ ChartJS.register(
 
 export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) {
   const { metrics, loading, error, recommendations } = useRiskMetrics();
+  
+  // Get events from storage for PrivacyToolsStatus
+  const [events] = useStorage<TrackingEvent[]>('phantom_trail_events', []);
 
   if (loading) {
     return (
@@ -246,6 +252,11 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
       {/* Privacy Trends */}
       <div className="mt-4">
         <PrivacyTrendsChart days={7} />
+      </div>
+
+      {/* Privacy Tools Status */}
+      <div className="mt-4">
+        <PrivacyToolsStatus events={events.slice(-50)} />
       </div>
 
       {/* Privacy Comparison */}

@@ -15,6 +15,7 @@ import { ErrorRecovery } from '../lib/error-recovery';
 import { P2PPrivacyNetwork } from '../lib/p2p-privacy-network';
 import { P2PDiscoveryService } from '../lib/p2p-discovery';
 import { AnonymizationService } from '../lib/anonymization';
+import { ServiceWorkerRecovery } from '../lib/service-worker-recovery';
 import type { TrackingEvent } from '../lib/types';
 import type {
   ContentMessage,
@@ -25,26 +26,33 @@ export default defineBackground({
   main() {
     console.log('Phantom Trail background script loaded');
 
-    // Initialize performance monitoring
-    const performanceMonitor = PerformanceMonitor.getInstance();
-    // const taskScheduler = new TaskScheduler(); // TODO: Implement task scheduling
-    // const cacheOptimizer = new CacheOptimizer(50); // TODO: Implement cache optimization
+    // Initialize performance monitoring with error handling
+    let performanceMonitor: PerformanceMonitor | null = null;
+    try {
+      performanceMonitor = PerformanceMonitor.getInstance();
+      performanceMonitor.startMonitoring();
+    } catch (error) {
+      console.error('Failed to initialize performance monitoring:', error);
+    }
 
-    // Start performance monitoring
-    performanceMonitor.startMonitoring();
-
-    // Initialize P2P Privacy Network
-    const p2pNetwork = P2PPrivacyNetwork.getInstance();
-    const p2pDiscovery = P2PDiscoveryService.getInstance();
+    // Initialize P2P Privacy Network with error handling
+    let p2pNetwork: P2PPrivacyNetwork | null = null;
+    let p2pDiscovery: P2PDiscoveryService | null = null;
     
     // Initialize P2P network if user has opted in
     (async () => {
       try {
+        p2pNetwork = P2PPrivacyNetwork.getInstance();
+        p2pDiscovery = P2PDiscoveryService.getInstance();
+        
         await p2pNetwork.initializeNetwork();
         await p2pDiscovery.startDiscovery();
         console.log('P2P Privacy Network initialized');
       } catch (error) {
         console.error('Failed to initialize P2P network:', error);
+        // Continue without P2P functionality
+        p2pNetwork = null;
+        p2pDiscovery = null;
       }
     })();
 
@@ -56,127 +64,136 @@ export default defineBackground({
     const recentDomains = new Map<string, number>();
     const DOMAIN_THROTTLE_MS = 5000; // 5 seconds between same domain events
 
-    // Initialize tracker detection on web requests
-    chrome.webRequest.onBeforeRequest.addListener(
-      details => {
-        // Process request asynchronously without blocking
-        (async () => {
-          try {
-            // Skip non-HTTP requests and extension requests
-            if (
-              !details.url.startsWith('http') ||
-              details.url.includes('chrome-extension://')
-            ) {
-              return;
-            }
-
-            // Classify the URL as a potential tracker
-            const trackerInfo = TrackerDatabase.classifyUrl(details.url);
-
-            if (trackerInfo) {
-              const now = Date.now();
-              const lastSeen = recentDomains.get(trackerInfo.domain) || 0;
-
-              // Throttle events from the same domain
-              if (now - lastSeen < DOMAIN_THROTTLE_MS) {
+    // Initialize tracker detection on web requests with recovery
+    try {
+      chrome.webRequest.onBeforeRequest.addListener(
+        details => {
+          // Process request asynchronously without blocking
+          ServiceWorkerRecovery.withRecovery(async () => {
+            try {
+              // Skip non-HTTP requests and extension requests
+              if (
+                !details.url.startsWith('http') ||
+                details.url.includes('chrome-extension://')
+              ) {
                 return;
               }
 
-              recentDomains.set(trackerInfo.domain, now);
+              // Classify the URL as a potential tracker
+              const trackerInfo = TrackerDatabase.classifyUrl(details.url);
 
-              // Clean up old entries
-              if (recentDomains.size > 100) {
-                const cutoff = now - DOMAIN_THROTTLE_MS * 2;
-                for (const [domain, timestamp] of recentDomains.entries()) {
-                  if (timestamp < cutoff) {
-                    recentDomains.delete(domain);
+              if (trackerInfo) {
+                const now = Date.now();
+                const lastSeen = recentDomains.get(trackerInfo.domain) || 0;
+
+                // Throttle events from the same domain
+                if (now - lastSeen < DOMAIN_THROTTLE_MS) {
+                  return;
+                }
+
+                recentDomains.set(trackerInfo.domain, now);
+
+                // Clean up old entries
+                if (recentDomains.size > 100) {
+                  const cutoff = now - DOMAIN_THROTTLE_MS * 2;
+                  for (const [domain, timestamp] of recentDomains.entries()) {
+                    if (timestamp < cutoff) {
+                      recentDomains.delete(domain);
+                    }
                   }
                 }
-              }
 
-              // Create tracking event with context detection
-              const event: TrackingEvent = {
-                id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                timestamp: Date.now(),
-                url: details.url,
-                domain: trackerInfo.domain,
-                trackerType: TrackerDatabase.getTrackerType(
-                  trackerInfo.category
-                ),
-                riskLevel: trackerInfo.riskLevel,
-                description: trackerInfo.description,
-              };
+                // Create tracking event with context detection
+                const event: TrackingEvent = {
+                  id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  timestamp: Date.now(),
+                  url: details.url,
+                  domain: trackerInfo.domain,
+                  trackerType: TrackerDatabase.getTrackerType(
+                    trackerInfo.category
+                  ),
+                  riskLevel: trackerInfo.riskLevel,
+                  description: trackerInfo.description,
+                };
 
-              // Enhance risk assessment based on website context
-              const context = ContextDetector.detectContext(event);
-              const contextualRisk = ContextDetector.assessContextualRisk(
-                event,
-                context
-              );
+                // Enhance risk assessment based on website context
+                const context = ContextDetector.detectContext(event);
+                const contextualRisk = ContextDetector.assessContextualRisk(
+                  event,
+                  context
+                );
 
-              // Update risk level if context indicates higher risk
-              if (contextualRisk.finalRisk > 0.8) {
-                event.riskLevel = 'critical';
-              } else if (contextualRisk.finalRisk > 0.6) {
-                event.riskLevel = 'high';
-              } else if (contextualRisk.finalRisk > 0.4) {
-                event.riskLevel = 'medium';
-              }
-
-              // Store the event with error recovery
-              try {
-                await StorageManager.addEvent(event);
-              } catch (storageError) {
-                const recoveryResult = await ErrorRecovery.handleStorageError(storageError as Error);
-                if (recoveryResult.success) {
-                  // Retry storage operation
-                  await StorageManager.addEvent(event);
-                } else {
-                  console.error('Failed to store event after recovery attempt:', storageError);
+                // Update risk level if context indicates higher risk
+                if (contextualRisk.finalRisk > 0.8) {
+                  event.riskLevel = 'critical';
+                } else if (contextualRisk.finalRisk > 0.6) {
+                  event.riskLevel = 'high';
+                } else if (contextualRisk.finalRisk > 0.4) {
+                  event.riskLevel = 'medium';
                 }
-              }
 
-              // Update privacy badge for the current tab
-              try {
+                // Store the event with error recovery
+                const stored = await ServiceWorkerRecovery.withRecovery(
+                  () => StorageManager.addEvent(event),
+                  'store tracking event'
+                );
+
+                if (!stored) {
+                  // Try fallback storage recovery
+                  try {
+                    const recoveryResult = await ErrorRecovery.handleStorageError(new Error('Storage failed'));
+                    if (recoveryResult.success) {
+                      await StorageManager.addEvent(event);
+                    }
+                  } catch (recoveryError) {
+                    console.error('Failed to store event after recovery:', recoveryError);
+                  }
+                }
+
+                // Update privacy badge for the current tab
                 if (details.tabId && details.tabId !== -1) {
-                  // Get recent events for this tab's domain to calculate score
-                  const recentEvents = await StorageManager.getRecentEvents(50);
-                  const domainEvents = recentEvents.filter(e => 
-                    e.domain === event.domain || e.url.includes(event.domain)
-                  );
-                  
-                  if (domainEvents.length > 0) {
-                    const privacyScore = calculatePrivacyScore(domainEvents, true);
-                    await BadgeManager.updateBadge(details.tabId, privacyScore);
-                  }
+                  await ServiceWorkerRecovery.withRecovery(async () => {
+                    const recentEvents = await StorageManager.getRecentEvents(50);
+                    const domainEvents = recentEvents.filter(e => 
+                      e.domain === event.domain || e.url.includes(event.domain)
+                    );
+                    
+                    if (domainEvents.length > 0) {
+                      const privacyScore = calculatePrivacyScore(domainEvents, true);
+                      await BadgeManager.updateBadge(details.tabId!, privacyScore);
+                    }
+                  }, 'update privacy badge');
                 }
-              } catch (badgeError) {
-                console.error('Failed to update privacy badge:', badgeError);
+
+                // Show notification for critical/high-risk events
+                if (event.riskLevel === 'critical' || event.riskLevel === 'high') {
+                  await ServiceWorkerRecovery.withRecovery(
+                    () => NotificationManager.showPrivacyAlert(event),
+                    'show privacy alert'
+                  );
+                }
+
+                // Trigger AI analysis for significant events
+                await triggerAIAnalysisIfNeeded(event);
+
+                console.log(
+                  'Tracker detected:',
+                  trackerInfo.name,
+                  'on',
+                  event.domain
+                );
               }
-
-              // Show notification for critical/high-risk events
-              if (event.riskLevel === 'critical' || event.riskLevel === 'high') {
-                await NotificationManager.showPrivacyAlert(event);
-              }
-
-              // Trigger AI analysis for significant events
-              await triggerAIAnalysisIfNeeded(event);
-
-              console.log(
-                'Tracker detected:',
-                trackerInfo.name,
-                'on',
-                event.domain
-              );
+            } catch (error) {
+              console.error('Failed to process request:', error);
             }
-          } catch (error) {
-            console.error('Failed to process request:', error);
-          }
-        })();
-      },
-      { urls: ['<all_urls>'] },
-      ['requestBody']
-    );
+          }, 'process web request');
+        },
+        { urls: ['<all_urls>'] },
+        ['requestBody']
+      );
+    } catch (error) {
+      console.error('Failed to initialize web request listener:', error);
+    }
 
     /**
      * Trigger AI analysis for significant tracking events
@@ -243,8 +260,8 @@ export default defineBackground({
      */
     async function sharePrivacyDataWithPeers(events: TrackingEvent[]): Promise<void> {
       try {
-        if (!p2pNetwork.isNetworkActive()) {
-          return; // P2P network not active
+        if (!p2pNetwork || !p2pNetwork.isNetworkActive()) {
+          return; // P2P network not active or not initialized
         }
 
         // Calculate current privacy score
@@ -410,7 +427,7 @@ export default defineBackground({
       }
     });
 
-    // Handle messages from content scripts
+    // Handle messages from content scripts with recovery
     chrome.runtime.onMessage.addListener(
       (
         message: ContentMessage,
@@ -423,7 +440,7 @@ export default defineBackground({
         }
 
         if (message.type === 'tracking-event' && message.payload) {
-          (async () => {
+          ServiceWorkerRecovery.withRecovery(async () => {
             try {
               const event = message.payload;
               if (!event) {
@@ -456,7 +473,7 @@ export default defineBackground({
               console.error('Failed to handle tracking event:', error);
               sendResponse({ success: false, error: String(error) });
             }
-          })();
+          }, 'handle content script message');
 
           return true; // Keep channel open for async response
         }

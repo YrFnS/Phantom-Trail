@@ -1,16 +1,66 @@
 # 👻 Phantom Trail
 
-**An AI-native Chrome extension that makes invisible data collection visible in real-time.**
+**An AI-native Chrome extension that transforms invisible data collection into actionable privacy education.**
 
-Every time you browse the web, dozens of companies silently track your clicks, read your behavior, and sell your data—but you never see it happening. Phantom Trail changes that by acting as a privacy guardian that narrates what's really going on behind the scenes, in plain English.
+Every time you browse the web, dozens of companies silently track your clicks, read your behavior, and sell your data—but you never see it happening. Phantom Trail changes that by acting as your personal privacy coach, not only showing what's tracking you but guiding you through your privacy improvement journey with AI-powered insights and personalized recommendations.
 
-## 🎯 What It Does
+## 🎯 Core Features
 
+### 🤖 AI-Powered Privacy Education
 - **Live AI Narrative**: Real-time explanations of tracking as it happens ("Amazon just tracked your mouse movements on this product page")
-- **Proactive Risk Assessment**: AI scores each tracking event and alerts to suspicious activity ("⚠️ High Risk: This banking site is leaking data to advertising networks")
-- **Natural Language Interface**: Ask questions like "What did Google learn about me today?" or "Is this website trustworthy?"
-- **Pattern Detection**: Identifies cross-site tracking patterns and catches new tracking techniques
-- **Visual Network Map**: See exactly where your data flows—from sites through ad networks to data brokers
+- **Smart Recommendations**: Actionable privacy advice based on detected trackers ("Install uBlock Origin for 95% tracker blocking")
+- **Natural Language Chat**: Ask questions like "What did Google learn about me today?" or "Is this website trustworthy?"
+- **Personalized Coaching**: AI-driven privacy journey tracking with goals, achievements, and progress monitoring
+
+### 🛡️ Comprehensive Protection Analysis
+- **Privacy Tool Detection**: Automatically detects installed privacy tools (uBlock Origin, Privacy Badger, etc.)
+- **Effectiveness Analysis**: Shows how well your current setup protects you with percentage scores
+- **Protection Gaps**: Identifies missed trackers and suggests improvements
+- **Tool Recommendations**: One-click install buttons for missing privacy tools
+
+### 📊 Advanced Privacy Intelligence
+- **Risk Assessment**: AI scores each tracking event and alerts to suspicious activity
+- **Pattern Detection**: Identifies cross-site tracking patterns and behavioral profiling attempts
+- **Privacy Score**: Real-time privacy scoring with detailed breakdowns and improvement suggestions
+- **Trend Analysis**: Track your privacy improvements over time with visual charts
+
+### 🌐 Visual Data Flow Mapping
+- **Network Graph**: See exactly where your data flows—from sites through ad networks to data brokers
+- **Real-time Visualization**: Watch tracking happen live with animated network connections
+- **Risk-based Coloring**: High-risk trackers highlighted in red, safe connections in green
+- **Interactive Exploration**: Click nodes to see detailed tracker information
+
+### 🎯 Privacy Journey Tracking
+- **Personal Dashboard**: Track your privacy journey with score history and milestones
+- **Smart Goals**: AI creates personalized privacy improvement goals based on your browsing patterns
+- **Achievement System**: Unlock achievements as you improve your privacy setup
+- **Weekly Reports**: Get AI-generated summaries of your privacy progress and recommendations
+
+### 🔍 Advanced Tracking Detection
+- **In-Page Tracking**: Detects canvas fingerprinting, mouse tracking, form monitoring, and device API access
+- **Cross-Site Correlation**: Identifies when the same tracker follows you across multiple sites
+- **Behavioral Analysis**: Recognizes tracking patterns specific to banking, social media, and shopping sites
+- **Real-time Alerts**: Instant notifications for high-risk tracking events
+
+### 🎛️ Advanced Privacy Management
+- **Real-Time Notifications**: Proactive browser alerts for critical tracking events
+- **Privacy Score Trends**: Historical visualization showing privacy improvements over time
+- **Website Privacy Comparison**: Compare privacy levels across different sites and categories
+- **Trusted Sites Management**: User-controlled whitelist for domains you trust
+- **Enhanced AI Context**: Smarter AI analysis with improved contextual understanding
+- **Keyboard Shortcuts**: Quick access to privacy functions (Ctrl+Shift+P, Ctrl+Shift+A, Ctrl+Shift+E)
+
+### 🎨 User Experience & Interface
+- **Dark/Light Theme Toggle**: Seamless theme switching with system preference detection
+- **Export Scheduling**: Automated privacy data exports with customizable schedules
+- **Privacy Score Badges**: Visual indicators showing site privacy levels in browser
+- **Cross-Device Sync**: Synchronize privacy data and settings across devices
+- **Privacy Impact Predictions**: AI-powered forecasting of privacy risks and improvements
+
+### 🌐 Community & Sharing Features
+- **Social Privacy Sharing**: Anonymous community insights and privacy comparisons
+- **Performance Optimization**: Advanced caching and efficient resource management
+- **Enhanced Error Recovery**: Robust error handling with automatic recovery mechanisms
 
 ## 🚀 Quick Start
 
@@ -59,26 +109,45 @@ Every time you browse the web, dozens of companies silently track your clicks, r
 - **UI**: React 18 + TypeScript + Tailwind CSS
 - **State**: Zustand
 - **Visualization**: Vis.js (network graphs), Chart.js (metrics)
-- **AI**: OpenRouter API (configurable models via `lib/ai-models.ts`)
+- **AI**: OpenRouter API (Claude Haiku primary, GPT-4o-mini backup)
 - **Data Sources**: EasyList/EasyPrivacy, Disconnect.me, ipapi.co
+- **Advanced Features**: P2P networking, cross-device sync, performance monitoring
 
 ## 📁 Project Structure
 
 ```
 phantom-trail/
 ├── entrypoints/               # Extension entry points
-│   ├── background.ts          # Service worker
-│   ├── content.ts             # Content scripts
+│   ├── background.ts          # Service worker (network interception, AI coordination)
+│   ├── content.ts             # Content scripts (in-page tracking detection)
 │   ├── popup/                 # Main UI
 │   └── sidepanel/             # Optional side panel
 ├── components/                # React components (feature-based)
-│   ├── LiveNarrative/
-│   ├── NetworkGraph/
-│   ├── ChatInterface/
-│   └── RiskDashboard/
-├── lib/                       # Core utilities
+│   ├── LiveNarrative/         # Real-time tracking narrative
+│   ├── NetworkGraph/          # Vis.js data flow visualization
+│   ├── ChatInterface/         # Natural language Q&A
+│   ├── RiskDashboard/         # Risk scores and metrics
+│   ├── PrivacyActions/        # Actionable privacy recommendations
+│   ├── PrivacyToolsStatus/    # Privacy tool effectiveness analysis
+│   ├── PrivacyCoaching/       # AI-powered journey tracking
+│   ├── Settings/              # Theme, notifications, sync, export settings
+│   ├── TrustedSites/          # Trusted sites management
+│   ├── CommunityInsights/     # P2P privacy sharing
+│   └── PrivacyTrends/         # Historical privacy analysis
+├── lib/                       # Core utilities and services
 │   ├── ai-engine.ts           # OpenRouter integration
-│   ├── tracker-db.ts          # Tracker classification
+│   ├── tracker-db.ts          # Tracker classification logic
+│   ├── privacy-coach.ts       # AI coaching and journey tracking
+│   ├── privacy-recommendations.ts # Smart privacy actions
+│   ├── privacy-tool-detector.ts   # Tool detection and analysis
+│   ├── notification-manager.ts    # Real-time alerts
+│   ├── sync-manager.ts        # Cross-device synchronization
+│   ├── export-scheduler.ts    # Automated data exports
+│   ├── theme-manager.ts       # Dark/light theme system
+│   ├── keyboard-shortcuts.ts  # Hotkey management
+│   ├── p2p-privacy-network.ts # Community features
+│   ├── privacy-predictor.ts   # Impact predictions
+│   ├── performance-monitor.ts # System optimization
 │   └── storage-manager.ts     # Chrome storage wrapper
 └── assets/                    # Static assets
 ```
@@ -149,6 +218,32 @@ export const AI_MODELS: AIModel[] = [
 
 Models automatically appear in the extension's settings UI.
 
+## 🎮 User Experience
+
+### Live Privacy Coaching
+```
+🛡️ Privacy Protection: 85%
+Blocked: 12    Missed: 3
+
+💡 Recommendations:
+🔥 Install uBlock Origin (easy) - Block advertising trackers automatically
+⚡ Review Social Media Privacy Settings (medium) - Limit data sharing
+
+🎯 Privacy Journey - Day 15
+Current Score: 78    This Week: +12    Actions Taken: 5
+
+Active Goals:
+[████████░░] Enhance Privacy Settings (80% → Target: 85)
+```
+
+### Real-Time Narrative
+```
+Live Feed:
+🚨 Facebook is tracking your clicks on this page
+⚠️ Google Analytics recorded your page views  
+💡 Try Signal instead of Facebook for private messaging
+```
+
 ## 🎯 Success Criteria
 
 ### Functional Requirements
@@ -157,6 +252,9 @@ Models automatically appear in the extension's settings UI.
 - ✅ AI narrative generates within 3 seconds
 - ✅ Network graph renders 50+ nodes smoothly
 - ✅ Chat responses return within 5 seconds
+- ✅ Privacy recommendations appear instantly
+- ✅ Tool detection works across major privacy extensions
+- ✅ Journey tracking persists across browser sessions
 
 ### Performance Requirements
 
@@ -164,6 +262,7 @@ Models automatically appear in the extension's settings UI.
 - ✅ Memory usage <100MB
 - ✅ Extension bundle <5MB
 - ✅ No impact on page load times
+- ✅ Real-time updates without lag
 
 ### User Experience
 
@@ -171,6 +270,29 @@ Models automatically appear in the extension's settings UI.
 - ✅ Works offline (basic features without AI)
 - ✅ Setup complete in <2 minutes
 - ✅ Graceful degradation when AI unavailable
+- ✅ Actionable recommendations with clear steps
+- ✅ Visual progress tracking motivates continued use
+
+## 🌟 What Makes Phantom Trail Different
+
+### Beyond Detection - Education & Action
+Unlike traditional privacy tools that just block or detect, Phantom Trail:
+- **Explains** what's happening in plain English
+- **Recommends** specific actions you can take
+- **Analyzes** your current protection effectiveness
+- **Coaches** you through privacy improvement over time
+
+### AI-Native Approach
+- Personalized insights based on your browsing patterns
+- Context-aware recommendations for different website types
+- Natural language interface for asking privacy questions
+- Continuous learning from your privacy journey
+
+### Comprehensive Privacy Platform
+- **Detection**: Real-time tracking identification
+- **Education**: AI-powered explanations and insights
+- **Action**: One-click privacy improvements
+- **Progress**: Long-term journey tracking with goals
 
 ## 🔒 Privacy & Security
 

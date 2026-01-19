@@ -50,7 +50,7 @@ const SYNC_VERSION = '1.0.0';
 const SYNC_STORAGE_LIMIT = 100 * 1024; // 100KB
 const SYNC_DEBOUNCE_DELAY = 2000; // 2 seconds
 
-let syncTimeout: number | null = null;
+let syncTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export class SyncManager {
   private static deviceId: string | null = null;
@@ -361,7 +361,7 @@ if (typeof chrome !== 'undefined' && chrome.storage) {
     
     // Debounce sync operations
     if (syncTimeout) clearTimeout(syncTimeout);
-    syncTimeout = window.setTimeout(async () => {
+    syncTimeout = setTimeout(async () => {
       await SyncManager.syncNow();
     }, SYNC_DEBOUNCE_DELAY);
   });

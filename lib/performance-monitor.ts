@@ -48,7 +48,7 @@ export class PerformanceMonitor {
   private static instance: PerformanceMonitor;
   private metrics: PerformanceMetrics;
   private observers: PerformanceObserver[] = [];
-  private monitoringInterval?: number;
+  private monitoringInterval?: ReturnType<typeof setInterval>;
   private cpuSamples: number[] = [];
   private renderSamples: number[] = [];
 
@@ -118,11 +118,16 @@ export class PerformanceMonitor {
   }
 
   async measureMemoryUsage(): Promise<MemoryMetrics> {
-    const performance = (window as any).performance;
-    
     let heapUsage = 0;
-    if (performance?.memory) {
-      heapUsage = performance.memory.usedJSHeapSize;
+    
+    // Check if we're in a service worker context
+    const isServiceWorker = typeof window === 'undefined' && typeof self !== 'undefined';
+    
+    if (!isServiceWorker && typeof window !== 'undefined') {
+      const performance = (window as any).performance;
+      if (performance?.memory) {
+        heapUsage = performance.memory.usedJSHeapSize;
+      }
     }
     
     // Estimate cache usage (would need integration with CacheOptimizer)
@@ -149,6 +154,15 @@ export class PerformanceMonitor {
   }
 
   async trackRenderPerformance(): Promise<RenderMetrics> {
+    // Check if we're in a browser context
+    const isServiceWorker = typeof window === 'undefined' && typeof self !== 'undefined';
+    const isBrowser = typeof window !== 'undefined';
+    
+    if (!isBrowser || isServiceWorker) {
+      // Return default metrics for service worker context
+      return this.metrics.rendering;
+    }
+
     return new Promise((resolve) => {
       let frameCount = 0;
       let lastTime = performance.now();
@@ -277,6 +291,15 @@ export class PerformanceMonitor {
   }
 
   private setupPerformanceObservers(): void {
+    // Check if we're in a browser context (not service worker)
+    const isServiceWorker = typeof window === 'undefined' && typeof self !== 'undefined';
+    const isBrowser = typeof window !== 'undefined';
+    
+    if (!isBrowser || isServiceWorker) {
+      // Skip performance observers in service worker context
+      return;
+    }
+
     // Observe paint timing
     if ('PerformanceObserver' in window) {
       const paintObserver = new PerformanceObserver((list) => {
@@ -313,7 +336,7 @@ export class PerformanceMonitor {
   }
 
   private startCPUMonitoring(): void {
-    this.monitoringInterval = window.setInterval(() => {
+    this.monitoringInterval = setInterval(() => {
       this.measureCPUUsage().catch(console.error);
     }, 5000);
   }
@@ -406,7 +429,10 @@ export class TaskScheduler {
   }
 
   private runWhenIdle(task: () => Promise<void>): void {
-    if ('requestIdleCallback' in window) {
+    const isServiceWorker = typeof window === 'undefined' && typeof self !== 'undefined';
+    const isBrowser = typeof window !== 'undefined';
+    
+    if (isBrowser && !isServiceWorker && 'requestIdleCallback' in window) {
       requestIdleCallback(async (deadline) => {
         if (deadline.timeRemaining() > 5) {
           await task();
@@ -416,7 +442,7 @@ export class TaskScheduler {
         }
       });
     } else {
-      // Fallback for browsers without requestIdleCallback
+      // Fallback for browsers without requestIdleCallback or service workers
       setTimeout(task, 0);
     }
   }

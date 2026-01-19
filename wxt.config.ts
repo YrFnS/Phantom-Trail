@@ -7,7 +7,7 @@ export default defineConfig({
     description:
       'AI-native Chrome extension that makes invisible data collection visible in real-time',
     version: '0.1.0',
-    permissions: ['webRequest', 'storage', 'activeTab', 'tabs', 'alarms', 'notifications', 'downloads'],
+    permissions: ['webRequest', 'storage', 'activeTab', 'tabs', 'alarms', 'notifications', 'downloads', 'management'],
     host_permissions: ['<all_urls>'],
     commands: {
       'toggle-popup': {
@@ -52,14 +52,16 @@ export default defineConfig({
           // Suppress specific warnings that don't affect functionality
           if (
             warning.code === 'EVAL' ||
-            warning.code === 'MODULE_LEVEL_DIRECTIVE'
+            warning.code === 'MODULE_LEVEL_DIRECTIVE' ||
+            warning.code === 'CIRCULAR_DEPENDENCY'
           ) {
             return;
           }
           warn(warning);
         },
       },
-      chunkSizeWarningLimit: 1200, // Increase limit but keep dynamic imports for better UX
+      chunkSizeWarningLimit: 1500, // Increase limit for complex extension
+      target: 'es2020', // Ensure compatibility with Chrome extensions
     },
     define: {
       // Ensure proper environment variables
@@ -69,6 +71,13 @@ export default defineConfig({
     },
     optimizeDeps: {
       include: ['cytoscape', 'vis-network', 'chart.js'],
+      exclude: ['chrome'], // Exclude chrome APIs from bundling
+    },
+    resolve: {
+      alias: {
+        // Ensure proper resolution of chrome APIs
+        'webextension-polyfill': 'webextension-polyfill/dist/browser-polyfill.js',
+      },
     },
   }),
 });

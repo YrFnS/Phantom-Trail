@@ -126,7 +126,7 @@ export class CacheOptimizer {
   private caches: Map<string, LRUCache<any>> = new Map();
   private maxTotalMemory: number = 100 * 1024 * 1024; // 100MB
   private cleanupInterval: number = 60000; // 1 minute
-  private cleanupTimer?: number;
+  private cleanupTimer?: ReturnType<typeof setInterval>;
 
   constructor(maxMemoryMB: number = 100) {
     this.maxTotalMemory = maxMemoryMB * 1024 * 1024;
@@ -222,7 +222,7 @@ export class CacheOptimizer {
   }
 
   private startCleanupTimer(): void {
-    this.cleanupTimer = window.setInterval(() => {
+    this.cleanupTimer = setInterval(() => {
       this.performCleanup().catch(console.error);
     }, this.cleanupInterval);
   }

@@ -7,7 +7,7 @@ export class P2PPrivacyNetwork {
   private rtcConfig: RTCConfiguration;
   private isInitialized = false;
   private communityStats: CommunityStats | null = null;
-  private discoveryInterval: number | null = null;
+  private discoveryInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {
     this.localPeerId = this.generatePeerId();
@@ -44,7 +44,7 @@ export class P2PPrivacyNetwork {
       await this.discoverPeers();
 
       // Start periodic peer discovery
-      this.discoveryInterval = window.setInterval(() => {
+      this.discoveryInterval = setInterval(() => {
         this.discoverPeers();
         this.cleanupInactivePeers();
       }, 30000); // Every 30 seconds

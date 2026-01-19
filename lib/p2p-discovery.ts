@@ -4,7 +4,7 @@ export class P2PDiscoveryService {
   private static instance: P2PDiscoveryService | null = null;
   private network: P2PPrivacyNetwork;
   private discoveryActive = false;
-  private broadcastInterval: number | null = null;
+  private broadcastInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {
     this.network = P2PPrivacyNetwork.getInstance();
@@ -30,7 +30,7 @@ export class P2PDiscoveryService {
       this.setupContentScriptDiscovery();
       
       // Start periodic broadcast
-      this.broadcastInterval = window.setInterval(() => {
+      this.broadcastInterval = setInterval(() => {
         this.broadcastDiscovery();
       }, 15000); // Every 15 seconds
 
