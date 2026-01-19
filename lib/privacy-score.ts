@@ -271,3 +271,18 @@ export function getPrivacyTrend(
   if (difference < -5) return 'declining';
   return 'stable';
 }
+
+// Main PrivacyScoreCalculator class for compatibility
+export class PrivacyScoreCalculator {
+  static async calculateDomainScore(): Promise<{ score: number; grade: string; color: string }> {
+    // Simple stub implementation
+    const score = Math.floor(Math.random() * 100);
+    const grade = score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : 'D';
+    const color = score >= 80 ? 'green' : score >= 60 ? 'yellow' : 'red';
+    
+    return { score, grade, color };
+  }
+}
+
+// Export as PrivacyScore for backward compatibility  
+export const PrivacyScoreClass = PrivacyScoreCalculator;

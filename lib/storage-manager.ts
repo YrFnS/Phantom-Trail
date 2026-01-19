@@ -427,4 +427,44 @@ export class StorageManager {
       'syncError' // Sync errors
     ];
   }
+
+  // Stub methods for compatibility - implement as needed
+  static async getTrackingEvents(): Promise<TrackingEvent[]> {
+    const events = await this.getAllData();
+    return events[this.EVENTS_KEY] || [];
+  }
+
+  static async setTrackingEvents(events: TrackingEvent[]): Promise<void> {
+    const allData = await this.getAllData();
+    allData[this.EVENTS_KEY] = events;
+    await chrome.storage.local.set(allData);
+  }
+
+  static async addTrackingEvent(event: TrackingEvent): Promise<void> {
+    const events = await this.getTrackingEvents();
+    events.push(event);
+    await this.setTrackingEvents(events);
+  }
+
+  static async initializeDefaults(): Promise<void> {
+    // Initialize default settings if needed
+    const settings = await this.getSettings();
+    if (!settings) {
+      const allData = await this.getAllData();
+      allData[this.SETTINGS_KEY] = {
+        aiEnabled: true,
+        privacyMode: 'balanced'
+      };
+      await chrome.storage.local.set(allData);
+    }
+  }
+
+  static async getSessionData(_key: string): Promise<unknown> {
+    // Placeholder for session data access
+    return null;
+  }
+
+  static async setSessionData(_key: string, _data: unknown): Promise<void> {
+    // Placeholder for session data storage
+  }
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { P2PPrivacyNetwork } from '../../lib/p2p-privacy-network';
 import { CommunityStats, P2PSettings, PrivacyData } from '../../lib/types';
+import { ChromeStorage } from '../../lib/chrome-storage';
 
 export const useCommunityInsights = () => {
   const [network] = useState(() => P2PPrivacyNetwork.getInstance());
@@ -28,8 +29,7 @@ export const useCommunityInsights = () => {
 
   const loadSettings = useCallback(async () => {
     try {
-      const result = await chrome.storage.local.get(['p2pSettings']);
-      const settings: P2PSettings = result.p2pSettings || {
+      const settings = await ChromeStorage.getLocal<P2PSettings>('p2pSettings') || {
         joinPrivacyNetwork: false,
         shareAnonymousData: false,
         shareRegionalData: false,

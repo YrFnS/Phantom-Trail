@@ -3,7 +3,7 @@ import { DataConflict, SyncData } from './sync-manager';
 export interface ConflictResolutionStrategy {
   name: string;
   description: string;
-  resolve: (localData: any, remoteData: any) => any;
+  resolve: (localData: unknown, remoteData: unknown) => unknown;
 }
 
 export class ConflictResolver {
@@ -11,9 +11,11 @@ export class ConflictResolver {
     ['newest-wins', {
       name: 'Newest Wins',
       description: 'Use the data with the most recent timestamp',
-      resolve: (localData: any, remoteData: any) => {
-        const localTime = localData.timestamp || localData.lastModified || 0;
-        const remoteTime = remoteData.timestamp || remoteData.lastModified || 0;
+      resolve: (localData: unknown, remoteData: unknown) => {
+        const local = localData as { timestamp?: number; lastModified?: number };
+        const remote = remoteData as { timestamp?: number; lastModified?: number };
+        const localTime = local.timestamp || local.lastModified || 0;
+        const remoteTime = remote.timestamp || remote.lastModified || 0;
         return localTime > remoteTime ? localData : remoteData;
       }
     }],
@@ -52,7 +54,7 @@ export class ConflictResolver {
   static resolveConflict(
     conflict: DataConflict,
     strategy: string = 'newest-wins'
-  ): any {
+  ): unknown {
     const resolver = this.strategies.get(strategy);
     if (!resolver) {
       throw new Error(`Unknown conflict resolution strategy: ${strategy}`);
@@ -64,8 +66,8 @@ export class ConflictResolver {
   static resolveMultipleConflicts(
     conflicts: DataConflict[],
     strategy: string = 'newest-wins'
-  ): Map<string, any> {
-    const resolutions = new Map<string, any>();
+  ): Map<string, unknown> {
+    const resolutions = new Map<string, unknown>();
 
     for (const conflict of conflicts) {
       const resolved = this.resolveConflict(conflict, strategy);
@@ -75,7 +77,7 @@ export class ConflictResolver {
     return resolutions;
   }
 
-  private static mergeArrays(local: any[], remote: any[]): any[] {
+  private static mergeArrays(local: unknown[], remote: unknown[]): unknown[] {
     // For arrays of objects with unique identifiers
     if (local.length > 0 && remote.length > 0 && 
         typeof local[0] === 'object' && typeof remote[0] === 'object') {
