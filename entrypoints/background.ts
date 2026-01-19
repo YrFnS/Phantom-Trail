@@ -12,6 +12,9 @@ import { BadgeManager } from '../lib/badge-manager';
 import { SyncManager } from '../lib/sync-manager';
 import { PerformanceMonitor } from '../lib/performance-monitor';
 import { ErrorRecovery } from '../lib/error-recovery';
+import { P2PPrivacyNetwork } from '../lib/p2p-privacy-network';
+import { P2PDiscoveryService } from '../lib/p2p-discovery';
+import { AnonymizationService } from '../lib/anonymization';
 import type { TrackingEvent } from '../lib/types';
 import type {
   ContentMessage,
@@ -29,6 +32,21 @@ export default defineBackground({
 
     // Start performance monitoring
     performanceMonitor.startMonitoring();
+
+    // Initialize P2P Privacy Network
+    const p2pNetwork = P2PPrivacyNetwork.getInstance();
+    const p2pDiscovery = P2PDiscoveryService.getInstance();
+    
+    // Initialize P2P network if user has opted in
+    (async () => {
+      try {
+        await p2pNetwork.initializeNetwork();
+        await p2pDiscovery.startDiscovery();
+        console.log('P2P Privacy Network initialized');
+      } catch (error) {
+        console.error('Failed to initialize P2P network:', error);
+      }
+    })();
 
     // Track significant events for AI analysis
     let significantEventCount = 0;
@@ -208,12 +226,45 @@ export default defineBackground({
           const recentEvents = await StorageManager.getRecentEvents(10);
           await AIEngine.generateNarrative(recentEvents);
 
+          // Share anonymized privacy data with P2P network
+          await sharePrivacyDataWithPeers(recentEvents);
+
           // Reset counters
           significantEventCount = 0;
           lastAIAnalysis = now;
         }
       } catch (error) {
         console.error('Failed to trigger AI analysis:', error);
+      }
+    }
+
+    /**
+     * Share anonymized privacy data with P2P network
+     */
+    async function sharePrivacyDataWithPeers(events: TrackingEvent[]): Promise<void> {
+      try {
+        if (!p2pNetwork.isNetworkActive()) {
+          return; // P2P network not active
+        }
+
+        // Calculate current privacy score
+        const privacyScore = calculatePrivacyScore(events, true);
+        
+        // Create privacy data for anonymization
+        const privacyData = {
+          averageScore: privacyScore.score,
+          grade: privacyScore.grade,
+          trackerCount: events.length,
+          events: events
+        };
+
+        // Anonymize and share data
+        const anonymizedData = AnonymizationService.anonymizeForP2P(privacyData);
+        await p2pNetwork.shareAnonymousData(anonymizedData);
+        
+        console.log('Shared anonymized privacy data with P2P network');
+      } catch (error) {
+        console.error('Failed to share privacy data with peers:', error);
       }
     }
 

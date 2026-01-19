@@ -293,6 +293,20 @@ export default defineContentScript({
         } else if (message.type === 'SHOW_QUICK_ANALYSIS') {
           showQuickAnalysis(message.data);
           sendResponse({ success: true });
+        } else if (message.type === 'phantom_trail_discovery') {
+          // Handle P2P peer discovery
+          if (message.extensionId === chrome.runtime.id) {
+            // Another Phantom Trail user found - respond with our peer ID
+            const peerId = `peer_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`;
+            chrome.runtime.sendMessage({
+              type: 'phantom_trail_peer_found',
+              peerId: peerId,
+              extensionId: chrome.runtime.id
+            }).catch(() => {
+              // Ignore errors if background script is not ready
+            });
+            sendResponse({ type: 'peer_response', peerId });
+          }
         }
       });
 

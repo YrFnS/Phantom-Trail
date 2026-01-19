@@ -9,8 +9,9 @@ import { ShortcutSettings } from './ShortcutSettings';
 import { ThemeSettings } from './ThemeSettings';
 import { ExportScheduling } from './ExportScheduling';
 import { BadgeSettingsComponent } from './BadgeSettings';
+import { P2PSettingsComponent } from './P2PSettings';
 
-type SettingsTab = 'general' | 'appearance' | 'badge' | 'export' | 'notifications' | 'trusted-sites' | 'shortcuts';
+type SettingsTab = 'general' | 'appearance' | 'badge' | 'export' | 'notifications' | 'trusted-sites' | 'shortcuts' | 'p2p';
 
 interface SettingsProps {
   onClose: () => void;
@@ -142,6 +143,16 @@ export function Settings({ onClose }: SettingsProps) {
               }`}
             >
               Shortcuts
+            </button>
+            <button
+              onClick={() => setActiveTab('p2p')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'p2p'
+                  ? 'border-primary-500 text-primary-500'
+                  : 'border-transparent text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              P2P Network
             </button>
           </div>
         </CardHeader>
@@ -284,6 +295,9 @@ export function Settings({ onClose }: SettingsProps) {
 
           {/* Shortcuts Tab */}
           {activeTab === 'shortcuts' && <ShortcutSettings />}
+
+          {/* P2P Network Tab */}
+          {activeTab === 'p2p' && <P2PSettingsComponent />}
         </CardContent>
       </Card>
     </div>

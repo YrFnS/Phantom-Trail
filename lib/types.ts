@@ -167,3 +167,77 @@ export interface ComparisonData {
   };
   trustLevel: 'high' | 'medium' | 'low';
 }
+
+// P2P Privacy Sharing Types
+export interface PeerConnection {
+  id: string;
+  connection: RTCPeerConnection;
+  dataChannel: RTCDataChannel;
+  region?: string;
+  lastSeen: number;
+  isActive: boolean;
+}
+
+export interface NetworkMessage {
+  type: 'privacy_data' | 'stats_request' | 'peer_discovery';
+  data: AnonymousPrivacyData | CommunityStats;
+  timestamp: number;
+  sender: string;
+}
+
+export interface AnonymousPrivacyData {
+  privacyScore: number; // Rounded to nearest 5
+  grade: string;
+  trackerCount: number; // Capped at 50
+  riskDistribution: Record<RiskLevel, number>;
+  websiteCategories: string[]; // Top 5 only
+  timestamp: number; // Rounded to nearest hour
+  region?: string; // Optional broad region
+}
+
+export interface CommunityStats {
+  connectedPeers: number;
+  averageScore: number;
+  scoreDistribution: Record<string, number>;
+  regionalData: Record<string, RegionalStats>;
+  lastUpdated: number;
+  dataFreshness: number; // How recent the data is
+}
+
+export interface RegionalStats {
+  averageScore: number;
+  peerCount: number;
+  topTrackers: string[];
+  riskDistribution: Record<RiskLevel, number>;
+}
+
+export interface CommunityComparison {
+  userScore: number;
+  networkAverage: number;
+  percentile: number; // Based on connected peers
+  betterThan: number; // Percentage of connected users
+  recommendations: P2PRecommendation[];
+}
+
+export interface P2PRecommendation {
+  type: 'tool' | 'setting' | 'behavior';
+  title: string;
+  description: string;
+  adoptionRate: number; // Percentage of high-scoring peers using this
+  impact: 'low' | 'medium' | 'high';
+}
+
+export interface P2PSettings {
+  joinPrivacyNetwork: boolean;
+  shareAnonymousData: boolean;
+  shareRegionalData: boolean;
+  maxConnections: number; // 1-20 peers
+  autoReconnect: boolean;
+}
+
+export interface PrivacyData {
+  averageScore: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  trackerCount: number;
+  events?: TrackingEvent[];
+}

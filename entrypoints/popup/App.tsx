@@ -15,6 +15,7 @@ const NetworkGraph = lazy(() => import('../../components/NetworkGraph').then(m =
 const ChatInterface = lazy(() => import('../../components/ChatInterface').then(m => ({ default: m.ChatInterface })));
 const RiskDashboard = lazy(() => import('../../components/RiskDashboard').then(m => ({ default: m.RiskDashboard })));
 const PrivacyCoachDashboard = lazy(() => import('../../components/PrivacyCoach').then(m => ({ default: m.PrivacyCoachDashboard })));
+const CommunityInsights = lazy(() => import('../../components/CommunityInsights').then(m => ({ default: m.CommunityInsights })));
 
 // Loading component for lazy-loaded components
 const ComponentLoader = () => (
@@ -42,7 +43,7 @@ const EMPTY_PRIVACY_SCORE: PrivacyScoreType = {
 function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState<
-    'narrative' | 'network' | 'chat' | 'dashboard' | 'coach'
+    'narrative' | 'network' | 'chat' | 'dashboard' | 'coach' | 'community'
   >('narrative');
   const [events, setEvents] = useState<TrackingEvent[]>([]);
   const [currentSiteScore, setCurrentSiteScore] = useState<PrivacyScoreType | null>(null);
@@ -256,6 +257,22 @@ function App() {
               </svg>
               <span>Coach</span>
             </button>
+            <button
+              onClick={() => setActiveView('community')}
+              className={`h-12 flex flex-col items-center justify-center rounded-r-lg transition-all text-[9px] ${
+                activeView === 'community'
+                  ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--accent-primary)] shadow-[0_0_15px_rgba(var(--accent-primary),0.4)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
+              }`}
+            >
+              <svg className="w-4 h-4 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <span>Peers</span>
+            </button>
           </nav>
 
           {/* Content area */}
@@ -268,6 +285,12 @@ function App() {
                   {activeView === 'dashboard' && <RiskDashboard currentDomain={currentDomain} />}
                   {activeView === 'chat' && <ChatInterface />}
                   {activeView === 'coach' && <PrivacyCoachDashboard />}
+                  {activeView === 'community' && (
+                    <CommunityInsights 
+                      userScore={currentSiteScore?.score || overallScore?.score || 100}
+                      userGrade={currentSiteScore?.grade || overallScore?.grade || 'A'}
+                    />
+                  )}
                 </Suspense>
               </ErrorBoundary>
             </div>

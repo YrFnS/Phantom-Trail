@@ -37,6 +37,15 @@ export default [
         // Chrome extension globals
         chrome: 'readonly',
         
+        // WebRTC globals for P2P functionality
+        RTCPeerConnection: 'readonly',
+        RTCDataChannel: 'readonly',
+        RTCConfiguration: 'readonly',
+        RTCIceServer: 'readonly',
+        RTCDataChannelInit: 'readonly',
+        RTCIceConnectionState: 'readonly',
+        RTCDataChannelState: 'readonly',
+        
         // DOM types (for TypeScript)
         HTMLElement: 'readonly',
         HTMLDivElement: 'readonly',
@@ -117,6 +126,29 @@ export default [
       '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-unsafe-function-type': 'off',
       'no-undef': 'off',
+    },
+  },
+  {
+    // Separate config for test files
+    files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
+    languageOptions: {
+      globals: {
+        // Jest globals
+        describe: 'readonly',
+        test: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        jest: 'readonly',
+        global: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off', // Allow any in tests
+      '@typescript-eslint/no-unused-vars': 'off', // Allow unused vars in tests
     },
   },
   {
