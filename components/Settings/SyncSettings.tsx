@@ -128,13 +128,13 @@ export const SyncSettingsComponent: React.FC<SyncSettingsProps> = ({ onClose }) 
   }
 
   return (
-    <div className="p-6 max-w-md mx-auto bg-white rounded-lg shadow-lg">
+    <div className="p-6 max-w-md mx-auto bg-[var(--bg-primary)] rounded-lg shadow-lg border border-[var(--border-primary)]">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Sync Settings</h2>
+        <h2 className="text-xl font-semibold text-[var(--text-primary)]">Sync Settings</h2>
         {onClose && (
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
             ✕
           </button>
@@ -142,8 +142,8 @@ export const SyncSettingsComponent: React.FC<SyncSettingsProps> = ({ onClose }) 
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="mb-4 p-3 bg-[var(--error)]/10 border border-[var(--error)]/20 rounded-md">
+          <p className="text-sm text-[var(--error)]">{error}</p>
         </div>
       )}
 

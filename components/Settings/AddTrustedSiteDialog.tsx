@@ -82,7 +82,7 @@ export function AddTrustedSiteDialog({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-300"
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
               ✕
             </Button>
@@ -92,25 +92,25 @@ export function AddTrustedSiteDialog({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Domain Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Domain <span className="text-red-400">*</span>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
+                Domain <span className="text-[var(--error)]">*</span>
               </label>
               <input
                 type="text"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
                 placeholder="example.com"
-                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
                 autoFocus
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
                 Enter domain without protocol (e.g., github.com)
               </p>
             </div>
 
             {/* Reason Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                 Reason (Optional)
               </label>
               <input
@@ -118,31 +118,31 @@ export function AddTrustedSiteDialog({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Why is this site trusted?"
-                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
               />
             </div>
 
             {/* Allowed Methods */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
                 Allowed Methods (Optional)
               </label>
-              <p className="text-xs text-gray-500 mb-2">
+              <p className="text-xs text-[var(--text-secondary)] mb-2">
                 Leave empty to allow all methods
               </p>
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {TRACKING_METHODS.map((method) => (
                   <label
                     key={method.value}
-                    className="flex items-center p-2 hover:bg-dark-700 rounded cursor-pointer"
+                    className="flex items-center p-2 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={selectedMethods.includes(method.value)}
                       onChange={() => handleMethodToggle(method.value)}
-                      className="rounded border-dark-600 text-primary-500 focus:ring-primary-500 mr-2"
+                      className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] mr-2"
                     />
-                    <span className="text-sm text-gray-300">{method.label}</span>
+                    <span className="text-sm text-[var(--text-primary)]">{method.label}</span>
                   </label>
                 ))}
               </div>
@@ -150,18 +150,18 @@ export function AddTrustedSiteDialog({
 
             {/* Temporary Checkbox */}
             <div>
-              <label className="flex items-center p-2 hover:bg-dark-700 rounded cursor-pointer">
+              <label className="flex items-center p-2 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer">
                 <input
                   type="checkbox"
                   checked={temporary}
                   onChange={(e) => setTemporary(e.target.checked)}
-                  className="rounded border-dark-600 text-primary-500 focus:ring-primary-500 mr-2"
+                  className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] mr-2"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-300">
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
                     Temporary (Session only)
                   </span>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--text-secondary)]">
                     Remove this site when browser restarts
                   </p>
                 </div>
@@ -170,7 +170,7 @@ export function AddTrustedSiteDialog({
 
             {/* Error Message */}
             {error && (
-              <div className="p-2 bg-red-500/10 border border-red-500/30 rounded text-sm text-red-400">
+              <div className="p-2 bg-[var(--error)]/10 border border-[var(--error)]/30 rounded text-sm text-[var(--error)]">
                 {String(error).replace(/</g, '&lt;').replace(/>/g, '&gt;')}
               </div>
             )}

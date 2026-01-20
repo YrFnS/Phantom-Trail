@@ -284,7 +284,7 @@ export class StorageManager {
   /**
    * Get multiple keys at once
    */
-  static async getMultiple(keys: string[]): Promise<Record<string, any>> {
+  static async getMultiple(keys: string[]): Promise<Record<string, unknown>> {
     try {
       return await chrome.storage.local.get(keys);
     } catch (error) {
@@ -296,7 +296,7 @@ export class StorageManager {
   /**
    * Set multiple key-value pairs at once
    */
-  static async setMultiple(items: Record<string, any>): Promise<void> {
+  static async setMultiple(items: Record<string, unknown>): Promise<void> {
     try {
       await chrome.storage.local.set(items);
     } catch (error) {
@@ -308,7 +308,7 @@ export class StorageManager {
   /**
    * Get all storage data (for sync purposes)
    */
-  static async getAllData(): Promise<Record<string, any>> {
+  static async getAllData(): Promise<Record<string, unknown>> {
     try {
       return await chrome.storage.local.get(null);
     } catch (error) {
@@ -338,7 +338,7 @@ export class StorageManager {
   /**
    * Get syncable data (excludes sensitive information)
    */
-  static async getSyncableData(): Promise<Record<string, any>> {
+  static async getSyncableData(): Promise<Record<string, unknown>> {
     try {
       const allData = await this.getAllData();
       
@@ -352,7 +352,7 @@ export class StorageManager {
         'privacyPreferences'
       ];
 
-      const syncableData: Record<string, any> = {};
+      const syncableData: Record<string, unknown> = {};
       for (const key of syncableKeys) {
         if (allData[key] !== undefined) {
           syncableData[key] = allData[key];
@@ -369,7 +369,7 @@ export class StorageManager {
   /**
    * Set syncable data (used when receiving sync data)
    */
-  static async setSyncableData(data: Record<string, any>): Promise<void> {
+  static async setSyncableData(data: Record<string, unknown>): Promise<void> {
     try {
       // Filter out any non-syncable keys for security
       const allowedKeys = [
@@ -381,7 +381,7 @@ export class StorageManager {
         'privacyPreferences'
       ];
 
-      const filteredData: Record<string, any> = {};
+      const filteredData: Record<string, unknown> = {};
       for (const key of allowedKeys) {
         if (data[key] !== undefined) {
           filteredData[key] = data[key];
@@ -431,7 +431,8 @@ export class StorageManager {
   // Stub methods for compatibility - implement as needed
   static async getTrackingEvents(): Promise<TrackingEvent[]> {
     const events = await this.getAllData();
-    return events[this.EVENTS_KEY] || [];
+    const eventsData = events[this.EVENTS_KEY];
+    return Array.isArray(eventsData) ? eventsData : [];
   }
 
   static async setTrackingEvents(events: TrackingEvent[]): Promise<void> {

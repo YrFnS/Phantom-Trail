@@ -228,13 +228,13 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <div className={className}>
         <Card>
           <CardHeader>
-            <h3 className="text-sm font-semibold text-terminal">Network Graph</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Network Graph</h3>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <LoadingSpinner size="lg" className="mb-3" />
-                <p className="text-sm text-gray-400">Loading network...</p>
+                <p className="text-sm text-[var(--text-secondary)]">Loading network...</p>
               </div>
             </div>
           </CardContent>
@@ -248,22 +248,22 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <div className={className}>
         <Card>
           <CardHeader>
-            <h3 className="text-sm font-semibold text-terminal">Network Graph</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Network Graph</h3>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <svg className="w-12 h-12 mx-auto mb-3 text-gray-600 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="w-12 h-12 mx-auto mb-3 text-[var(--text-tertiary)] opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="2"/>
                   <circle cx="19" cy="5" r="2"/>
                   <circle cx="5" cy="19" r="2"/>
                   <circle cx="19" cy="19" r="2"/>
                   <path d="M13.5 10.5l4-4M10.5 13.5l-4 4M13.5 13.5l4 4"/>
                 </svg>
-                <p className="text-sm text-gray-400 mb-1">
+                <p className="text-sm text-[var(--text-secondary)] mb-1">
                   No tracking data yet
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-[var(--text-tertiary)]">
                   Visit websites to see the network
                 </p>
               </div>
@@ -279,8 +279,8 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h3 className="font-medium text-terminal">Network Graph</h3>
-            <div className="text-xs text-gray-400">
+            <h3 className="font-medium text-[var(--text-primary)]">Network Graph</h3>
+            <div className="text-xs text-[var(--text-secondary)]">
               {data.nodes.length} domains, {data.edges.length} connections
             </div>
           </div>
@@ -288,29 +288,29 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
         <CardContent>
           <div
             ref={containerRef}
-            className="w-full h-64 border border-dark-600 rounded-lg bg-dark-900 mb-3"
+            className="w-full h-64 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-tertiary)] mb-3"
             style={{ height: '320px' }}
           />
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-xs text-gray-400">
+            <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-risk-safe"></div>
+                <div className="w-2 h-2 rounded-full bg-[var(--success)]"></div>
                 <span>Low Risk</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-risk-medium"></div>
+                <div className="w-2 h-2 rounded-full bg-[var(--warning)]"></div>
                 <span>Medium Risk</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-risk-high"></div>
+                <div className="w-2 h-2 rounded-full bg-[var(--warning)]"></div>
                 <span>High Risk</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-risk-critical"></div>
+                <div className="w-2 h-2 rounded-full bg-[var(--error)]"></div>
                 <span>Critical Risk</span>
               </div>
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-[var(--text-tertiary)]">
               Click nodes to explore
             </div>
           </div>

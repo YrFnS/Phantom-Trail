@@ -59,10 +59,10 @@ export const QuickTrustButton: React.FC<QuickTrustButtonProps> = ({
       className={`
         ${buttonSize}
         ${isTrusted 
-          ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          ? 'bg-[var(--success-light)] text-[var(--success)] hover:bg-[var(--success-light)]' 
+          : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
         }
-        border border-gray-300 rounded-md transition-colors duration-200
+        border border-[var(--border-primary)] rounded-md transition-colors duration-200
         disabled:opacity-50 disabled:cursor-not-allowed
         ${className}
       `}

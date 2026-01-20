@@ -3,155 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theme Test</title>
+    <title>Theme Test - Phantom Trail</title>
+    <link rel="stylesheet" href="../styles/themes.css">
     <style>
-        /* Theme System - CSS Custom Properties */
-
-        :root {
-          /* Light theme (default) */
-          --bg-primary: #ffffff;
-          --bg-secondary: #f8fafc;
-          --bg-tertiary: #f1f5f9;
-          --text-primary: #0f172a;
-          --text-secondary: #475569;
-          --text-tertiary: #64748b;
-          --border-primary: #e2e8f0;
-          --border-secondary: #cbd5e1;
-          --accent-primary: #3b82f6;
-          --accent-secondary: #1d4ed8;
-          --success: #10b981;
-          --warning: #f59e0b;
-          --error: #ef4444;
-          
-          /* Theme transition */
-          --theme-transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
-        }
-
-        [data-theme="dark"] {
-          /* Dark theme overrides */
-          --bg-primary: #0f0f0f;
-          --bg-secondary: #1a1a1a;
-          --bg-tertiary: #262626;
-          --text-primary: #fafafa;
-          --text-secondary: #a3a3a3;
-          --text-tertiary: #737373;
-          --border-primary: #404040;
-          --border-secondary: #525252;
-          --accent-primary: #60a5fa;
-          --accent-secondary: #3b82f6;
-          --success: #34d399;
-          --warning: #fbbf24;
-          --error: #f87171;
-        }
-
-        /* Apply transitions to all elements */
-        * {
-          transition: var(--theme-transition);
-        }
-
-        /* Base styling using CSS variables */
         body {
-          background-color: var(--bg-primary);
-          color: var(--text-primary);
-          font-family: system-ui, -apple-system, sans-serif;
-          padding: 20px;
+            font-family: 'Inter', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: var(--theme-transition);
         }
-
-        .card {
-          background-color: var(--bg-secondary);
-          border: 1px solid var(--border-primary);
-          border-radius: 8px;
-          padding: 16px;
-          margin: 16px 0;
+        
+        .theme-demo {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-
-        .button {
-          background-color: var(--accent-primary);
-          color: white;
-          border: none;
-          border-radius: 6px;
-          padding: 8px 16px;
-          cursor: pointer;
-          margin: 4px;
+        
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 20px;
         }
-
-        .button:hover {
-          background-color: var(--accent-secondary);
+        
+        .theme-toggle:hover {
+            background: var(--accent-primary);
+            color: white;
         }
-
-        .text-secondary {
-          color: var(--text-secondary);
+        
+        .color-sample {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border: 1px solid var(--border-primary);
         }
-
-        .success {
-          color: var(--success);
-        }
-
-        .warning {
-          color: var(--warning);
-        }
-
-        .error {
-          color: var(--error);
-        }
+        
+        .primary { background: var(--bg-primary); }
+        .secondary { background: var(--bg-secondary); }
+        .tertiary { background: var(--bg-tertiary); }
+        .accent { background: var(--accent-primary); color: white; }
+        .success { background: var(--success); color: white; }
+        .warning { background: var(--warning); color: white; }
+        .error { background: var(--error); color: white; }
     </style>
 </head>
 <body>
-    <h1>Theme System Test</h1>
-    
-    <div class="card">
-        <h2>Theme Controls</h2>
-        <button class="button" onclick="setTheme('light')">Light Theme</button>
-        <button class="button" onclick="setTheme('dark')">Dark Theme</button>
-        <button class="button" onclick="setTheme('auto')">Auto Theme</button>
-    </div>
-
-    <div class="card">
-        <h2>Color Examples</h2>
-        <p>Primary text color</p>
-        <p class="text-secondary">Secondary text color</p>
-        <p class="success">Success color</p>
-        <p class="warning">Warning color</p>
-        <p class="error">Error color</p>
-    </div>
-
-    <div class="card">
-        <h2>Current Theme</h2>
-        <p>Theme: <span id="current-theme">auto</span></p>
-        <p>System prefers: <span id="system-theme">unknown</span></p>
+    <div class="theme-demo">
+        <h1>Phantom Trail Theme Test</h1>
+        
+        <button class="theme-toggle" onclick="toggleTheme()">
+            Toggle Theme (Current: <span id="current-theme">auto</span>)
+        </button>
+        
+        <h2>Color Samples</h2>
+        <div class="color-sample primary">Primary Background</div>
+        <div class="color-sample secondary">Secondary Background</div>
+        <div class="color-sample tertiary">Tertiary Background</div>
+        <div class="color-sample accent">Accent Color</div>
+        <div class="color-sample success">Success Color</div>
+        <div class="color-sample warning">Warning Color</div>
+        <div class="color-sample error">Error Color</div>
+        
+        <h2>Text Colors</h2>
+        <p style="color: var(--text-primary)">Primary Text</p>
+        <p style="color: var(--text-secondary)">Secondary Text</p>
+        <p style="color: var(--text-tertiary)">Tertiary Text</p>
+        
+        <h2>Borders</h2>
+        <div style="border: 2px solid var(--border-primary); padding: 10px; margin: 10px 0;">
+            Primary Border
+        </div>
+        <div style="border: 2px solid var(--border-secondary); padding: 10px; margin: 10px 0;">
+            Secondary Border
+        </div>
     </div>
 
     <script>
-        function setTheme(theme) {
-            const root = document.documentElement;
+        let currentTheme = 'auto';
+        
+        function toggleTheme() {
+            const themes = ['auto', 'light', 'dark'];
+            const currentIndex = themes.indexOf(currentTheme);
+            const nextIndex = (currentIndex + 1) % themes.length;
+            currentTheme = themes[nextIndex];
             
-            if (theme === 'auto') {
+            const root = document.documentElement;
+            root.removeAttribute('data-theme');
+            
+            if (currentTheme === 'auto') {
                 const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                 root.setAttribute('data-theme', systemTheme);
             } else {
-                root.setAttribute('data-theme', theme);
+                root.setAttribute('data-theme', currentTheme);
             }
             
-            document.getElementById('current-theme').textContent = theme;
+            document.getElementById('current-theme').textContent = currentTheme;
         }
-
-        function updateSystemTheme() {
-            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            document.getElementById('system-theme').textContent = systemTheme;
-        }
-
-        // Initialize
-        updateSystemTheme();
-        setTheme('auto');
-
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-            updateSystemTheme();
-            const currentTheme = document.getElementById('current-theme').textContent;
-            if (currentTheme === 'auto') {
-                setTheme('auto');
-            }
-        });
+        
+        // Initialize theme
+        toggleTheme();
+        toggleTheme(); // Start with light theme for testing
     </script>
 </body>
 </html>

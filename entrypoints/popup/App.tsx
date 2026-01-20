@@ -1,5 +1,6 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { StorageManager } from '../../lib/storage-manager';
+import { ThemeManager } from '../../lib/theme-manager';
 import { calculatePrivacyScore } from '../../lib/privacy-score';
 import { ExportButton } from '../../components/ExportButton';
 import { RateLimitStatus } from '../../components/RateLimitStatus';
@@ -20,7 +21,7 @@ const CommunityInsights = lazy(() => import('../../components/CommunityInsights'
 // Loading component for lazy-loaded components
 const ComponentLoader = () => (
   <div className="flex items-center justify-center h-32">
-    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-plasma"></div>
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--accent-primary)]"></div>
   </div>
 );
 
@@ -52,6 +53,9 @@ function App() {
 
   // Load recent events and calculate both privacy scores
   useEffect(() => {
+    // Initialize theme on app load
+    ThemeManager.initializeTheme();
+    
     const loadData = async () => {
       try {
         const recentEvents = await StorageManager.getRecentEvents(100);
@@ -128,8 +132,9 @@ function App() {
               />
               <button
                 onClick={() => setShowSettings(true)}
-                className="w-7 h-7 rounded-md hover:bg-[var(--bg-tertiary)] hover:border hover:border-[var(--accent-primary)]/30 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center justify-center"
+                className="w-7 h-7 rounded-md hover:bg-[var(--bg-tertiary)] hover:border hover:border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                 title="Settings"
+                aria-label="Open settings"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="3"/>

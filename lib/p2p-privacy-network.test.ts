@@ -6,7 +6,7 @@ import { P2PPrivacyNetwork } from '../lib/p2p-privacy-network';
 import { AnonymizationService } from '../lib/anonymization';
 
 // Mock Chrome APIs for testing
-(global as any).chrome = {
+(global as { chrome?: unknown }).chrome = {
   storage: {
     local: {
       get: jest.fn().mockResolvedValue({ p2pSettings: { joinPrivacyNetwork: true } }),
@@ -26,7 +26,7 @@ import { AnonymizationService } from '../lib/anonymization';
 };
 
 // Mock WebRTC
-(global as any).RTCPeerConnection = jest.fn().mockImplementation(() => ({
+(global as { RTCPeerConnection?: unknown }).RTCPeerConnection = jest.fn().mockImplementation(() => ({
   createDataChannel: jest.fn().mockReturnValue({
     readyState: 'open',
     send: jest.fn(),

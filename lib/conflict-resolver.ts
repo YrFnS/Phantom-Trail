@@ -1,5 +1,25 @@
 import { DataConflict, SyncData } from './sync-manager';
 
+// Define specific types for data that can have timestamps
+interface TimestampedData {
+  timestamp?: number;
+  lastModified?: number;
+}
+
+// Define types for merge operations
+interface MergeableObject extends Record<string, unknown> {
+  timestamp?: number;
+  lastModified?: number;
+}
+
+interface IdentifiableObject extends Record<string, unknown> {
+  id?: string;
+  domain?: string;
+  name?: string;
+  key?: string;
+  identifier?: string;
+}
+
 export interface ConflictResolutionStrategy {
   name: string;
   description: string;
@@ -12,8 +32,8 @@ export class ConflictResolver {
       name: 'Newest Wins',
       description: 'Use the data with the most recent timestamp',
       resolve: (localData: unknown, remoteData: unknown) => {
-        const local = localData as { timestamp?: number; lastModified?: number };
-        const remote = remoteData as { timestamp?: number; lastModified?: number };
+        const local = localData as TimestampedData;
+        const remote = remoteData as TimestampedData;
         const localTime = local.timestamp || local.lastModified || 0;
         const remoteTime = remote.timestamp || remote.lastModified || 0;
         return localTime > remoteTime ? localData : remoteData;
@@ -22,26 +42,29 @@ export class ConflictResolver {
     ['local-wins', {
       name: 'Local Wins',
       description: 'Always prefer local data over remote data',
-      resolve: (localData: any) => localData
+      resolve: (localData: unknown) => localData
     }],
     ['remote-wins', {
       name: 'Remote Wins',
       description: 'Always prefer remote data over local data',
-      resolve: (_localData: any, remoteData: any) => remoteData
+      resolve: (_localData: unknown, remoteData: unknown) => remoteData
     }],
     ['merge', {
       name: 'Smart Merge',
       description: 'Intelligently combine local and remote data',
-      resolve: (localData: any, remoteData: any) => {
+      resolve: (localData: unknown, remoteData: unknown) => {
         if (Array.isArray(localData) && Array.isArray(remoteData)) {
           return ConflictResolver.mergeArrays(localData, remoteData);
         }
-        if (typeof localData === 'object' && typeof remoteData === 'object') {
-          return ConflictResolver.mergeObjects(localData, remoteData);
+        if (typeof localData === 'object' && typeof remoteData === 'object' && 
+            localData !== null && remoteData !== null) {
+          return ConflictResolver.mergeObjects(localData as MergeableObject, remoteData as MergeableObject);
         }
         // For primitive values, use newest wins
-        const localTime = localData.timestamp || localData.lastModified || 0;
-        const remoteTime = remoteData.timestamp || remoteData.lastModified || 0;
+        const local = localData as TimestampedData;
+        const remote = remoteData as TimestampedData;
+        const localTime = local.timestamp || local.lastModified || 0;
+        const remoteTime = remote.timestamp || remote.lastModified || 0;
         return localTime > remoteTime ? localData : remoteData;
       }
     }]
@@ -80,12 +103,17 @@ export class ConflictResolver {
   private static mergeArrays(local: unknown[], remote: unknown[]): unknown[] {
     // For arrays of objects with unique identifiers
     if (local.length > 0 && remote.length > 0 && 
-        typeof local[0] === 'object' && typeof remote[0] === 'object') {
+        typeof local[0] === 'object' && typeof remote[0] === 'object' &&
+        local[0] !== null && remote[0] !== null) {
       
       // Try to find a unique identifier field
-      const idField = this.findIdField(local[0]);
+      const idField = this.findIdField(local[0] as IdentifiableObject);
       if (idField) {
-        return this.mergeArraysByField(local, remote, idField);
+        return this.mergeArraysByField(
+          local as IdentifiableObject[], 
+          remote as IdentifiableObject[], 
+          idField
+        );
       }
     }
 
@@ -94,20 +122,21 @@ export class ConflictResolver {
     return Array.from(new Set(combined));
   }
 
-  private static mergeObjects(local: any, remote: any): any {
+  private static mergeObjects(local: MergeableObject, remote: MergeableObject): MergeableObject {
     const merged = { ...remote };
 
     for (const [key, value] of Object.entries(local)) {
       if (!(key in remote)) {
         // Key only exists locally
         merged[key] = value;
-      } else if (typeof value === 'object' && typeof remote[key] === 'object') {
+      } else if (typeof value === 'object' && typeof remote[key] === 'object' && 
+                 value !== null && remote[key] !== null) {
         // Both are objects, merge recursively
-        merged[key] = this.mergeObjects(value, remote[key]);
+        merged[key] = this.mergeObjects(value as MergeableObject, remote[key] as MergeableObject);
       } else {
         // Conflict on primitive value, use local (could be configurable)
-        const localTime = (value as any).timestamp || (value as any).lastModified || 0;
-        const remoteTime = (remote[key] as any).timestamp || (remote[key] as any).lastModified || 0;
+        const localTime = (value as TimestampedData).timestamp || (value as TimestampedData).lastModified || 0;
+        const remoteTime = (remote[key] as TimestampedData).timestamp || (remote[key] as TimestampedData).lastModified || 0;
         merged[key] = localTime > remoteTime ? value : remote[key];
       }
     }
@@ -115,7 +144,7 @@ export class ConflictResolver {
     return merged;
   }
 
-  private static findIdField(obj: any): string | null {
+  private static findIdField(obj: IdentifiableObject): string | null {
     const commonIdFields = ['id', 'domain', 'name', 'key', 'identifier'];
     
     for (const field of commonIdFields) {
@@ -127,7 +156,7 @@ export class ConflictResolver {
     return null;
   }
 
-  private static mergeArraysByField(local: any[], remote: any[], idField: string): any[] {
+  private static mergeArraysByField(local: IdentifiableObject[], remote: IdentifiableObject[], idField: string): IdentifiableObject[] {
     const merged = [...remote];
     const remoteIds = new Set(remote.map(item => item[idField]));
 
@@ -194,7 +223,7 @@ export class ConflictResolver {
     return conflicts;
   }
 
-  private static hasDataChanged(local: any, remote: any): boolean {
+  private static hasDataChanged(local: unknown, remote: unknown): boolean {
     try {
       return JSON.stringify(local) !== JSON.stringify(remote);
     } catch {

@@ -11,23 +11,22 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Load current theme
-    const loadTheme = async () => {
-      const currentTheme = await ThemeManager.getCurrentTheme();
-      setTheme(currentTheme);
-    };
-    loadTheme();
-
-    // Listen for theme changes
     const handleThemeChange = (event: Event) => {
       const customEvent = event as CustomEvent<{ theme: Theme }>;
       setTheme(customEvent.detail.theme);
     };
 
-    window.addEventListener('themechange', handleThemeChange);
-    return () => {
-      window.removeEventListener('themechange', handleThemeChange);
+    const loadTheme = async () => {
+      const currentTheme = await ThemeManager.getCurrentTheme();
+      setTheme(currentTheme);
     };
+    
+    loadTheme();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('themechange', handleThemeChange);
+      return () => window.removeEventListener('themechange', handleThemeChange);
+    }
   }, []);
 
   const toggleTheme = async () => {
@@ -42,9 +41,11 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
   };
 
   const getIcon = () => {
+    const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-4 h-4';
+    
     if (theme === Theme.AUTO) {
       return (
-        <svg className={`${size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="4"/>
           <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34L4.93 4.93M19.07 19.07l-1.41-1.41"/>
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" opacity="0.5"/>
@@ -54,7 +55,7 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
     
     if (theme === Theme.LIGHT) {
       return (
-        <svg className={`${size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="4"/>
           <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34L4.93 4.93M19.07 19.07l-1.41-1.41"/>
         </svg>
@@ -62,16 +63,10 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
     }
     
     return (
-      <svg className={`${size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
       </svg>
     );
-  };
-
-  const getLabel = () => {
-    if (theme === Theme.AUTO) return 'Switch to light theme';
-    if (theme === Theme.LIGHT) return 'Switch to dark theme';
-    return 'Switch to auto theme';
   };
 
   const buttonSize = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7';
@@ -80,9 +75,9 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
     <button
       onClick={toggleTheme}
       disabled={isLoading}
-      className={`${buttonSize} rounded-md hover:bg-[var(--bg-tertiary)] hover:border hover:border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center justify-center disabled:opacity-50 ${className}`}
-      title={getLabel()}
-      aria-label={getLabel()}
+      className={`${buttonSize} rounded-md hover:bg-[var(--bg-tertiary)] hover:border hover:border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all flex items-center justify-center disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${className}`}
+      title={`Current: ${theme} theme`}
+      aria-label={`Switch theme (current: ${theme})`}
     >
       {isLoading ? (
         <div className={`animate-spin rounded-full border-b-2 border-current ${size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'}`} />

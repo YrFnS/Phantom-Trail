@@ -8,6 +8,6 @@
   },
   "then": {
     "type": "runCommand",
-    "command": "powershell.exe -Command \"cd 'C:\\Users\\Itokoro\\Phantom-Trail'; if (Test-Path node_modules) { Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue }; pnpm install; echo 'Dependencies refreshed after Kiro CLI work'\""
+    "command": "pnpm install"
   }
 }

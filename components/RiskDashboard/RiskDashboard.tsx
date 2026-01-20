@@ -153,9 +153,9 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
       </div>
 
       {/* Large score display */}
-      <div className="relative p-4 rounded-lg bg-void border border-plasma/30 shadow-[0_0_20px_rgba(188,19,254,0.4)]">
+      <div className="relative p-4 rounded-lg bg-[var(--bg-elevated)] border border-[var(--accent-primary)]/30 shadow-[var(--shadow-lg)]">
         <div className="text-center">
-          <div className="text-4xl font-bold text-plasma mb-1 drop-shadow-[0_0_10px_rgba(188,19,254,0.8)]">
+          <div className="text-4xl font-bold text-[var(--accent-primary)] mb-1 drop-shadow-[0_0_10px_rgba(var(--accent-primary),0.8)]">
             {metrics.overallRiskScore}
           </div>
           <div className="text-xs text-gray-400">
@@ -220,7 +220,7 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
             className="flex items-center justify-between p-2 rounded-lg bg-dark-800/50 border border-dark-600/50 hover:border-plasma/30 transition-all cursor-pointer"
           >
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-terminal truncate">
+              <div className="text-xs font-medium text-[var(--text-primary)] truncate">
                 {tracker.domain}
               </div>
               <div className="text-[10px] text-gray-400">

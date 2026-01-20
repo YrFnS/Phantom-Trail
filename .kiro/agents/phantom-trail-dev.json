@@ -6,7 +6,7 @@
     "postToolUse": [
       {
         "matcher": "fs_write",
-        "command": ".kiro/hooks/lint-format.sh",
+        "command": "powershell.exe -ExecutionPolicy Bypass -File .kiro/hooks/lint-format.ps1",
         "timeout_ms": 30000
       }
     ]

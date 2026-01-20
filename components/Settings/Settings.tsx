@@ -62,7 +62,7 @@ export function Settings({ onClose }: SettingsProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-terminal">Settings</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Settings</h2>
             <Button
               variant="ghost"
               size="sm"
@@ -73,86 +73,86 @@ export function Settings({ onClose }: SettingsProps) {
           </div>
           
           {/* Tab Navigation */}
-          <div className="flex gap-2 mt-4 border-b border-dark-600">
+          <div className="flex gap-1 mt-4 border-b border-[var(--border-primary)] overflow-x-auto pb-1">
             <button
               onClick={() => setActiveTab('general')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'general'
-                  ? 'border-primary-500 text-primary-500'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               General
             </button>
             <button
               onClick={() => setActiveTab('appearance')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'appearance'
-                  ? 'border-primary-500 text-primary-500'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              Appearance
+              Theme
             </button>
             <button
               onClick={() => setActiveTab('badge')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'badge'
-                  ? 'border-primary-500 text-primary-500'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Badge
             </button>
             <button
               onClick={() => setActiveTab('export')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'export'
-                  ? 'border-primary-500 text-primary-500'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Export
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'notifications'
-                  ? 'border-primary-500 text-primary-500'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              Notifications
+              Alerts
             </button>
             <button
               onClick={() => setActiveTab('trusted-sites')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'trusted-sites'
-                  ? 'border-primary-500 text-primary-500'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              Trusted Sites
+              Sites
             </button>
             <button
               onClick={() => setActiveTab('shortcuts')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'shortcuts'
-                  ? 'border-primary-500 text-primary-500'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              Shortcuts
+              Keys
             </button>
             <button
               onClick={() => setActiveTab('p2p')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'p2p'
-                  ? 'border-primary-500 text-primary-500'
-                  : 'border-transparent text-gray-400 hover:text-gray-300'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              P2P Network
+              P2P
             </button>
           </div>
         </CardHeader>
@@ -162,7 +162,7 @@ export function Settings({ onClose }: SettingsProps) {
             <div className="space-y-6">
             {/* API Key */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
                 OpenRouter API Key (Optional)
               </label>
               <input
@@ -170,15 +170,15 @@ export function Settings({ onClose }: SettingsProps) {
                 value={apiKey}
                 onChange={e => setApiKey(e.target.value)}
                 placeholder="sk-or-v1-..."
-                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
                 Get your free key from{' '}
                 <a
                   href="https://openrouter.ai/keys"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-accent-teal hover:underline"
+                  className="text-[var(--accent-primary)] hover:underline"
                 >
                   openrouter.ai
                 </a>
@@ -187,7 +187,7 @@ export function Settings({ onClose }: SettingsProps) {
 
             {/* Model Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
                 AI Model
               </label>
               <select
@@ -195,7 +195,7 @@ export function Settings({ onClose }: SettingsProps) {
                 onChange={e =>
                   setSettings({ ...settings, aiModel: e.target.value })
                 }
-                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
               >
                 {AI_MODELS.map(model => (
                   <option key={model.id} value={model.id}>
@@ -208,18 +208,18 @@ export function Settings({ onClose }: SettingsProps) {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
                 Free models have usage limits
               </p>
             </div>
 
             {/* AI Toggle */}
-            <div className="flex items-center justify-between p-3 bg-dark-700 rounded-lg border border-dark-600">
+            <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
               <div>
-                <label className="text-sm font-medium text-gray-300">
+                <label className="text-sm font-medium text-[var(--text-primary)]">
                   AI Analysis
                 </label>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-[var(--text-secondary)]">
                   Enable AI-powered tracking analysis
                 </p>
               </div>
@@ -229,13 +229,13 @@ export function Settings({ onClose }: SettingsProps) {
                 onChange={e =>
                   setSettings({ ...settings, enableAI: e.target.checked })
                 }
-                className="rounded border-dark-600 text-primary-500 focus:ring-primary-500"
+                className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
               />
             </div>
 
             {/* Risk Threshold */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
                 Risk Alert Threshold
               </label>
               <select
@@ -246,14 +246,14 @@ export function Settings({ onClose }: SettingsProps) {
                     riskThreshold: e.target.value as RiskLevel,
                   })
                 }
-                className="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded-md text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
                 <option value="critical">Critical Only</option>
               </select>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
                 Only show alerts for risks at or above this level
               </p>
             </div>

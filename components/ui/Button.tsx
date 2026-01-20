@@ -9,21 +9,21 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', ...props }, ref) => {
     const baseStyles =
-      'inline-flex items-center justify-center rounded-md font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
+      'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--focus-ring-offset)] disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]';
 
     const variants = {
       primary:
-        'bg-hud text-terminal border border-plasma/30 hover:border-plasma hover:shadow-[0_0_15px_rgba(188,19,254,0.4)] focus-visible:ring-plasma transition-all',
+        'bg-[var(--accent-primary)] text-[var(--bg-primary)] shadow-[var(--shadow-sm)] hover:bg-[var(--accent-secondary)] hover:shadow-[var(--shadow-md)] active:bg-[var(--accent-hover)]',
       secondary:
-        'bg-dark-700 text-gray-300 hover:bg-dark-600 border border-dark-600 focus-visible:ring-accent-cyan',
+        'bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-primary)] shadow-[var(--shadow-sm)] hover:bg-[var(--bg-secondary)] hover:border-[var(--border-secondary)] hover:shadow-[var(--shadow-md)]',
       ghost:
-        'text-gray-400 hover:bg-dark-700 hover:text-gray-200 focus-visible:ring-primary-500',
+        'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] rounded-md',
     };
 
     const sizes = {
       sm: 'h-8 px-3 text-xs',
-      md: 'h-9 px-4 text-sm',
-      lg: 'h-10 px-6 text-base',
+      md: 'h-10 px-4 text-sm',
+      lg: 'h-12 px-6 text-base',
     };
 
     return (

@@ -8,7 +8,13 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Card({ className, children, ...props }: CardProps) {
   return (
     <div
-      className={cn('bg-dark-800 rounded-lg border border-dark-600 shadow-lg hover:border-plasma/20 transition-all duration-300', className)}
+      className={cn(
+        'bg-[var(--bg-elevated)] rounded-xl border border-[var(--border-primary)]',
+        'shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)]',
+        'hover:border-[var(--accent-primary)]/30 transition-all duration-300',
+        'backdrop-blur-sm',
+        className
+      )}
       {...props}
     >
       {children}
@@ -22,7 +28,15 @@ interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function CardHeader({ className, children, ...props }: CardHeaderProps) {
   return (
-    <div className={cn('p-4 pb-2 border-b border-dark-600', className)} {...props}>
+    <div 
+      className={cn(
+        'p-6 pb-4 border-b border-[var(--border-primary)]/50',
+        'bg-gradient-to-r from-[var(--bg-secondary)]/50 to-transparent',
+        'rounded-t-xl',
+        className
+      )} 
+      {...props}
+    >
       {children}
     </div>
   );
@@ -38,7 +52,7 @@ export function CardContent({
   ...props
 }: CardContentProps) {
   return (
-    <div className={cn('p-4', className)} {...props}>
+    <div className={cn('p-6', className)} {...props}>
       {children}
     </div>
   );

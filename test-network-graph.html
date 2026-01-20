@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Network Graph Data</title>
+</head>
+<body>
+    <h1>Network Graph Test</h1>
+    <p>This page will add test tracking events to verify the Network Graph is working.</p>
+    
+    <button id="addTestData">Add Test Tracking Data</button>
+    <button id="clearData">Clear All Data</button>
+    <button id="viewData">View Current Data</button>
+    
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('addTestData').addEventListener('click', async () => {
+            const testEvents = [
+                {
+                    id: `test-${Date.now()}-1`,
+                    timestamp: Date.now(),
+                    url: 'https://www.google-analytics.com/collect?v=1&tid=UA-123456-1',
+                    domain: 'www.google-analytics.com',
+                    trackerType: 'analytics',
+                    riskLevel: 'medium',
+                    description: 'Google Analytics tracker'
+                },
+                {
+                    id: `test-${Date.now()}-2`,
+                    timestamp: Date.now(),
+                    url: 'https://connect.facebook.net/en_US/fbevents.js',
+                    domain: 'connect.facebook.net',
+                    trackerType: 'social',
+                    riskLevel: 'high',
+                    description: 'Facebook Pixel tracker'
+                },
+                {
+                    id: `test-${Date.now()}-3`,
+                    timestamp: Date.now(),
+                    url: 'https://doubleclick.net/ads/collect',
+                    domain: 'doubleclick.net',
+                    trackerType: 'advertising',
+                    riskLevel: 'high',
+                    description: 'DoubleClick advertising tracker'
+                }
+            ];
+
+            try {
+                // Get existing events
+                const result = await chrome.storage.local.get('phantom_trail_events');
+                const existingEvents = result.phantom_trail_events || [];
+                
+                // Add test events
+                const allEvents = [...existingEvents, ...testEvents];
+                await chrome.storage.local.set({ phantom_trail_events: allEvents });
+                
+                document.getElementById('output').innerHTML = `<p style="color: green;">Added ${testEvents.length} test events. Total events: ${allEvents.length}</p>`;
+            } catch (error) {
+                document.getElementById('output').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+
+        document.getElementById('clearData').addEventListener('click', async () => {
+            try {
+                await chrome.storage.local.set({ phantom_trail_events: [] });
+                document.getElementById('output').innerHTML = `<p style="color: blue;">All tracking data cleared.</p>`;
+            } catch (error) {
+                document.getElementById('output').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+
+        document.getElementById('viewData').addEventListener('click', async () => {
+            try {
+                const result = await chrome.storage.local.get('phantom_trail_events');
+                const events = result.phantom_trail_events || [];
+                document.getElementById('output').innerHTML = `<p>Current events: ${events.length}</p><pre>${JSON.stringify(events, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('output').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

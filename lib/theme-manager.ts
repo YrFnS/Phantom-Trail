@@ -66,14 +66,16 @@ export class ThemeManager {
   static async toggleTheme(): Promise<void> {
     const currentTheme = await this.getCurrentTheme();
     
+    let newTheme: Theme;
     if (currentTheme === Theme.AUTO) {
-      const systemTheme = this.getSystemTheme();
-      const newTheme = systemTheme === Theme.DARK ? Theme.LIGHT : Theme.DARK;
-      await this.setTheme(newTheme);
+      newTheme = Theme.DARK;
+    } else if (currentTheme === Theme.DARK) {
+      newTheme = Theme.LIGHT;
     } else {
-      const newTheme = currentTheme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT;
-      await this.setTheme(newTheme);
+      newTheme = Theme.DARK;
     }
+    
+    await this.setTheme(newTheme);
   }
 
   static getSystemTheme(): Theme {
@@ -91,7 +93,12 @@ export class ThemeManager {
   }
 
   static applyTheme(theme: Theme): void {
+    if (typeof document === 'undefined') return;
+    
     const root = document.documentElement;
+    
+    // Remove existing theme attributes
+    root.removeAttribute('data-theme');
     
     if (theme === Theme.AUTO) {
       const systemTheme = this.getSystemTheme();
@@ -99,12 +106,28 @@ export class ThemeManager {
     } else {
       root.setAttribute('data-theme', theme);
     }
+    
+    // Also set on body for extension popup
+    if (document.body) {
+      document.body.removeAttribute('data-theme');
+      const appliedTheme = theme === Theme.AUTO ? this.getSystemTheme() : theme;
+      document.body.setAttribute('data-theme', appliedTheme);
+    }
   }
 
   static async initializeTheme(): Promise<void> {
     const theme = await this.getCurrentTheme();
     this.applyTheme(theme);
     this.setupSystemThemeListener();
+    
+    // Set initial theme on document load
+    if (typeof document !== 'undefined') {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => this.applyTheme(theme));
+      } else {
+        this.applyTheme(theme);
+      }
+    }
   }
 
   private static setupSystemThemeListener(): void {

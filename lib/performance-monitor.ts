@@ -124,7 +124,7 @@ export class PerformanceMonitor {
     const isServiceWorker = typeof window === 'undefined' && typeof self !== 'undefined';
     
     if (!isServiceWorker && typeof window !== 'undefined') {
-      const performance = (window as any).performance;
+      const performance = (window as { performance?: { memory?: { usedJSHeapSize: number } } }).performance;
       if (performance?.memory) {
         heapUsage = performance.memory.usedJSHeapSize;
       }
@@ -320,7 +320,7 @@ export class PerformanceMonitor {
       // Observe layout shifts
       const layoutObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if (entry.entryType === 'layout-shift' && !(entry as any).hadRecentInput) {
+          if (entry.entryType === 'layout-shift' && !(entry as { hadRecentInput?: boolean }).hadRecentInput) {
             this.metrics.rendering.layoutShifts++;
           }
         }

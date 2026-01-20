@@ -173,20 +173,20 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
 
   if (!isEnabled) {
     return (
-      <div className="bg-hud border border-tracker/30 rounded-lg p-4">
+      <div className="bg-[var(--bg-elevated)] border border-[var(--border-primary)] rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-terminal font-medium">Community Insights</h3>
-          <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+          <h3 className="text-[var(--text-primary)] font-medium">Community Insights</h3>
+          <div className="w-2 h-2 bg-[var(--text-tertiary)] rounded-full"></div>
         </div>
         
-        <p className="text-terminal/70 text-sm mb-4">
+        <p className="text-[var(--text-secondary)] text-sm mb-4">
           Connect with other privacy-conscious users to compare your privacy practices 
           and get peer recommendations.
         </p>
         
-        <div className="bg-void/50 border border-plasma/20 rounded p-3 mb-4">
-          <h4 className="text-plasma text-sm font-medium mb-2">Privacy-First Design</h4>
-          <ul className="text-terminal/60 text-xs space-y-1">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--accent-primary)]/20 rounded p-3 mb-4">
+          <h4 className="text-[var(--accent-primary)] text-sm font-medium mb-2">Privacy-First Design</h4>
+          <ul className="text-[var(--text-secondary)] text-xs space-y-1">
             <li>• No servers - direct peer-to-peer connections</li>
             <li>• Anonymous data only (scores rounded, no URLs)</li>
             <li>• Data exists only while browsers are connected</li>
@@ -197,7 +197,7 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
         <button
           onClick={enableP2PNetwork}
           disabled={loading}
-          className="w-full bg-plasma hover:bg-plasma/80 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
+          className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50 transition-colors"
         >
           {loading ? 'Connecting...' : 'Join Privacy Network'}
         </button>
@@ -206,46 +206,46 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
   }
 
   return (
-    <div className="bg-hud border border-tracker/30 rounded-lg p-4">
+    <div className="bg-[var(--bg-elevated)] border border-[var(--border-primary)] rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-terminal font-medium">Community Insights</h3>
+        <h3 className="text-[var(--text-primary)] font-medium">Community Insights</h3>
         <div className={`w-2 h-2 rounded-full ${
-          network.isNetworkActive() ? 'bg-risk-safe' : 'bg-gray-500'
+          network.isNetworkActive() ? 'bg-[var(--success)]' : 'bg-[var(--text-tertiary)]'
         }`}></div>
       </div>
       
-      <div className="text-terminal/70 text-sm mb-4">
+      <div className="text-[var(--text-secondary)] text-sm mb-4">
         {networkStatus}
       </div>
       
       {comparison && (
         <div className="space-y-4">
-          <div className="bg-void/50 border border-tracker/20 rounded p-3">
+          <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-3">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-terminal/70 text-sm">Your Score</span>
-              <span className="text-plasma font-medium">{userGrade} ({userScore})</span>
+              <span className="text-[var(--text-secondary)] text-sm">Your Score</span>
+              <span className="text-[var(--accent-primary)] font-medium">{userGrade} ({userScore})</span>
             </div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-terminal/70 text-sm">Network Average</span>
-              <span className="text-terminal">{Math.round(comparison.networkAverage)}</span>
+              <span className="text-[var(--text-secondary)] text-sm">Network Average</span>
+              <span className="text-[var(--text-primary)]">{Math.round(comparison.networkAverage)}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-terminal/70 text-sm">Better Than</span>
-              <span className="text-risk-safe font-medium">{comparison.betterThan}% of peers</span>
+              <span className="text-[var(--text-secondary)] text-sm">Better Than</span>
+              <span className="text-[var(--success)] font-medium">{comparison.betterThan}% of peers</span>
             </div>
           </div>
           
           {comparison.recommendations.length > 0 && (
             <div>
-              <h4 className="text-terminal text-sm font-medium mb-2">Peer Recommendations</h4>
+              <h4 className="text-[var(--text-primary)] text-sm font-medium mb-2">Peer Recommendations</h4>
               <div className="space-y-2">
                 {comparison.recommendations.slice(0, 2).map((rec, index) => (
-                  <div key={index} className="bg-void/30 border border-tracker/10 rounded p-2">
+                  <div key={index} className="bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded p-2">
                     <div className="flex justify-between items-start mb-1">
-                      <span className="text-terminal text-sm font-medium">{rec.title}</span>
-                      <span className="text-tracker text-xs">{rec.adoptionRate}% use this</span>
+                      <span className="text-[var(--text-primary)] text-sm font-medium">{rec.title}</span>
+                      <span className="text-[var(--accent-primary)] text-xs">{rec.adoptionRate}% use this</span>
                     </div>
-                    <p className="text-terminal/60 text-xs">{rec.description}</p>
+                    <p className="text-[var(--text-secondary)] text-xs">{rec.description}</p>
                   </div>
                 ))}
               </div>
@@ -257,7 +257,7 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
       <button
         onClick={disableP2PNetwork}
         disabled={loading}
-        className="w-full mt-4 bg-void border border-terminal/20 hover:border-terminal/40 text-terminal/70 px-4 py-2 rounded text-sm disabled:opacity-50"
+        className="w-full mt-4 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] hover:border-[var(--border-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-4 py-2 rounded text-sm disabled:opacity-50 transition-colors"
       >
         {loading ? 'Disconnecting...' : 'Leave Network'}
       </button>

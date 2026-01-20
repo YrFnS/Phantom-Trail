@@ -281,7 +281,7 @@ export class SyncManager {
     };
   }
 
-  private static mergeTrustedSites(local: any[], remote: any[]): any[] {
+  private static mergeTrustedSites(local: UserTrustedSite[], remote: UserTrustedSite[]): UserTrustedSite[] {
     const merged = [...remote];
     const remoteDomains = new Set(remote.map(site => site.domain));
     

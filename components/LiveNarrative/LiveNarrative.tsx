@@ -32,7 +32,7 @@ const EventDisplay = React.memo(
             {event.riskLevel}
           </Badge>
           <div className="flex-1 min-w-0">
-            <h3 className="text-xs font-medium text-terminal truncate">{event.domain}</h3>
+            <h3 className="text-xs font-medium text-[var(--text-primary)] truncate">{event.domain}</h3>
             <p className="text-[10px] text-gray-400 line-clamp-1">{event.description}</p>
           </div>
         </div>
@@ -73,7 +73,7 @@ const PatternAlerts = React.memo(function PatternAlerts({
               ? 'bg-red-500/10 border-red-400 text-red-300'
               : alert.severity === 'warning'
                 ? 'bg-yellow-500/10 border-yellow-400 text-yellow-300'
-                : 'bg-tracker/10 border-tracker text-tracker'
+                : 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)] text-[var(--accent-primary)]'
           }`}
         >
           <div className="flex items-start gap-1.5">
@@ -109,7 +109,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
       <div className={`space-y-2 ${className}`}>
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-semibold text-terminal">Live Activity</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Live Activity</h2>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-3">
@@ -129,7 +129,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
       <div className={`space-y-2 ${className}`}>
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-semibold text-terminal">Live Activity</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Live Activity</h2>
           </CardHeader>
           <CardContent>
             <div className="text-center py-6">
@@ -157,7 +157,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
         <div className="flex items-center gap-1.5">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Live Feed</h2>
           {hasEvents && (
-            <div className="w-1.5 h-1.5 bg-plasma rounded-full animate-pulse-dot" title="Live updates" />
+            <div className="w-1.5 h-1.5 bg-[var(--accent-primary)] rounded-full animate-pulse-dot" title="Live updates" />
           )}
         </div>
         {hasEvents && (
@@ -183,7 +183,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
           <PatternAlerts alerts={alerts} />
 
           {analysis && (
-            <div className="p-2 bg-hud/50 rounded border-l-2 border-plasma/30">
+            <div className="p-2 bg-[var(--bg-secondary)] rounded border-l-2 border-[var(--accent-primary)]/30">
               <p className="text-xs text-gray-300 leading-relaxed">{analysis.narrative}</p>
             </div>
           )}

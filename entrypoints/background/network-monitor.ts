@@ -1,4 +1,5 @@
 import { StorageManager } from '../../lib/storage-manager';
+import { TrackerDatabase } from '../../lib/tracker-db';
 import type { TrackingEvent } from '../../lib/types';
 
 export class NetworkMonitor {
@@ -28,25 +29,31 @@ export class NetworkMonitor {
     try {
       if (!details.url || details.tabId === -1) return;
 
-      const url = new URL(details.url);
-      const domain = url.hostname;
-
-      // Check if this is a tracking request (simplified)
-      const isTracker = domain.includes('analytics') || domain.includes('tracking');
+      // Use comprehensive tracker detection
+      const trackerInfo = TrackerDatabase.classifyUrl(details.url);
       
-      if (isTracker) {
+      if (trackerInfo) {
+        const url = new URL(details.url);
+        const domain = url.hostname;
+
         const event: TrackingEvent = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           timestamp: Date.now(),
           url: details.url,
           domain: domain,
-          trackerType: 'analytics',
-          riskLevel: 'medium',
-          description: 'Analytics tracker detected'
+          trackerType: TrackerDatabase.getTrackerType(trackerInfo.category),
+          riskLevel: trackerInfo.riskLevel,
+          description: trackerInfo.description || `${trackerInfo.name} detected`
         };
 
         // Store the event
         await StorageManager.addTrackingEvent(event);
+
+        console.log('[Network Monitor] Tracker detected:', {
+          domain,
+          type: trackerInfo.category,
+          risk: trackerInfo.riskLevel
+        });
 
         // Notify content script if needed
         if (details.tabId > 0) {

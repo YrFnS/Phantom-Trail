@@ -1,49 +1,249 @@
 /* Theme System - CSS Custom Properties */
 
 :root {
-  /* Light theme (default) */
+  /* Light theme (default) - Refined palette */
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --bg-tertiary: #f1f5f9;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #64748b;
+  --bg-elevated: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --text-muted: #cbd5e1;
   --border-primary: #e2e8f0;
   --border-secondary: #cbd5e1;
-  --accent-primary: #3b82f6;
-  --accent-secondary: #1d4ed8;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
+  --border-focus: #6366f1;
+  --accent-primary: #6366f1;
+  --accent-secondary: #4f46e5;
+  --accent-hover: #5b21b6;
+  --success: #059669;
+  --success-light: #d1fae5;
+  --warning: #d97706;
+  --warning-light: #fef3c7;
+  --error: #dc2626;
+  --error-light: #fee2e2;
+  --info: #0284c7;
+  --info-light: #dbeafe;
+  
+  /* Light theme shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  
+  /* Light theme scrollbar */
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  
+  /* Light theme focus ring */
+  --focus-ring: #6366f1;
+  --focus-ring-offset: #ffffff;
   
   /* Theme transition */
-  --theme-transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+  --theme-transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+html[data-theme="dark"],
 [data-theme="dark"] {
-  /* Dark theme overrides */
-  --bg-primary: #0f0f0f;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #262626;
-  --text-primary: #fafafa;
-  --text-secondary: #a3a3a3;
-  --text-tertiary: #737373;
-  --border-primary: #404040;
-  --border-secondary: #525252;
-  --accent-primary: #60a5fa;
-  --accent-secondary: #3b82f6;
-  --success: #34d399;
-  --warning: #fbbf24;
-  --error: #f87171;
+  /* Dark theme - Enhanced Phantom Trail colors */
+  --bg-primary: #050A0E;
+  --bg-secondary: #0f1419;
+  --bg-tertiary: #161B22;
+  --bg-elevated: #1a1f2e;
+  --text-primary: #E6EDF3;
+  --text-secondary: #b3b9c4;
+  --text-tertiary: #8b949e;
+  --text-muted: #6e7681;
+  --border-primary: #30363d;
+  --border-secondary: #484f58;
+  --border-focus: #BC13FE;
+  --accent-primary: #BC13FE;
+  --accent-secondary: #d63bff;
+  --accent-hover: #9333ea;
+  --success: #3fb950;
+  --success-light: #0d1117;
+  --warning: #d29922;
+  --warning-light: #1c1917;
+  --error: #FF2A6D;
+  --error-light: #0d1117;
+  --info: #58a6ff;
+  --info-light: #0d1117;
+  
+  /* Dark theme enhanced shadows with glow effects */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4), 0 0 4px 0 rgb(188 19 254 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5), 0 0 8px 0 rgb(188 19 254 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.6), 0 4px 6px -4px rgb(0 0 0 / 0.6), 0 0 16px 0 rgb(188 19 254 / 0.15);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.7), 0 8px 10px -6px rgb(0 0 0 / 0.7), 0 0 32px 0 rgb(188 19 254 / 0.2);
+  
+  /* Dark theme scrollbar with phantom glow */
+  --scrollbar-track: #161B22;
+  --scrollbar-thumb: linear-gradient(135deg, #BC13FE, #d63bff);
+  --scrollbar-thumb-hover: linear-gradient(135deg, #d63bff, #BC13FE);
+  
+  /* Dark theme focus ring with glow */
+  --focus-ring: #BC13FE;
+  --focus-ring-offset: #050A0E;
 }
 
 /* Apply transitions to all elements */
-* {
+*,
+*::before,
+*::after {
   transition: var(--theme-transition);
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 /* Base styling using CSS variables */
 body {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Enhanced form inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+select,
+textarea {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
   color: var(--text-primary);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  transition: var(--theme-transition);
+  box-shadow: var(--shadow-sm);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--focus-ring)/10, var(--shadow-md);
+}
+
+input[type="text"]:hover,
+input[type="email"]:hover,
+input[type="password"]:hover,
+input[type="number"]:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--border-secondary);
+}
+
+/* Enhanced toggle switches */
+input[type="checkbox"]:checked {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+input[type="checkbox"]:focus {
+  box-shadow: 0 0 0 3px var(--focus-ring)/20;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+  transition: var(--theme-transition);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Enhanced selection */
+::selection {
+  background-color: var(--accent-primary)/20;
+  color: var(--text-primary);
+}
+
+/* Dark theme specific enhancements */
+[data-theme="dark"] ::selection {
+  background-color: var(--accent-primary)/30;
+  color: var(--text-primary);
+  text-shadow: 0 0 8px var(--accent-primary)/50;
+}
+
+/* Dark theme glow effects for interactive elements */
+[data-theme="dark"] .hover\:shadow-\[var\(--shadow-lg\)\]:hover {
+  box-shadow: var(--shadow-lg), 0 0 20px var(--accent-primary)/20;
+}
+
+[data-theme="dark"] .focus-visible\:ring-2:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring-offset), 0 0 0 4px var(--focus-ring), 0 0 16px var(--focus-ring)/30;
+}
+
+/* Dark theme enhanced scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+  transition: var(--theme-transition);
+  box-shadow: 0 0 8px var(--accent-primary)/30;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  box-shadow: 0 0 12px var(--accent-primary)/50;
+}
+
+/* Dark theme phantom glow for primary buttons */
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)]"]:hover {
+  box-shadow: var(--shadow-md), 0 0 20px var(--accent-primary)/40, inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Dark theme card enhancements */
+[data-theme="dark"] .bg-\[var\(--bg-elevated\)\] {
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, rgba(26, 31, 46, 0.8) 100%);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(188, 19, 254, 0.1);
+}
+
+[data-theme="dark"] .bg-\[var\(--bg-elevated\)\]:hover {
+  border-color: var(--accent-primary)/30;
+  box-shadow: var(--shadow-lg), 0 0 20px var(--accent-primary)/15, inset 0 1px 0 rgba(188, 19, 254, 0.15);
+}
+
+/* Loading animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Focus visible improvements */
+.focus-visible\:ring-2:focus-visible {
+  box-shadow: 0 0 0 2px var(--focus-ring-offset), 0 0 0 4px var(--focus-ring);
 }

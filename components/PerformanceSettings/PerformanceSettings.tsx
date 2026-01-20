@@ -49,12 +49,12 @@ export function PerformanceSettings({ className = '' }: PerformanceSettingsProps
   const getGradeColor = (grade: string) => {
     switch (grade) {
       case 'A+':
-      case 'A': return 'text-green-400';
-      case 'B': return 'text-yellow-400';
-      case 'C': return 'text-orange-400';
+      case 'A': return 'text-[var(--success)]';
+      case 'B': return 'text-[var(--warning)]';
+      case 'C': return 'text-[var(--warning)]';
       case 'D':
-      case 'F': return 'text-red-400';
-      default: return 'text-gray-400';
+      case 'F': return 'text-[var(--error)]';
+      default: return 'text-[var(--text-tertiary)]';
     }
   };
 
@@ -69,7 +69,7 @@ export function PerformanceSettings({ className = '' }: PerformanceSettingsProps
         <Card>
           <CardContent>
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-plasma"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--accent-primary)]"></div>
             </div>
           </CardContent>
         </Card>
@@ -83,7 +83,7 @@ export function PerformanceSettings({ className = '' }: PerformanceSettingsProps
       {report && (
         <Card>
           <CardHeader>
-            <h3 className="text-sm font-semibold text-terminal">Performance Score</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Performance Score</h3>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-4">
@@ -92,35 +92,35 @@ export function PerformanceSettings({ className = '' }: PerformanceSettingsProps
                   {report.grade}
                 </div>
                 <div>
-                  <div className="text-lg font-semibold text-terminal">{report.score}/100</div>
-                  <div className="text-xs text-gray-400">Overall Performance</div>
+                  <div className="text-lg font-semibold text-[var(--text-primary)]">{report.score}/100</div>
+                  <div className="text-xs text-[var(--text-tertiary)]">Overall Performance</div>
                 </div>
               </div>
             </div>
 
             {/* Metrics */}
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="text-center p-2 bg-hud/30 rounded">
-                <div className="text-sm font-semibold text-terminal">
+              <div className="text-center p-2 bg-[var(--bg-tertiary)] rounded">
+                <div className="text-sm font-semibold text-[var(--text-primary)]">
                   {report.metrics.cpu.averageUsage.toFixed(1)}%
                 </div>
-                <div className="text-xs text-gray-400">CPU Usage</div>
+                <div className="text-xs text-[var(--text-tertiary)]">CPU Usage</div>
               </div>
-              <div className="text-center p-2 bg-hud/30 rounded">
-                <div className="text-sm font-semibold text-terminal">
+              <div className="text-center p-2 bg-[var(--bg-tertiary)] rounded">
+                <div className="text-sm font-semibold text-[var(--text-primary)]">
                   {formatBytes(report.metrics.memory.totalUsage)}
                 </div>
-                <div className="text-xs text-gray-400">Memory</div>
+                <div className="text-xs text-[var(--text-tertiary)]">Memory</div>
               </div>
             </div>
 
             {/* Recommendations */}
             <div className="space-y-2">
-              <h4 className="text-xs font-medium text-gray-300 uppercase tracking-wider">
+              <h4 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
                 Recommendations
               </h4>
               {report.recommendations.map((rec, index) => (
-                <div key={index} className="text-xs text-gray-400 p-2 bg-hud/20 rounded">
+                <div key={index} className="text-xs text-[var(--text-secondary)] p-2 bg-[var(--bg-secondary)] rounded">
                   {rec}
                 </div>
               ))}
@@ -132,7 +132,7 @@ export function PerformanceSettings({ className = '' }: PerformanceSettingsProps
       {/* Performance Mode */}
       <Card>
         <CardHeader>
-          <h3 className="text-sm font-semibold text-terminal">Performance Mode</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Performance Mode</h3>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -144,13 +144,13 @@ export function PerformanceSettings({ className = '' }: PerformanceSettingsProps
                   value={modeOption}
                   checked={mode === modeOption}
                   onChange={() => handleModeChange(modeOption)}
-                  className="w-4 h-4 text-plasma bg-transparent border-gray-600 focus:ring-plasma focus:ring-2"
+                  className="w-4 h-4 text-[var(--accent-primary)] bg-transparent border-[var(--border-primary)] focus:ring-[var(--accent-primary)] focus:ring-2"
                 />
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-terminal capitalize">
+                  <div className="text-sm font-medium text-[var(--text-primary)] capitalize">
                     {modeOption} Performance
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-[var(--text-tertiary)]">
                     {modeOption === 'high' && 'Maximum features, higher resource usage'}
                     {modeOption === 'balanced' && 'Good balance of features and performance'}
                     {modeOption === 'battery' && 'Reduced features, minimal resource usage'}
@@ -165,43 +165,43 @@ export function PerformanceSettings({ className = '' }: PerformanceSettingsProps
       {/* Advanced Settings */}
       <Card>
         <CardHeader>
-          <h3 className="text-sm font-semibold text-terminal">Advanced Settings</h3>
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Advanced Settings</h3>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-terminal">Virtual Scrolling</div>
-                <div className="text-xs text-gray-400">Optimize large lists</div>
+                <div className="text-sm text-[var(--text-primary)]">Virtual Scrolling</div>
+                <div className="text-xs text-[var(--text-tertiary)]">Optimize large lists</div>
               </div>
               <input
                 type="checkbox"
                 defaultChecked
-                className="w-4 h-4 text-plasma bg-transparent border-gray-600 rounded focus:ring-plasma focus:ring-2"
+                className="w-4 h-4 text-[var(--accent-primary)] bg-transparent border-[var(--border-primary)] rounded focus:ring-[var(--accent-primary)] focus:ring-2"
               />
             </div>
             
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-terminal">Memory Cleanup</div>
-                <div className="text-xs text-gray-400">Automatic cache management</div>
+                <div className="text-sm text-[var(--text-primary)]">Memory Cleanup</div>
+                <div className="text-xs text-[var(--text-tertiary)]">Automatic cache management</div>
               </div>
               <input
                 type="checkbox"
                 defaultChecked
-                className="w-4 h-4 text-plasma bg-transparent border-gray-600 rounded focus:ring-plasma focus:ring-2"
+                className="w-4 h-4 text-[var(--accent-primary)] bg-transparent border-[var(--border-primary)] rounded focus:ring-[var(--accent-primary)] focus:ring-2"
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-terminal">Background Optimization</div>
-                <div className="text-xs text-gray-400">Reduce CPU usage when idle</div>
+                <div className="text-sm text-[var(--text-primary)]">Background Optimization</div>
+                <div className="text-xs text-[var(--text-tertiary)]">Reduce CPU usage when idle</div>
               </div>
               <input
                 type="checkbox"
                 defaultChecked
-                className="w-4 h-4 text-plasma bg-transparent border-gray-600 rounded focus:ring-plasma focus:ring-2"
+                className="w-4 h-4 text-[var(--accent-primary)] bg-transparent border-[var(--border-primary)] rounded focus:ring-[var(--accent-primary)] focus:ring-2"
               />
             </div>
           </div>

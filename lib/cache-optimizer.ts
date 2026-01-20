@@ -1,7 +1,7 @@
-export interface CacheOptions {
+export interface CacheOptions<T = unknown> {
   maxSize: number; // Maximum number of entries
   maxAge?: number; // Maximum age in milliseconds
-  onEvict?: (key: string, value: any) => void;
+  onEvict?: (key: string, value: T) => void;
 }
 
 export class LRUCache<T> {
@@ -10,7 +10,7 @@ export class LRUCache<T> {
   private maxAge?: number;
   private onEvict?: (key: string, value: T) => void;
 
-  constructor(options: CacheOptions) {
+  constructor(options: CacheOptions<T>) {
     this.maxSize = options.maxSize;
     this.maxAge = options.maxAge;
     this.onEvict = options.onEvict;
@@ -123,7 +123,7 @@ export interface MemoryMetrics {
 }
 
 export class CacheOptimizer {
-  private caches: Map<string, LRUCache<any>> = new Map();
+  private caches: Map<string, { cache: LRUCache<unknown>; name: string }> = new Map();
   private maxTotalMemory: number = 100 * 1024 * 1024; // 100MB
   private cleanupInterval: number = 60000; // 1 minute
   private cleanupTimer?: ReturnType<typeof setInterval>;
@@ -133,25 +133,27 @@ export class CacheOptimizer {
     this.startCleanupTimer();
   }
 
-  createCache<T>(name: string, options: CacheOptions): LRUCache<T> {
-    const cache = new LRUCache<T>({
-      ...options,
-      onEvict: (key, value) => {
-        console.debug(`Cache eviction: ${name}:${key}`);
-        options.onEvict?.(key, value);
-      }
-    });
-
-    this.caches.set(name, cache);
+  createCache<T>(name: string, options: CacheOptions<T>): LRUCache<T> {
+    const cache = new LRUCache<T>(options);
+    
+    // Store with type erasure for internal management
+    // We use a wrapper to avoid generic type conflicts
+    const cacheWrapper = {
+      cache: cache as unknown as LRUCache<unknown>,
+      name
+    };
+    
+    this.caches.set(name, cacheWrapper);
     return cache;
   }
 
   getCache<T>(name: string): LRUCache<T> | undefined {
-    return this.caches.get(name) as LRUCache<T>;
+    const entry = this.caches.get(name);
+    return entry ? (entry.cache as LRUCache<T>) : undefined;
   }
 
   async getMemoryMetrics(): Promise<MemoryMetrics> {
-    const performance = (window as any).performance;
+    const performance = (window as { performance?: { memory?: { usedJSHeapSize: number } } }).performance;
     
     let heapUsage = 0;
     if (performance?.memory) {
@@ -159,8 +161,8 @@ export class CacheOptimizer {
     }
 
     let cacheUsage = 0;
-    for (const cache of this.caches.values()) {
-      cacheUsage += cache.size() * 1024; // Rough estimate
+    for (const entry of this.caches.values()) {
+      cacheUsage += entry.cache.size() * 1024; // Rough estimate
     }
 
     // Estimate event storage usage
@@ -185,7 +187,8 @@ export class CacheOptimizer {
 
     // Prune expired entries from all caches
     let totalEvicted = 0;
-    for (const [name, cache] of this.caches.entries()) {
+    for (const [name, entry] of this.caches.entries()) {
+      const cache = entry.cache;
       const evicted = cache.prune();
       totalEvicted += evicted;
       console.debug(`Pruned ${evicted} entries from cache: ${name}`);
@@ -204,7 +207,8 @@ export class CacheOptimizer {
     console.warn('Performing aggressive memory cleanup');
 
     // Clear half of each cache
-    for (const [name, cache] of this.caches.entries()) {
+    for (const [name, entry] of this.caches.entries()) {
+      const cache = entry.cache;
       const targetSize = Math.floor(cache.size() / 2);
       const keys = cache.keys();
       
@@ -216,8 +220,8 @@ export class CacheOptimizer {
     }
 
     // Force garbage collection if available
-    if ((window as any).gc) {
-      (window as any).gc();
+    if ((window as { gc?: () => void }).gc) {
+      (window as { gc?: () => void }).gc!();
     }
   }
 
@@ -234,10 +238,10 @@ export class CacheOptimizer {
     this.caches.clear();
   }
 
-  getCacheStats() {
-    const stats: Record<string, any> = {};
-    for (const [name, cache] of this.caches.entries()) {
-      stats[name] = cache.getStats();
+  getCacheStats(): Record<string, ReturnType<LRUCache<unknown>['getStats']>> {
+    const stats: Record<string, ReturnType<LRUCache<unknown>['getStats']>> = {};
+    for (const [name, entry] of this.caches.entries()) {
+      stats[name] = entry.cache.getStats();
     }
     return stats;
   }
