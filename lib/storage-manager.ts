@@ -28,6 +28,7 @@ export class StorageManager {
   static getDailySnapshots = ReportsStorage.getDailySnapshots;
   static storeWeeklyReport = ReportsStorage.storeWeeklyReport;
   static getWeeklyReports = ReportsStorage.getWeeklyReports;
+  static migrateAndCleanData = ReportsStorage.migrateAndCleanData;
   
   // Base operations
   static get = BaseStorage.get;

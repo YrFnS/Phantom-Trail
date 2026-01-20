@@ -21,13 +21,22 @@ export class PrivacyTrends {
     try {
       const snapshots = await StorageManager.getDailySnapshots(days);
       
-      return snapshots.map(snapshot => ({
-        date: snapshot.date,
-        privacyScore: snapshot.privacyScore,
-        trackingEvents: snapshot.eventCounts.total,
-        riskDistribution: snapshot.eventCounts.byRisk,
-        topTrackers: snapshot.topDomains.slice(0, 5).map(d => d.domain)
-      }));
+      return snapshots.map(snapshot => {
+        // Ensure eventCounts exists and has required properties
+        const eventCounts = snapshot.eventCounts || {
+          total: 0,
+          byRisk: { low: 0, medium: 0, high: 0, critical: 0 },
+          byType: { advertising: 0, analytics: 0, social: 0, fingerprinting: 0, cryptomining: 0, unknown: 0 }
+        };
+        
+        return {
+          date: snapshot.date,
+          privacyScore: snapshot.privacyScore || 100,
+          trackingEvents: eventCounts.total || 0,
+          riskDistribution: eventCounts.byRisk || { low: 0, medium: 0, high: 0, critical: 0 },
+          topTrackers: (snapshot.topDomains || []).slice(0, 5).map(d => d?.domain || 'unknown')
+        };
+      });
     } catch (error) {
       console.error('Failed to calculate daily trends:', error);
       return [];
@@ -68,8 +77,8 @@ export class PrivacyTrends {
       if (trends.length < 7) return [];
       
       const anomalies: Anomaly[] = [];
-      const scores = trends.map(t => t.privacyScore);
-      const events = trends.map(t => t.trackingEvents);
+      const scores = trends.map(t => t.privacyScore || 100);
+      const events = trends.map(t => t.trackingEvents || 0);
       
       // Calculate baselines (7-day moving average)
       for (let i = 6; i < trends.length; i++) {
@@ -77,29 +86,30 @@ export class PrivacyTrends {
         const eventBaseline = this.calculateMovingAverage(events.slice(i-6, i+1), 7)[6];
         
         const trend = trends[i];
-        const scoreDeviation = Math.abs(trend.privacyScore - scoreBaseline);
-        // const eventDeviation = Math.abs(trend.trackingEvents - eventBaseline);
+        const currentScore = trend.privacyScore || 100;
+        const currentEvents = trend.trackingEvents || 0;
+        const scoreDeviation = Math.abs(currentScore - scoreBaseline);
         
         // Detect significant score drops
-        if (trend.privacyScore < scoreBaseline - 15) {
+        if (currentScore < scoreBaseline - 15) {
           anomalies.push({
             date: trend.date,
             type: 'score_drop',
             severity: scoreDeviation > 25 ? 'high' : 'medium',
-            description: `Privacy score dropped significantly to ${trend.privacyScore}`,
-            value: trend.privacyScore,
+            description: `Privacy score dropped significantly to ${currentScore}`,
+            value: currentScore,
             baseline: scoreBaseline
           });
         }
         
         // Detect tracking spikes
-        if (trend.trackingEvents > eventBaseline * 2) {
+        if (currentEvents > eventBaseline * 2) {
           anomalies.push({
             date: trend.date,
             type: 'tracking_spike',
-            severity: trend.trackingEvents > eventBaseline * 3 ? 'high' : 'medium',
-            description: `Unusual tracking activity: ${trend.trackingEvents} events`,
-            value: trend.trackingEvents,
+            severity: currentEvents > eventBaseline * 3 ? 'high' : 'medium',
+            description: `Unusual tracking activity: ${currentEvents} events`,
+            value: currentEvents,
             baseline: eventBaseline
           });
         }
