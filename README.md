@@ -75,7 +75,7 @@ Every time you browse the web, dozens of companies silently track your clicks, r
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/phantom-trail.git
+   git clone https://github.com/YrFnS/Phantom-Trail.git
    cd phantom-trail
    ```
 
@@ -106,22 +106,29 @@ Every time you browse the web, dozens of companies silently track your clicks, r
 ## 🏗️ Tech Stack
 
 - **Framework**: WXT (Vite-based, Manifest V3)
-- **UI**: React 18 + TypeScript + Tailwind CSS
+- **UI**: React 19 + TypeScript + Tailwind CSS
 - **State**: Zustand
-- **Visualization**: Vis.js (network graphs), Chart.js (metrics)
+- **Visualization**: Vis.js (network graphs), Chart.js (metrics), Cytoscape
 - **AI**: OpenRouter API (Claude Haiku primary, GPT-4o-mini backup)
 - **Data Sources**: EasyList/EasyPrivacy, Disconnect.me, ipapi.co
-- **Advanced Features**: P2P networking, cross-device sync, performance monitoring
+- **Advanced Features**: P2P networking, cross-device sync, performance monitoring, error recovery
 
 ## 📁 Project Structure
 
 ```
 phantom-trail/
 ├── entrypoints/               # Extension entry points
-│   ├── background.ts          # Service worker (network interception, AI coordination)
-│   ├── content.ts             # Content scripts (in-page tracking detection)
-│   ├── popup/                 # Main UI
-│   └── sidepanel/             # Optional side panel
+│   ├── background/            # Service worker (network interception, AI coordination)
+│   │   ├── index.ts           # Main background script
+│   │   ├── network-monitor.ts # Network request monitoring
+│   │   ├── message-handler.ts # Inter-script communication
+│   │   └── alarm-manager.ts   # Scheduled tasks
+│   ├── content/               # Content scripts (in-page tracking detection)
+│   │   ├── index.ts           # Main content script
+│   │   ├── dom-monitoring.ts  # DOM change detection
+│   │   ├── event-detection.ts # User interaction tracking
+│   │   └── messaging.ts       # Content-background communication
+│   └── popup/                 # Main UI
 ├── components/                # React components (feature-based)
 │   ├── LiveNarrative/         # Real-time tracking narrative
 │   ├── NetworkGraph/          # Vis.js data flow visualization
@@ -148,6 +155,9 @@ phantom-trail/
 │   ├── p2p-privacy-network.ts # Community features
 │   ├── privacy-predictor.ts   # Impact predictions
 │   ├── performance-monitor.ts # System optimization
+│   ├── error-recovery.ts      # Resilience and fault tolerance
+│   ├── circuit-breaker.ts     # API failure protection
+│   ├── cache-optimizer.ts     # Performance caching
 │   └── storage-manager.ts     # Chrome storage wrapper
 └── assets/                    # Static assets
 ```
@@ -161,9 +171,10 @@ pnpm dev          # Start development server with HMR
 pnpm build        # Build for production
 pnpm build:firefox # Build for Firefox
 pnpm zip          # Create distribution package
-pnpm typecheck    # Run TypeScript checks
+pnpm type-check   # Run TypeScript checks
 pnpm lint         # Run ESLint
 pnpm format       # Format code with Prettier
+pnpm fix-deps     # Fix dependency issues (Windows)
 ```
 
 ### Development Workflow

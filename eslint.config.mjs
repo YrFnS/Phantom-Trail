@@ -108,7 +108,8 @@ export default [
       'lib/storage-manager.ts', 
       'lib/privacy-predictor.ts',
       'lib/cache-optimizer.ts',
-      'lib/performance-monitor.ts'
+      'lib/performance-monitor.ts',
+      'lib/performance/**/*.ts'
     ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off', // Temporarily allow any types in advanced feature files
