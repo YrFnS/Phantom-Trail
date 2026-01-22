@@ -10,6 +10,17 @@ export default defineBackground(() => {
   MessageHandler.initialize();
   AlarmManager.initialize();
 
+  // Handle keyboard shortcuts
+  chrome.commands.onCommand.addListener(async (command) => {
+    console.log('[Phantom Trail] Keyboard command received:', command);
+    try {
+      const { KeyboardShortcuts } = await import('../../lib/keyboard-shortcuts');
+      await KeyboardShortcuts.handleCommand(command);
+    } catch (error) {
+      console.error('[Phantom Trail] Keyboard shortcut failed:', error);
+    }
+  });
+
   // Handle extension installation and startup
   chrome.runtime.onInstalled.addListener(async () => {
     console.log('[Phantom Trail] Extension installed/updated');
