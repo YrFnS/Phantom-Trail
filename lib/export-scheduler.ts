@@ -1,5 +1,6 @@
-import { StorageManager } from './storage-manager';
 import { ExportService } from './export-service';
+
+import { EventsStorage } from './storage/events-storage';
 
 export interface ExportScheduleConfig {
   frequency: 'daily' | 'weekly' | 'monthly';
@@ -77,11 +78,11 @@ export class ExportScheduler {
       }
 
       // Import required modules dynamically to avoid circular dependencies
-      // const { StorageManager } = await import('./storage-manager');
+      // const { EventsStorage } = await import('./storage/events-storage');
       // const { ExportService } = await import('./export-service');
 
       // Get data for the specified range
-      const events = await StorageManager.getRecentEvents(schedule.config.dataRange * 24); // Convert days to hours
+      const events = await EventsStorage.getRecentEvents(schedule.config.dataRange * 24); // Convert days to hours
       
       // Generate export
       const exportData = await ExportService.generateExport(

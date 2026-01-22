@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { StorageManager } from '../../lib/storage-manager';
+import { SettingsStorage } from '../../lib/storage/settings-storage';
 import { AI_MODELS, DEFAULT_MODEL } from '../../lib/ai-models';
 import type { ExtensionSettings, RiskLevel } from '../../lib/types';
 import { Card, CardHeader, CardContent, Button } from '../ui';
@@ -26,6 +26,7 @@ export function Settings({ onClose }: SettingsProps) {
   });
   const [apiKey, setApiKey] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -33,7 +34,11 @@ export function Settings({ onClose }: SettingsProps) {
 
   const loadSettings = async () => {
     try {
-      const currentSettings = await StorageManager.getSettings();
+      const currentSettings = await SettingsStorage.getSettings();
+      console.log('[Settings] Loaded settings:', {
+        ...currentSettings,
+        openRouterApiKey: currentSettings.openRouterApiKey ? '***' + currentSettings.openRouterApiKey.slice(-4) : 'none'
+      });
       setSettings(currentSettings);
       setApiKey(currentSettings.openRouterApiKey || '');
     } catch (error) {
@@ -41,17 +46,73 @@ export function Settings({ onClose }: SettingsProps) {
     }
   };
 
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
     try {
+      const trimmedKey = apiKey.trim();
+
+      // Enhanced debugging
+      console.log('[Settings] === SAVE OPERATION START ===');
+      console.log('[Settings] API Key length:', trimmedKey.length);
+      console.log('[Settings] API Key prefix:', trimmedKey ? trimmedKey.slice(0, 15) + '...' : 'empty');
+      console.log('[Settings] Current settings state:', {
+        ...settings,
+        openRouterApiKey: settings.openRouterApiKey ? '***hidden***' : 'none'
+      });
+
       const newSettings = {
         ...settings,
-        openRouterApiKey: apiKey.trim() || undefined,
+        openRouterApiKey: trimmedKey || undefined,
       };
-      await StorageManager.saveSettings(newSettings);
-      onClose();
+
+      console.log('[Settings] New settings to save:', {
+        ...newSettings,
+        openRouterApiKey: newSettings.openRouterApiKey ? '***' + newSettings.openRouterApiKey.slice(-4) : 'none'
+      });
+
+      await SettingsStorage.saveSettings(newSettings);
+      console.log('[Settings] SettingsStorage.saveSettings() completed');
+
+      // Verify save by reading back directly from storage
+      const verified = await SettingsStorage.getSettings();
+      console.log('[Settings] Verified saved settings:', {
+        ...verified,
+        openRouterApiKey: verified.openRouterApiKey ? '***' + verified.openRouterApiKey.slice(-4) : 'none'
+      });
+
+      // Also verify directly with chrome.storage.local
+      try {
+        const directCheck = await chrome.storage.local.get('phantom_trail_settings');
+        console.log('[Settings] Direct chrome.storage check:', {
+          hasSettings: !!directCheck.phantom_trail_settings,
+          hasApiKey: !!directCheck.phantom_trail_settings?.openRouterApiKey,
+          apiKeyLength: directCheck.phantom_trail_settings?.openRouterApiKey?.length || 0
+        });
+      } catch (e) {
+        console.warn('[Settings] Direct storage check failed:', e);
+      }
+
+      // Check if key was actually saved when we expected it to be
+      if (trimmedKey && !verified.openRouterApiKey) {
+        console.error('[Settings] API KEY SAVE FAILED - Key was provided but not found after save!');
+        setSaveError('API key was not saved. Please try again.');
+        return;
+      }
+
+      console.log('[Settings] === SAVE OPERATION SUCCESS ===');
+      setSaveSuccess(true);
+
+      // Brief delay to show success, then close
+      setTimeout(() => {
+        onClose();
+      }, 500);
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      console.error('[Settings] === SAVE OPERATION FAILED ===', error);
+      setSaveError('Failed to save settings. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -71,86 +132,78 @@ export function Settings({ onClose }: SettingsProps) {
               ✕
             </Button>
           </div>
-          
+
           {/* Tab Navigation */}
           <div className="flex gap-1 mt-4 border-b border-[var(--border-primary)] overflow-x-auto pb-1">
             <button
               onClick={() => setActiveTab('general')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'general'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'general'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
             >
               General
             </button>
             <button
               onClick={() => setActiveTab('appearance')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'appearance'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'appearance'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
             >
               Theme
             </button>
             <button
               onClick={() => setActiveTab('badge')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'badge'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'badge'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
             >
               Badge
             </button>
             <button
               onClick={() => setActiveTab('export')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'export'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'export'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
             >
               Export
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'notifications'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'notifications'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
             >
               Alerts
             </button>
             <button
               onClick={() => setActiveTab('trusted-sites')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'trusted-sites'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'trusted-sites'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
             >
               Sites
             </button>
             <button
               onClick={() => setActiveTab('shortcuts')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'shortcuts'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'shortcuts'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
             >
               Keys
             </button>
             <button
               onClick={() => setActiveTab('p2p')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'p2p'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'p2p'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
             >
               P2P
             </button>
@@ -160,114 +213,133 @@ export function Settings({ onClose }: SettingsProps) {
           {/* General Tab */}
           {activeTab === 'general' && (
             <div className="space-y-6">
-            {/* API Key */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                OpenRouter API Key (Optional)
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={e => setApiKey(e.target.value)}
-                placeholder="sk-or-v1-..."
-                className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
-              />
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                Get your free key from{' '}
-                <a
-                  href="https://openrouter.ai/keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[var(--accent-primary)] hover:underline"
-                >
-                  openrouter.ai
-                </a>
-              </p>
-            </div>
-
-            {/* Model Selection */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                AI Model
-              </label>
-              <select
-                value={settings.aiModel || DEFAULT_MODEL}
-                onChange={e =>
-                  setSettings({ ...settings, aiModel: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
-              >
-                {AI_MODELS.map(model => (
-                  <option key={model.id} value={model.id}>
-                    {model.name}{' '}
-                    {model.category === 'free'
-                      ? '(Free)'
-                      : model.category === 'fast'
-                        ? '(Fast)'
-                        : '(Premium)'}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                Free models have usage limits
-              </p>
-            </div>
-
-            {/* AI Toggle */}
-            <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
+              {/* API Key */}
               <div>
-                <label className="text-sm font-medium text-[var(--text-primary)]">
-                  AI Analysis
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                  OpenRouter API Key (Optional)
                 </label>
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Enable AI-powered tracking analysis
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                    placeholder="sk-or-v1-..."
+                    className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] font-mono"
+                    autoComplete="off"
+                    spellCheck="false"
+                  />
+                  {apiKey && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-green-500">
+                      ✓
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Get your free key from{' '}
+                  <a
+                    href="https://openrouter.ai/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[var(--accent-primary)] hover:underline"
+                  >
+                    openrouter.ai
+                  </a>
                 </p>
               </div>
-              <input
-                type="checkbox"
-                checked={settings.enableAI}
-                onChange={e =>
-                  setSettings({ ...settings, enableAI: e.target.checked })
-                }
-                className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
-              />
-            </div>
 
-            {/* Risk Threshold */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                Risk Alert Threshold
-              </label>
-              <select
-                value={settings.riskThreshold}
-                onChange={e =>
-                  setSettings({
-                    ...settings,
-                    riskThreshold: e.target.value as RiskLevel,
-                  })
-                }
-                className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
+              {/* Model Selection */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                  AI Model
+                </label>
+                <select
+                  value={settings.aiModel || DEFAULT_MODEL}
+                  onChange={e =>
+                    setSettings({ ...settings, aiModel: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
+                >
+                  {AI_MODELS.map(model => (
+                    <option key={model.id} value={model.id}>
+                      {model.name}{' '}
+                      {model.category === 'free'
+                        ? '(Free)'
+                        : model.category === 'fast'
+                          ? '(Fast)'
+                          : '(Premium)'}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Free models have usage limits
+                </p>
+              </div>
+
+              {/* AI Toggle */}
+              <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
+                <div>
+                  <label className="text-sm font-medium text-[var(--text-primary)]">
+                    AI Analysis
+                  </label>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Enable AI-powered tracking analysis
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.enableAI}
+                  onChange={e =>
+                    setSettings({ ...settings, enableAI: e.target.checked })
+                  }
+                  className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
+                />
+              </div>
+
+              {/* Risk Threshold */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
+                  Risk Alert Threshold
+                </label>
+                <select
+                  value={settings.riskThreshold}
+                  onChange={e =>
+                    setSettings({
+                      ...settings,
+                      riskThreshold: e.target.value as RiskLevel,
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical Only</option>
+                </select>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Only show alerts for risks at or above this level
+                </p>
+              </div>
+
+              {/* Save Button */}
+              {saveError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+                  {saveError}
+                </div>
+              )}
+              {saveSuccess && (
+                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-400">
+                  ✓ Settings saved successfully!
+                </div>
+              )}
+              <Button
+                onClick={handleSave}
+                disabled={saving || saveSuccess}
+                className="w-full"
+                size="md"
               >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical Only</option>
-              </select>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
-                Only show alerts for risks at or above this level
-              </p>
+                {saving ? 'Saving...' : saveSuccess ? '✓ Saved!' : 'Save Settings'}
+              </Button>
             </div>
-
-            {/* Save Button */}
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full"
-              size="md"
-            >
-              {saving ? 'Saving...' : 'Save Settings'}
-            </Button>
-          </div>
           )}
 
           {/* Appearance Tab */}

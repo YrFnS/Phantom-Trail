@@ -4,8 +4,9 @@
  */
 
 import { AIEngine } from './ai-engine';
-import { StorageManager } from './storage-manager';
 import type { TrackingEvent } from './types';
+
+import { BaseStorage } from './storage/base-storage';
 
 export interface PrivacyJourney {
   startDate: number;
@@ -64,7 +65,7 @@ export class PrivacyCoach {
       behaviorPatterns: []
     };
 
-    await StorageManager.set('privacy_journey', journey);
+    await BaseStorage.set('privacy_journey', journey);
     return journey;
   }
 
@@ -72,7 +73,7 @@ export class PrivacyCoach {
    * Update journey with new privacy score
    */
   static async updateJourney(newScore: number): Promise<PrivacyJourney> {
-    let journey = await StorageManager.get<PrivacyJourney>('privacy_journey');
+    let journey = await BaseStorage.get<PrivacyJourney>('privacy_journey');
     
     if (!journey) {
       journey = await this.initializeJourney(newScore);
@@ -95,7 +96,7 @@ export class PrivacyCoach {
       return goal;
     });
 
-    await StorageManager.set('privacy_journey', journey);
+    await BaseStorage.set('privacy_journey', journey);
     return journey;
   }
 

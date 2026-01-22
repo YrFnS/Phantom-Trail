@@ -1,6 +1,8 @@
 import { format, startOfWeek } from 'date-fns';
-import { StorageManager } from './storage-manager';
 import { calculatePrivacyScore } from './privacy-score';
+import { ReportsStorage } from './storage/reports-storage';
+import { EventsStorage } from './storage/events-storage';
+
 import type { 
   TrendData, 
   DailySnapshot, 
@@ -19,7 +21,7 @@ export class PrivacyTrends {
    */
   static async calculateDailyTrends(days: number = 30): Promise<TrendData[]> {
     try {
-      const snapshots = await StorageManager.getDailySnapshots(days);
+      const snapshots = await ReportsStorage.getDailySnapshots(days);
       
       return snapshots.map(snapshot => {
         // Ensure eventCounts exists and has required properties
@@ -48,7 +50,7 @@ export class PrivacyTrends {
    */
   static async getWeeklyReport(): Promise<WeeklyReport | null> {
     try {
-      const reports = await StorageManager.getWeeklyReports(2);
+      const reports = await ReportsStorage.getWeeklyReports(2);
       if (reports.length === 0) return null;
       
       const currentWeek = reports[reports.length - 1];
@@ -136,7 +138,7 @@ export class PrivacyTrends {
       const endOfDay = new Date(targetDate);
       endOfDay.setHours(23, 59, 59, 999);
       
-      const dayEvents = await StorageManager.getEventsByDateRange(startOfDay, endOfDay);
+      const dayEvents = await EventsStorage.getEventsByDateRange(startOfDay, endOfDay);
       
       // Calculate privacy score
       const privacyScore = dayEvents.length > 0 
@@ -232,7 +234,7 @@ export class PrivacyTrends {
       });
       
       // Compare with previous week (simplified)
-      const previousWeekReports = await StorageManager.getWeeklyReports(2);
+      const previousWeekReports = await ReportsStorage.getWeeklyReports(2);
       const previousWeek = previousWeekReports.length > 0 ? previousWeekReports[previousWeekReports.length - 1] : null;
       
       const newTrackers = previousWeek 
@@ -283,11 +285,11 @@ export class PrivacyTrends {
     try {
       // Generate snapshot for today if it doesn't exist
       const today = format(new Date(), 'yyyy-MM-dd');
-      const snapshots = await StorageManager.getDailySnapshots(1);
+      const snapshots = await ReportsStorage.getDailySnapshots(1);
       
       if (snapshots.length === 0 || snapshots[0].date !== today) {
         const todaySnapshot = await this.generateDailySnapshot();
-        await StorageManager.storeDailySnapshot(todaySnapshot);
+        await ReportsStorage.storeDailySnapshot(todaySnapshot);
       }
       
       console.log('Privacy trend tracking initialized');

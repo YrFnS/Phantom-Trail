@@ -46,13 +46,13 @@ export class AlarmManager {
   }
 
   private static async cleanupOldEvents(): Promise<void> {
-    const { StorageManager } = await import('../../lib/storage-manager');
+    const { EventsStorage } = await import('../../lib/storage/events-storage');
     const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days
     
-    const events = await StorageManager.getTrackingEvents();
+    const events = await EventsStorage.getTrackingEvents();
     const filtered = events.filter(event => event.timestamp > cutoff);
     
-    await StorageManager.setTrackingEvents(filtered);
+    await EventsStorage.setTrackingEvents(filtered);
     console.log(`[Alarm Manager] Cleaned up ${events.length - filtered.length} old events`);
   }
 

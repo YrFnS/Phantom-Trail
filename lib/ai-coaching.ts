@@ -1,6 +1,6 @@
 import type { PersonalizedInsights, PrivacyAchievement } from './privacy-insights';
 import { PrivacyInsights } from './privacy-insights';
-import { StorageManager } from './storage-manager';
+import { BaseStorage } from './storage/base-storage';
 
 export interface PrivacyGoal {
   id: string;
@@ -119,12 +119,12 @@ export class PrivacyCoach {
       });
     }
 
-    await StorageManager.set(this.GOALS_STORAGE_KEY, goals);
+    await BaseStorage.set(this.GOALS_STORAGE_KEY, goals);
     return goals;
   }
 
   static async getPrivacyGoals(): Promise<PrivacyGoal[]> {
-    const goals = await StorageManager.get<PrivacyGoal[]>(this.GOALS_STORAGE_KEY);
+    const goals = await BaseStorage.get<PrivacyGoal[]>(this.GOALS_STORAGE_KEY);
     return goals || [];
   }
 
@@ -142,7 +142,7 @@ export class PrivacyCoach {
         goals[goalIndex].completed = true;
       }
       
-      await StorageManager.set(this.GOALS_STORAGE_KEY, goals);
+      await BaseStorage.set(this.GOALS_STORAGE_KEY, goals);
     }
   }
 
@@ -221,7 +221,7 @@ export class PrivacyCoach {
   }
 
   static async getUserPreferences(): Promise<UserPreferences> {
-    const prefs = await StorageManager.get<UserPreferences>(this.PREFERENCES_STORAGE_KEY);
+    const prefs = await BaseStorage.get<UserPreferences>(this.PREFERENCES_STORAGE_KEY);
     return prefs || {
       privacyLevel: 'intermediate',
       focusAreas: [],
@@ -231,7 +231,7 @@ export class PrivacyCoach {
   }
 
   static async saveUserPreferences(preferences: UserPreferences): Promise<void> {
-    await StorageManager.set(this.PREFERENCES_STORAGE_KEY, preferences);
+    await BaseStorage.set(this.PREFERENCES_STORAGE_KEY, preferences);
   }
 
   static createPersonalizedPrompt(query: string, insights: PersonalizedInsights): string {
@@ -270,12 +270,12 @@ Keep responses concise and focused on privacy improvement.
 
   static async celebrateAchievement(achievement: PrivacyAchievement): Promise<void> {
     // Store achievement for display
-    const achievements = await StorageManager.get<PrivacyAchievement[]>(this.ACHIEVEMENTS_STORAGE_KEY) || [];
+    const achievements = await BaseStorage.get<PrivacyAchievement[]>(this.ACHIEVEMENTS_STORAGE_KEY) || [];
     achievements.push(achievement);
-    await StorageManager.set(this.ACHIEVEMENTS_STORAGE_KEY, achievements);
+    await BaseStorage.set(this.ACHIEVEMENTS_STORAGE_KEY, achievements);
   }
 
   static async getAchievements(): Promise<PrivacyAchievement[]> {
-    return await StorageManager.get<PrivacyAchievement[]>(this.ACHIEVEMENTS_STORAGE_KEY) || [];
+    return await BaseStorage.get<PrivacyAchievement[]>(this.ACHIEVEMENTS_STORAGE_KEY) || [];
   }
 }

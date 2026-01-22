@@ -1,7 +1,8 @@
-import { StorageManager } from './storage-manager';
 import type { UserTrustedSite } from './types';
 import type { PrivacyGoal } from './ai-coaching';
 import type { ExportSchedule } from './export-scheduler';
+
+import { BaseStorage } from './storage/base-storage';
 
 export interface SyncSettings {
   enabled: boolean;
@@ -58,10 +59,10 @@ export class SyncManager {
   static async getDeviceId(): Promise<string> {
     if (this.deviceId) return this.deviceId;
     
-    const deviceId = await StorageManager.get('deviceId') as string | null;
+    const deviceId = await BaseStorage.get('deviceId') as string | null;
     if (!deviceId) {
       const newDeviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      await StorageManager.set('deviceId', newDeviceId);
+      await BaseStorage.set('deviceId', newDeviceId);
       this.deviceId = newDeviceId;
       return newDeviceId;
     }
@@ -71,7 +72,7 @@ export class SyncManager {
   }
 
   static async getSyncSettings(): Promise<SyncSettings> {
-    const settings = await StorageManager.get('syncSettings') as Partial<SyncSettings> | null;
+    const settings = await BaseStorage.get('syncSettings') as Partial<SyncSettings> | null;
     const defaultSettings: SyncSettings = {
       enabled: false,
       syncPrivacySettings: true,
@@ -88,7 +89,7 @@ export class SyncManager {
   static async setSyncSettings(settings: Partial<SyncSettings>): Promise<void> {
     const currentSettings = await this.getSyncSettings();
     const newSettings = { ...currentSettings, ...settings };
-    await StorageManager.set('syncSettings', newSettings);
+    await BaseStorage.set('syncSettings', newSettings);
   }
 
   static async enableSync(): Promise<void> {
@@ -108,8 +109,8 @@ export class SyncManager {
 
   static async getSyncStatus(): Promise<SyncStatus> {
     const settings = await this.getSyncSettings();
-    const status = await StorageManager.get('syncStatus') as string || 'idle';
-    const error = await StorageManager.get('syncError') as string | undefined;
+    const status = await BaseStorage.get('syncStatus') as string || 'idle';
+    const error = await BaseStorage.get('syncError') as string | undefined;
     
     return {
       enabled: settings.enabled,
@@ -136,7 +137,7 @@ export class SyncManager {
       return { success: false, conflicts: [], error: 'Sync is disabled', syncedDataTypes: [] };
     }
 
-    await StorageManager.set('syncStatus', 'syncing');
+    await BaseStorage.set('syncStatus', 'syncing');
 
     try {
       const localData = await this.collectLocalData();
@@ -155,8 +156,8 @@ export class SyncManager {
       
       const now = Date.now();
       await this.setSyncSettings({ lastSyncTime: now });
-      await StorageManager.set('syncStatus', 'success');
-      await StorageManager.remove('syncError');
+      await BaseStorage.set('syncStatus', 'success');
+      await BaseStorage.remove('syncError');
 
       return {
         success: true,
@@ -164,8 +165,8 @@ export class SyncManager {
         syncedDataTypes: this.getSyncedDataTypes(settings)
       };
     } catch (error) {
-      await StorageManager.set('syncStatus', 'error');
-      await StorageManager.set('syncError', error instanceof Error ? error.message : 'Unknown error');
+      await BaseStorage.set('syncStatus', 'error');
+      await BaseStorage.set('syncError', error instanceof Error ? error.message : 'Unknown error');
       
       return {
         success: false,
@@ -191,19 +192,19 @@ export class SyncManager {
     };
 
     if (settings.syncPrivacySettings) {
-      data.settings = await StorageManager.get('extensionSettings') || {};
+      data.settings = await BaseStorage.get('extensionSettings') || {};
     }
 
     if (settings.syncTrustedSites) {
-      data.trustedSites = await StorageManager.get('trustedSites') || [];
+      data.trustedSites = await BaseStorage.get('trustedSites') || [];
     }
 
     if (settings.syncPrivacyGoals) {
-      data.privacyGoals = await StorageManager.get('privacyGoals') || [];
+      data.privacyGoals = await BaseStorage.get('privacyGoals') || [];
     }
 
     if (settings.syncExportSchedules) {
-      data.exportSchedules = await StorageManager.get('exportSchedules') || [];
+      data.exportSchedules = await BaseStorage.get('exportSchedules') || [];
     }
 
     return data;
@@ -336,19 +337,19 @@ export class SyncManager {
     const settings = await this.getSyncSettings();
     
     if (settings.syncPrivacySettings && data.settings) {
-      await StorageManager.set('extensionSettings', data.settings);
+      await BaseStorage.set('extensionSettings', data.settings);
     }
     
     if (settings.syncTrustedSites && data.trustedSites) {
-      await StorageManager.set('trustedSites', data.trustedSites);
+      await BaseStorage.set('trustedSites', data.trustedSites);
     }
     
     if (settings.syncPrivacyGoals && data.privacyGoals) {
-      await StorageManager.set('privacyGoals', data.privacyGoals);
+      await BaseStorage.set('privacyGoals', data.privacyGoals);
     }
     
     if (settings.syncExportSchedules && data.exportSchedules) {
-      await StorageManager.set('exportSchedules', data.exportSchedules);
+      await BaseStorage.set('exportSchedules', data.exportSchedules);
     }
   }
 }

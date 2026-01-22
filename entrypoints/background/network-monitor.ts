@@ -1,4 +1,4 @@
-import { StorageManager } from '../../lib/storage-manager';
+import { EventsStorage } from '../../lib/storage/events-storage';
 import { TrackerDatabase } from '../../lib/tracker-db';
 import type { TrackingEvent } from '../../lib/types';
 
@@ -47,7 +47,7 @@ export class NetworkMonitor {
         };
 
         // Store the event
-        await StorageManager.addTrackingEvent(event);
+        await EventsStorage.addEvent(event);
 
         console.log('[Network Monitor] Tracker detected:', {
           domain,

@@ -12,7 +12,15 @@ export class EventsStorage {
   static async getRecentEvents(limit = 100): Promise<TrackingEvent[]> {
     try {
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
-      const events = result[this.EVENTS_KEY] || [];
+      let events = result[this.EVENTS_KEY] || [];
+      
+      // Validate and repair corrupted data
+      if (!Array.isArray(events)) {
+        console.warn('Events storage corrupted, resetting to empty array');
+        events = [];
+        await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
+      }
+      
       return events.slice(-limit);
     } catch (error) {
       console.error('Failed to get recent events:', error);
@@ -29,7 +37,15 @@ export class EventsStorage {
   ): Promise<TrackingEvent[]> {
     try {
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
-      const events = result[this.EVENTS_KEY] || [];
+      let events = result[this.EVENTS_KEY] || [];
+      
+      // Validate and repair corrupted data
+      if (!Array.isArray(events)) {
+        console.warn('Events storage corrupted, resetting to empty array');
+        events = [];
+        await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
+        return [];
+      }
       
       return events.filter((event: TrackingEvent) => {
         const eventDate = new Date(event.timestamp);
@@ -47,7 +63,13 @@ export class EventsStorage {
   static async addEvent(event: TrackingEvent): Promise<void> {
     try {
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
-      const events = result[this.EVENTS_KEY] || [];
+      let events = result[this.EVENTS_KEY] || [];
+      
+      // Validate and repair corrupted data
+      if (!Array.isArray(events)) {
+        console.warn('Events storage corrupted, resetting to empty array');
+        events = [];
+      }
       
       events.push(event);
       
@@ -74,7 +96,16 @@ export class EventsStorage {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
-      const events = result[this.EVENTS_KEY] || [];
+      let events = result[this.EVENTS_KEY] || [];
+      
+      // Validate and repair corrupted data
+      if (!Array.isArray(events)) {
+        console.warn('Events storage corrupted, resetting to empty array');
+        events = [];
+        await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
+        return 0;
+      }
+      
       const originalCount = events.length;
       
       const filteredEvents = events.filter((event: TrackingEvent) => {
@@ -112,7 +143,16 @@ export class EventsStorage {
   static async getTrackingEvents(): Promise<TrackingEvent[]> {
     try {
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
-      return result[this.EVENTS_KEY] || [];
+      let events = result[this.EVENTS_KEY] || [];
+      
+      // Validate and repair corrupted data
+      if (!Array.isArray(events)) {
+        console.warn('Events storage corrupted, resetting to empty array');
+        events = [];
+        await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
+      }
+      
+      return events;
     } catch (error) {
       console.error('Failed to get tracking events:', error);
       return [];

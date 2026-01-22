@@ -1,6 +1,6 @@
 import type { AIAnalysis, TrackingEvent, RiskLevel } from '../types';
 import { DEFAULT_MODEL, FALLBACK_MODEL } from '../ai-models';
-import { StorageManager } from '../storage-manager';
+import { SettingsStorage } from '../storage/settings-storage';
 import { RateLimiter } from './rate-limiter';
 import { jsonrepair } from 'jsonrepair';
 
@@ -25,7 +25,7 @@ export class AIClient {
     events: TrackingEvent[],
     modelId: string = DEFAULT_MODEL
   ): Promise<AIAnalysis> {
-    const settings = await StorageManager.getSettings();
+    const settings = await SettingsStorage.getSettings();
     const apiKey = settings.openRouterApiKey;
 
     if (!apiKey) {
@@ -95,7 +95,7 @@ export class AIClient {
             if (retryAfter) {
               error.retryAfter = parseInt(retryAfter) * 1000; // Convert to ms
             }
-            
+
             // Record rate limit for backoff
             await RateLimiter.recordRateLimit();
             throw error;
@@ -207,7 +207,7 @@ Provide analysis in the specified JSON format.`;
     });
 
     const topDomains = Array.from(domainCounts.entries())
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([domain, count]) => `${domain} (${count}x)`)
       .join(', ');
@@ -234,7 +234,7 @@ Risk levels: ${riskSummary}`;
       // Try to extract JSON from response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? jsonMatch[0] : content;
-      
+
       // Repair and parse JSON
       const repairedJson = jsonrepair(jsonStr);
       const parsed = JSON.parse(repairedJson);
@@ -247,7 +247,7 @@ Risk levels: ${riskSummary}`;
       };
     } catch (error) {
       console.error('Failed to parse AI response:', error);
-      
+
       // Fallback analysis
       return {
         narrative: 'Unable to analyze tracking data at this time.',

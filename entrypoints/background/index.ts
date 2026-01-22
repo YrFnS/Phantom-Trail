@@ -16,8 +16,8 @@ export default defineBackground(() => {
     
     try {
       // Initialize default settings
-      const { StorageManager } = await import('../../lib/storage-manager');
-      await StorageManager.initializeDefaults();
+      const { SettingsStorage } = await import('../../lib/storage/settings-storage');
+      await SettingsStorage.initializeDefaults();
       
       // Run data migration to clean up any corrupted data
       const { DataMigration } = await import('../../lib/data-migration');

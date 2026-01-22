@@ -1,11 +1,12 @@
 import type { TrackingEvent } from '../types';
-import { StorageManager } from '../storage-manager';
 import { calculatePrivacyScore } from '../privacy-score';
+
+import { EventsStorage } from '../storage/events-storage';
 
 export class AnalysisHelpers {
   static async getEventsInTimeframe(timeframe: number): Promise<TrackingEvent[]> {
     const cutoff = Date.now() - timeframe;
-    const allEvents = await StorageManager.getRecentEvents(1000);
+    const allEvents = await EventsStorage.getRecentEvents(1000);
     return allEvents.filter((event: TrackingEvent) => event.timestamp >= cutoff);
   }
 

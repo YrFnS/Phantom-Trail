@@ -1,6 +1,8 @@
-import { StorageManager } from './storage-manager';
 import { ExportService } from './export-service';
 import { calculatePrivacyScore } from './privacy-score';
+
+import { BaseStorage } from './storage/base-storage';
+import { EventsStorage } from './storage/events-storage';
 
 export interface ShortcutConfig {
   command: string;
@@ -72,7 +74,7 @@ export class KeyboardShortcuts {
   }
 
   static async getShortcuts(): Promise<ShortcutConfig[]> {
-    const stored = await StorageManager.get<ShortcutConfig[]>(this.STORAGE_KEY);
+    const stored = await BaseStorage.get<ShortcutConfig[]>(this.STORAGE_KEY);
     return stored || DEFAULT_SHORTCUTS;
   }
 
@@ -82,7 +84,7 @@ export class KeyboardShortcuts {
     
     if (index !== -1) {
       shortcuts[index].keys = keys;
-      await StorageManager.set(this.STORAGE_KEY, shortcuts);
+      await BaseStorage.set(this.STORAGE_KEY, shortcuts);
     }
   }
 
@@ -92,12 +94,12 @@ export class KeyboardShortcuts {
     
     if (index !== -1) {
       shortcuts[index].enabled = !shortcuts[index].enabled;
-      await StorageManager.set(this.STORAGE_KEY, shortcuts);
+      await BaseStorage.set(this.STORAGE_KEY, shortcuts);
     }
   }
 
   static async resetToDefaults(): Promise<void> {
-    await StorageManager.set(this.STORAGE_KEY, DEFAULT_SHORTCUTS);
+    await BaseStorage.set(this.STORAGE_KEY, DEFAULT_SHORTCUTS);
   }
 
   private static async togglePopup(): Promise<void> {
@@ -128,7 +130,7 @@ export class KeyboardShortcuts {
       const isHttps = activeTab.url.startsWith('https:');
       
       // Get recent events for this domain
-      const events = await StorageManager.getRecentEvents(100);
+      const events = await EventsStorage.getRecentEvents(100);
       const domainEvents = events.filter(event => 
         event.domain === domain || event.url.includes(domain)
       );
@@ -152,7 +154,7 @@ export class KeyboardShortcuts {
 
   private static async exportPrivacyData(): Promise<void> {
     try {
-      const events = await StorageManager.getRecentEvents(1000);
+      const events = await EventsStorage.getRecentEvents(1000);
       
       await ExportService.exportAsJSON(events);
       

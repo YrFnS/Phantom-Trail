@@ -1,5 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
-import { StorageManager } from '../../lib/storage-manager';
+import { EventsStorage } from '../../lib/storage/events-storage';
 import { calculatePrivacyScore } from '../../lib/privacy-score';
 import { ExportButton } from '../../components/ExportButton';
 import { RateLimitStatus } from '../../components/RateLimitStatus';
@@ -54,7 +54,7 @@ function App() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const recentEvents = await StorageManager.getRecentEvents(100);
+        const recentEvents = await EventsStorage.getRecentEvents(100);
         setEvents(recentEvents);
         
         // Get current domain from active tab

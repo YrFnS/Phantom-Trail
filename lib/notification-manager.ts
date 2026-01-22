@@ -1,5 +1,5 @@
 import type { TrackingEvent, PrivacyScore, NotificationSettings } from './types';
-import { StorageManager } from './storage-manager';
+import { SettingsStorage } from './storage/settings-storage';
 
 /**
  * Manages browser notifications for privacy alerts and summaries
@@ -88,8 +88,8 @@ export class NotificationManager {
    */
   static async updateSettings(settings: NotificationSettings): Promise<void> {
     try {
-      const currentSettings = await StorageManager.getSettings();
-      await StorageManager.saveSettings({
+      const currentSettings = await SettingsStorage.getSettings();
+      await SettingsStorage.saveSettings({
         ...currentSettings,
         notifications: settings
       });
@@ -103,7 +103,7 @@ export class NotificationManager {
    */
   private static async getSettings(): Promise<NotificationSettings> {
     try {
-      const settings = await StorageManager.getSettings();
+      const settings = await SettingsStorage.getSettings();
       return settings.notifications || {
         enabled: true,
         criticalOnly: false,

@@ -1,5 +1,7 @@
 import type { TrackingEvent } from './types';
-import { StorageManager } from './storage-manager';
+import { EventsStorage } from './storage/events-storage';
+import { ReportsStorage } from './storage/reports-storage';
+import { BaseStorage } from './storage/base-storage';
 
 export interface BrowsingPatternAnalysis {
   averagePrivacyScore: number;
@@ -53,8 +55,8 @@ export class PrivacyInsights {
   private static readonly STORAGE_KEY = 'privacyInsights';
 
   static async generatePersonalizedInsights(): Promise<PersonalizedInsights> {
-    const events = await StorageManager.getRecentEvents(1000);
-    const snapshots = await StorageManager.getDailySnapshots(30);
+    const events = await EventsStorage.getRecentEvents(1000);
+    const snapshots = await ReportsStorage.getDailySnapshots(30);
     
     const browsingPattern = this.analyzeBrowsingPatterns(events);
     const privacyTrends = this.analyzePrivacyTrends(snapshots);
@@ -69,12 +71,12 @@ export class PrivacyInsights {
       lastUpdated: Date.now()
     };
 
-    await StorageManager.set(this.STORAGE_KEY, insights);
+    await BaseStorage.set(this.STORAGE_KEY, insights);
     return insights;
   }
 
   static async getStoredInsights(): Promise<PersonalizedInsights | null> {
-    return await StorageManager.get<PersonalizedInsights>(this.STORAGE_KEY);
+    return await BaseStorage.get<PersonalizedInsights>(this.STORAGE_KEY);
   }
 
   private static analyzeBrowsingPatterns(events: TrackingEvent[]): BrowsingPatternAnalysis {

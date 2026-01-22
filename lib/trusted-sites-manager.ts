@@ -1,4 +1,4 @@
-import { StorageManager } from './storage-manager';
+import { BaseStorage } from './storage/base-storage';
 
 export enum TrustLevel {
   FULL_TRUST = 'full',      // No monitoring, always green score
@@ -53,13 +53,13 @@ export class TrustedSitesManager {
       lastVerified: Date.now()
     };
 
-    await StorageManager.set(this.STORAGE_KEY, data);
+    await BaseStorage.set(this.STORAGE_KEY, data);
   }
 
   static async removeTrustedSite(domain: string): Promise<void> {
     const data = await this.getTrustedSitesData();
     delete data.sites[domain];
-    await StorageManager.set(this.STORAGE_KEY, data);
+    await BaseStorage.set(this.STORAGE_KEY, data);
   }
 
   static async isTrustedSite(domain: string): Promise<boolean> {
@@ -82,7 +82,7 @@ export class TrustedSitesManager {
     if (data.sites[domain]) {
       data.sites[domain].trustLevel = level;
       data.sites[domain].lastVerified = Date.now();
-      await StorageManager.set(this.STORAGE_KEY, data);
+      await BaseStorage.set(this.STORAGE_KEY, data);
     }
   }
 
@@ -144,7 +144,7 @@ export class TrustedSitesManager {
   }
 
   private static async getTrustedSitesData(): Promise<TrustedSitesStorage> {
-    const data = await StorageManager.get<TrustedSitesStorage>(this.STORAGE_KEY);
+    const data = await BaseStorage.get<TrustedSitesStorage>(this.STORAGE_KEY);
     
     if (!data) {
       const defaultData: TrustedSitesStorage = {
@@ -157,7 +157,7 @@ export class TrustedSitesManager {
         },
         suggestions: []
       };
-      await StorageManager.set(this.STORAGE_KEY, defaultData);
+      await BaseStorage.set(this.STORAGE_KEY, defaultData);
       return defaultData;
     }
     
@@ -195,7 +195,7 @@ export class TrustedSitesManager {
   static async addTrustSuggestion(suggestion: TrustSuggestion): Promise<void> {
     const data = await this.getTrustedSitesData();
     data.suggestions.push(suggestion);
-    await StorageManager.set(this.STORAGE_KEY, data);
+    await BaseStorage.set(this.STORAGE_KEY, data);
   }
 
   static async getTrustSuggestions(): Promise<TrustSuggestion[]> {
@@ -206,6 +206,6 @@ export class TrustedSitesManager {
   static async clearTrustSuggestions(): Promise<void> {
     const data = await this.getTrustedSitesData();
     data.suggestions = [];
-    await StorageManager.set(this.STORAGE_KEY, data);
+    await BaseStorage.set(this.STORAGE_KEY, data);
   }
 }

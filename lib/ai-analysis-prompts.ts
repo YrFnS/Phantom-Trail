@@ -1,9 +1,10 @@
 import { TrackingAnalysis, type AnalysisResult, type PatternData, type RiskData, type TrackerData, type WebsiteData, type TimelineData, type TrackerPattern } from './tracking-analysis';
 import { AIEngine } from './ai-engine';
-import { StorageManager } from './storage-manager';
 import { PrivacyCoach } from './ai-coaching';
 import { PrivacyInsights } from './privacy-insights';
 import type { TrackingEvent, PrivacyScore } from './types';
+
+import { EventsStorage } from './storage/events-storage';
 
 export interface AnalysisQuery {
   type: 'pattern' | 'risk' | 'tracker' | 'website' | 'timeline' | 'chat';
@@ -421,7 +422,7 @@ export class AIAnalysisPrompts {
   }
 
   private static async getRecentEvents(timeframe: number): Promise<TrackingEvent[]> {
-    const allEvents = await StorageManager.getRecentEvents(1000);
+    const allEvents = await EventsStorage.getRecentEvents(1000);
     const cutoff = Date.now() - timeframe;
     return allEvents.filter((event: TrackingEvent) => event.timestamp >= cutoff);
   }

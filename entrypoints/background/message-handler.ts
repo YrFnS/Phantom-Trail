@@ -47,8 +47,8 @@ export class MessageHandler {
         sendResponse({ error: 'Missing event data' });
         return;
       }
-      const { StorageManager } = await import('../../lib/storage-manager');
-      await StorageManager.addTrackingEvent(message.event);
+      const { EventsStorage } = await import('../../lib/storage/events-storage');
+      await EventsStorage.addEvent(message.event);
       sendResponse({ success: true });
     } catch {
       sendResponse({ error: 'Failed to store tracking event' });
@@ -93,10 +93,10 @@ export class MessageHandler {
       
       // Get privacy score and event count
       const { PrivacyScoreClass } = await import('../../lib/privacy-score');
-      const { StorageManager } = await import('../../lib/storage-manager');
+      const { EventsStorage } = await import('../../lib/storage/events-storage');
       
       const score = await PrivacyScoreClass.calculateDomainScore();
-      const events = await StorageManager.getTrackingEvents();
+      const events = await EventsStorage.getTrackingEvents();
       const domainEvents = events.filter((e: { domain: string }) => e.domain === domain);
 
       const analysisData = {

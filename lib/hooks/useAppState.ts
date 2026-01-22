@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { StorageManager } from '../../lib/storage-manager';
 import { calculatePrivacyScore } from '../../lib/privacy-score';
 import type { TrackingEvent, PrivacyScore as PrivacyScoreType } from '../../lib/types';
+
+import { EventsStorage } from '../storage/events-storage';
 
 const EMPTY_PRIVACY_SCORE: PrivacyScoreType = {
   score: 100,
@@ -45,7 +46,7 @@ export function useAppState() {
         }
 
         // Load recent events
-        const recentEvents = await StorageManager.getRecentEvents(50);
+        const recentEvents = await EventsStorage.getRecentEvents(50);
         setEvents(recentEvents);
 
         // Calculate privacy score

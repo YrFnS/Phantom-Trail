@@ -162,13 +162,13 @@ export class PredictionEngine {
   }
 
   private static async getCachedPrediction(): Promise<PrivacyPrediction | null> {
-    // Simple cache implementation - would use StorageManager in full version
+    // Simple cache implementation - would use BaseStorage in full version
     return null;
   }
 
   private static async cachePrediction(_url: string, prediction: PrivacyPrediction): Promise<void> {
     try {
-      // Simple cache implementation - would use StorageManager in full version
+      // Simple cache implementation - would use BaseStorage in full version
       console.log('Caching prediction:', prediction);
     } catch (error) {
       console.warn('[Privacy Predictor] Cache write failed:', error);

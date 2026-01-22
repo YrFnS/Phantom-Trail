@@ -1,7 +1,8 @@
 import { WebsiteCategorization, WebsiteCategory } from './website-categorization';
-import { StorageManager } from './storage-manager';
 import { calculatePrivacyScore } from './privacy-score';
 import type { TrackingEvent } from './types';
+
+import { EventsStorage } from './storage/events-storage';
 
 /**
  * Privacy comparison data structures
@@ -127,7 +128,7 @@ export class PrivacyComparison {
         : 100;
 
       // Get user's historical data
-      const allEvents = await StorageManager.getRecentEvents(1000);
+      const allEvents = await EventsStorage.getRecentEvents(1000);
       if (allEvents.length < 10) {
         return null; // Not enough data for comparison
       }
@@ -174,7 +175,7 @@ export class PrivacyComparison {
 
       // Get category and find similar sites
       const category = WebsiteCategorization.categorizeWebsite(domain);
-      const allEvents = await StorageManager.getRecentEvents(1000);
+      const allEvents = await EventsStorage.getRecentEvents(1000);
       
       // Group events by domain and calculate scores
       const domainScores = await this.calculateDomainScores(allEvents);
@@ -249,7 +250,7 @@ export class PrivacyComparison {
    * Get tracking events for a specific site
    */
   private static async getSiteEvents(domain: string): Promise<TrackingEvent[]> {
-    const allEvents = await StorageManager.getRecentEvents(500);
+    const allEvents = await EventsStorage.getRecentEvents(500);
     return allEvents.filter(event => event.domain === domain);
   }
 

@@ -3,6 +3,7 @@ import { DataSanitizer, RateLimiter, AICache, AIClient, type APIError } from './
 import { ErrorRecovery, type ErrorContext } from './error-recovery';
 import { CircuitBreaker } from './circuit-breaker';
 import { OfflineMode } from './offline-mode';
+import { SettingsStorage } from './storage/settings-storage';
 
 /**
  * Main AI engine orchestrating all AI functionality with enhanced error handling
@@ -58,14 +59,14 @@ export class AIEngine {
 
       // Cache the result
       await AICache.store(sanitizedEvents, analysis);
-      
+
       // Cache for offline mode
       await this.offlineMode.cacheAnalysis(sanitizedEvents, analysis);
 
       return analysis;
     } catch (error) {
       const apiError = error as APIError;
-      
+
       if (apiError.isRateLimit) {
         console.warn('AI request rate limited by API');
         await RateLimiter.recordRateLimit();
@@ -74,7 +75,7 @@ export class AIEngine {
 
       // Handle error with recovery system
       const recoveryResult = await ErrorRecovery.handleAPIError(apiError, context);
-      
+
       if (recoveryResult.success) {
         // Retry the operation if recovery was successful
         context.retryCount++;
@@ -125,7 +126,7 @@ export class AIEngine {
 
       // If no events provided, get recent events
       const eventsToAnalyze = events || [];
-      
+
       const analysis = await this.analyzeEvents(eventsToAnalyze);
       if (analysis) {
         return `${analysis.narrative}\n\nRecommendations: ${analysis.recommendations.join(', ')}`;
@@ -133,7 +134,7 @@ export class AIEngine {
       return 'Unable to analyze tracking data at this time. This might be due to rate limiting or API issues.';
     } catch (error) {
       const apiError = error as APIError;
-      
+
       if (apiError.isRateLimit) {
         const waitTime = apiError.retryAfter || 60000; // Default 1 minute
         const waitSeconds = Math.ceil(waitTime / 1000);
@@ -150,10 +151,15 @@ export class AIEngine {
    */
   static async isAvailable(): Promise<boolean> {
     try {
-      const result = await chrome.storage.local.get('phantom_trail_settings');
-      const settings = result.phantom_trail_settings || {};
-      return !!settings.openRouterApiKey;
-    } catch {
+      const settings = await SettingsStorage.getSettings();
+      const hasKey = !!settings.openRouterApiKey;
+      console.log('[AIEngine] isAvailable check:', {
+        hasKey,
+        keyLength: settings.openRouterApiKey?.length || 0
+      });
+      return hasKey;
+    } catch (error) {
+      console.error('[AIEngine] isAvailable error:', error);
       return false;
     }
   }
