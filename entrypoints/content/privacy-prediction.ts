@@ -16,6 +16,15 @@ export async function handleLinkHover(link: HTMLAnchorElement): Promise<void> {
 
   hoverTimeout = window.setTimeout(async () => {
     try {
+      // Check if privacy predictions are enabled
+      const settings = await chrome.storage.local.get('phantom_trail_settings');
+      const enablePrivacyPredictions =
+        settings.phantom_trail_settings?.enablePrivacyPredictions ?? true;
+
+      if (!enablePrivacyPredictions) {
+        return;
+      }
+
       const href = link.href;
       if (!href || href.startsWith('javascript:') || href.startsWith('#')) {
         return;
@@ -69,11 +78,16 @@ function showPrivacyTooltip(
 
   const tooltip = document.createElement('div');
   tooltip.className = 'phantom-trail-tooltip';
+  
+  // Different icon and title for historical vs predicted data
+  const icon = prediction.isHistorical ? '✓' : '🛡️';
+  const title = prediction.isHistorical ? 'Historical Data' : 'Privacy Prediction';
+  
   tooltip.innerHTML = `
     <div class="phantom-trail-tooltip-content">
       <div class="phantom-trail-tooltip-header">
-        <span class="phantom-trail-tooltip-icon">🛡️</span>
-        <span class="phantom-trail-tooltip-title">Privacy Prediction</span>
+        <span class="phantom-trail-tooltip-icon">${icon}</span>
+        <span class="phantom-trail-tooltip-title">${title}</span>
       </div>
       <div class="phantom-trail-tooltip-body">
         <div class="phantom-trail-tooltip-score">

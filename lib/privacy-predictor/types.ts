@@ -8,6 +8,11 @@ export interface PrivacyPrediction {
   recommendations: string[];
   comparisonToAverage: number;
   timestamp: number;
+  isHistorical?: boolean;
+  historicalData?: {
+    trackerCount: number;
+    lastVisit: number;
+  };
 }
 
 export interface RiskFactor {
@@ -15,7 +20,8 @@ export interface RiskFactor {
     | 'domain-reputation'
     | 'category-risk'
     | 'tracker-patterns'
-    | 'user-history';
+    | 'user-history'
+    | 'historical-data';
   impact: number; // -50 to +50 points
   description: string;
   confidence: number;

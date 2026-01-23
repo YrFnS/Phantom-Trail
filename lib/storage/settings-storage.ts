@@ -18,6 +18,7 @@ export class SettingsStorage {
           enableAI: true,
           enableNotifications: true,
           riskThreshold: 'medium' as const,
+          enablePrivacyPredictions: true,
         }
       );
     } catch (error) {
@@ -26,6 +27,7 @@ export class SettingsStorage {
         enableAI: true,
         enableNotifications: true,
         riskThreshold: 'medium' as const,
+        enablePrivacyPredictions: true,
       };
     }
   }
@@ -54,6 +56,7 @@ export class SettingsStorage {
         enableAI: true,
         enableNotifications: true,
         riskThreshold: 'medium',
+        enablePrivacyPredictions: true,
       });
     }
 

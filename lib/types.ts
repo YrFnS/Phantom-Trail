@@ -74,6 +74,7 @@ export interface ExtensionSettings {
   riskThreshold: RiskLevel;
   aiModel?: string;
   notifications?: NotificationSettings;
+  enablePrivacyPredictions?: boolean;
 }
 
 export interface NotificationSettings {

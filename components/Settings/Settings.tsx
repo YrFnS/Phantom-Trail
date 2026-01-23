@@ -323,6 +323,29 @@ export function Settings({ onClose }: SettingsProps) {
                 />
               </div>
 
+              {/* Privacy Predictions Toggle */}
+              <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
+                <div>
+                  <label className="text-sm font-medium text-[var(--text-primary)]">
+                    Link Privacy Predictions
+                  </label>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Show privacy warnings when hovering over links
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.enablePrivacyPredictions ?? true}
+                  onChange={e =>
+                    setSettings({
+                      ...settings,
+                      enablePrivacyPredictions: e.target.checked,
+                    })
+                  }
+                  className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
+                />
+              </div>
+
               {/* Risk Threshold */}
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
