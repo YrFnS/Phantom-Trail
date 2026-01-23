@@ -73,13 +73,25 @@ Every time you browse the web, dozens of companies silently track your clicks, r
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Install Pre-built Extension (Recommended)
+
+**For users and hackathon judges:**
+
+1. **Download** the latest release: [phantom-trail-1.0.0-chrome.zip](https://github.com/YrFnS/Phantom-Trail/releases)
+2. **Follow** the installation guide: [INSTALL.md](INSTALL.md)
+3. **Start using** - No build required!
+
+### Option 2: Build from Source
+
+**For developers:**
+
+#### Prerequisites
 
 - Node.js 18+
 - Chrome browser with Developer Mode enabled
 - pnpm (recommended) or npm
 
-### Installation
+#### Installation
 
 1. **Clone the repository**
 
