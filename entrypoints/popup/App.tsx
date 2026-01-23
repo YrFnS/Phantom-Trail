@@ -125,7 +125,21 @@ function App() {
 
     // Refresh data every 5 seconds
     const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
+
+    // Listen for tab switch events from child components
+    const handleTabSwitch = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      if (customEvent.detail === 'actions') {
+        setActiveView('dashboard'); // Dashboard contains Privacy Actions
+      }
+    };
+
+    window.addEventListener('switchTab', handleTabSwitch);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('switchTab', handleTabSwitch);
+    };
   }, []);
 
   if (showSettings) {

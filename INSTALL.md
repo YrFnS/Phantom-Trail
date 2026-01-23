@@ -3,6 +3,7 @@
 ## Quick Install (Manual)
 
 ### Prerequisites
+
 - Google Chrome browser (version 88+)
 - 5 minutes of your time
 
@@ -39,11 +40,13 @@
 ### First-Time Setup
 
 **Basic Usage (No API Key Required):**
+
 - Extension works immediately for tracking detection
 - Click the extension icon to see tracking events
 - View privacy scores and network graphs
 
 **Optional: Enable AI Features**
+
 1. Get a free OpenRouter API key:
    - Visit https://openrouter.ai/
    - Sign up for an account
@@ -74,21 +77,25 @@
 ### Troubleshooting
 
 **Extension doesn't appear:**
+
 - Make sure you selected the correct folder (contains `manifest.json`)
 - Check that Developer mode is enabled
 - Try reloading the extension (click refresh icon)
 
 **No tracking events showing:**
+
 - Visit a different website (some sites have minimal tracking)
 - Check browser console (F12) for errors
 - Ensure the extension is enabled
 
 **AI features not working:**
+
 - Verify API key is correct (starts with `sk-or-...`)
 - Check your OpenRouter account has credits
 - Extension works without AI (basic tracking detection)
 
 **Extension errors:**
+
 - Open Chrome DevTools (F12) → Console tab
 - Look for error messages
 - Report issues on GitHub with error details

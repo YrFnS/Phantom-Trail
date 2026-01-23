@@ -229,7 +229,16 @@ export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
                     {insight.message}
                   </p>
                   {insight.actionable && (
-                    <button className="mt-2 text-xs px-2 py-1 bg-[var(--accent-primary)] text-white rounded hover:opacity-80 transition-opacity">
+                    <button
+                      onClick={() => {
+                        // Navigate to Privacy Actions tab
+                        const event = new CustomEvent('switchTab', {
+                          detail: 'actions',
+                        });
+                        window.dispatchEvent(event);
+                      }}
+                      className="mt-2 text-xs px-2 py-1 bg-[var(--accent-primary)] text-white rounded hover:opacity-80 transition-opacity"
+                    >
                       Take Action
                     </button>
                   )}

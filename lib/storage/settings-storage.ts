@@ -56,5 +56,31 @@ export class SettingsStorage {
         riskThreshold: 'medium',
       });
     }
+
+    // Initialize badge settings
+    await this.initializeBadgeDefaults();
+  }
+
+  /**
+   * Initialize badge settings separately to avoid circular imports
+   */
+  private static async initializeBadgeDefaults(): Promise<void> {
+    try {
+      const badgeKey = 'phantom-trail-badge-settings';
+      const existing = await BaseStorage.get(badgeKey);
+      if (!existing) {
+        await BaseStorage.set(badgeKey, {
+          enabled: true,
+          style: 'grade',
+          showScore: false,
+          showGrade: true,
+          colorScheme: 'traffic-light',
+          updateFrequency: 'realtime',
+          showOnlyRisks: false,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to initialize badge defaults:', error);
+    }
   }
 }

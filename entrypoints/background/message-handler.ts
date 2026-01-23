@@ -60,9 +60,38 @@ export class MessageHandler {
       const { EventsStorage } =
         await import('../../lib/storage/events-storage');
       await EventsStorage.addEvent(message.event);
+
+      // Update badge for the tab where tracking was detected
+      const tabs = await chrome.tabs.query({
+        url: `*://${message.event.domain}/*`,
+      });
+      if (tabs.length > 0 && tabs[0].id) {
+        await this.updateBadgeForDomain(tabs[0].id, message.event.domain);
+      }
+
       sendResponse({ success: true });
     } catch {
       sendResponse({ error: 'Failed to store tracking event' });
+    }
+  }
+
+  private static async updateBadgeForDomain(
+    tabId: number,
+    domain: string
+  ): Promise<void> {
+    try {
+      const { EventsStorage } =
+        await import('../../lib/storage/events-storage');
+      const events = await EventsStorage.getRecentEvents(100);
+      const domainEvents = events.filter(e => e.domain === domain);
+
+      const { calculatePrivacyScore } = await import('../../lib/privacy-score');
+      const score = calculatePrivacyScore(domainEvents);
+
+      const { BadgeManager } = await import('../../lib/badge-manager');
+      await BadgeManager.updateBadge(tabId, score);
+    } catch (error) {
+      console.error('[Message Handler] Failed to update badge:', error);
     }
   }
 
