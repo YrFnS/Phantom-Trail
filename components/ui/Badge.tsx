@@ -14,11 +14,14 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const variants = {
-    default: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-primary)]',
+    default:
+      'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border-[var(--border-primary)]',
     low: 'bg-[var(--success-light)] text-[var(--success)] border-[var(--success)]/30',
-    medium: 'bg-[var(--warning-light)] text-[var(--warning)] border-[var(--warning)]/30',
+    medium:
+      'bg-[var(--warning-light)] text-[var(--warning)] border-[var(--warning)]/30',
     high: 'bg-[var(--warning-light)] text-[var(--warning)] border-[var(--warning)]/30',
-    critical: 'bg-[var(--error-light)] text-[var(--error)] border-[var(--error)]/30',
+    critical:
+      'bg-[var(--error-light)] text-[var(--error)] border-[var(--error)]/30',
   };
 
   return (

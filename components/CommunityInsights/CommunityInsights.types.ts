@@ -1,4 +1,8 @@
-import { P2PRecommendation, CommunityStats, P2PSettings } from '../../lib/types';
+import {
+  P2PRecommendation,
+  CommunityStats,
+  P2PSettings,
+} from '../../lib/types';
 
 export interface CommunityInsightsProps {
   userScore: number;

@@ -9,5 +9,5 @@ export {
   type OptimizationSettings,
   type PerformanceReport,
   type PerformanceMode,
-  type Task
+  type Task,
 } from './performance';

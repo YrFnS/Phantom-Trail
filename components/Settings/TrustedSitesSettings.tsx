@@ -6,12 +6,14 @@ interface TrustedSitesSettingsProps {
   className?: string;
 }
 
-export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({ className = '' }) => {
+export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({
+  className = '',
+}) => {
   const [settings, setSettings] = useState({
     autoSuggestTrust: true,
     verificationInterval: 30,
     defaultTrustLevel: TrustLevel.PARTIAL_TRUST,
-    inheritSubdomains: true
+    inheritSubdomains: true,
   });
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +32,10 @@ export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({ clas
     }
   };
 
-  const handleSettingChange = async (key: string, value: string | number | boolean) => {
+  const handleSettingChange = async (
+    key: string,
+    value: string | number | boolean
+  ) => {
     try {
       const newSettings = { ...settings, [key]: value };
       setSettings(newSettings);
@@ -58,11 +63,13 @@ export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({ clas
     <div className={`space-y-6 ${className}`}>
       {/* Main Trusted Sites Management */}
       <TrustedSites />
-      
+
       {/* Settings Section */}
       <div className="border-t border-[var(--border-primary)] pt-6">
-        <h3 className="text-lg font-medium text-[var(--text-primary)] mb-4">Trust Settings</h3>
-        
+        <h3 className="text-lg font-medium text-[var(--text-primary)] mb-4">
+          Trust Settings
+        </h3>
+
         <div className="space-y-4">
           {/* Auto Suggest Trust */}
           <div className="flex items-center justify-between">
@@ -71,14 +78,17 @@ export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({ clas
                 Auto-suggest trusted sites
               </label>
               <p className="text-xs text-[var(--text-secondary)]">
-                Automatically suggest sites to trust based on your browsing patterns
+                Automatically suggest sites to trust based on your browsing
+                patterns
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 checked={settings.autoSuggestTrust}
-                onChange={(e) => handleSettingChange('autoSuggestTrust', e.target.checked)}
+                onChange={e =>
+                  handleSettingChange('autoSuggestTrust', e.target.checked)
+                }
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-[var(--bg-tertiary)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--accent-primary)]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-secondary)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
@@ -92,7 +102,12 @@ export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({ clas
             </label>
             <select
               value={settings.defaultTrustLevel}
-              onChange={(e) => handleSettingChange('defaultTrustLevel', e.target.value as TrustLevel)}
+              onChange={e =>
+                handleSettingChange(
+                  'defaultTrustLevel',
+                  e.target.value as TrustLevel
+                )
+              }
               className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
             >
               <option value={TrustLevel.PARTIAL_TRUST}>Partial Trust</option>
@@ -100,7 +115,8 @@ export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({ clas
               <option value={TrustLevel.CONDITIONAL}>Conditional Trust</option>
             </select>
             <p className="text-xs text-[var(--text-secondary)] mt-1">
-              This will be the default trust level when you add new trusted sites
+              This will be the default trust level when you add new trusted
+              sites
             </p>
           </div>
 
@@ -114,11 +130,17 @@ export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({ clas
               min="1"
               max="365"
               value={settings.verificationInterval}
-              onChange={(e) => handleSettingChange('verificationInterval', parseInt(e.target.value))}
+              onChange={e =>
+                handleSettingChange(
+                  'verificationInterval',
+                  parseInt(e.target.value)
+                )
+              }
               className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
             />
             <p className="text-xs text-[var(--text-secondary)] mt-1">
-              How often to re-evaluate trusted sites for changes in their privacy practices
+              How often to re-evaluate trusted sites for changes in their
+              privacy practices
             </p>
           </div>
 
@@ -136,7 +158,9 @@ export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({ clas
               <input
                 type="checkbox"
                 checked={settings.inheritSubdomains}
-                onChange={(e) => handleSettingChange('inheritSubdomains', e.target.checked)}
+                onChange={e =>
+                  handleSettingChange('inheritSubdomains', e.target.checked)
+                }
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-[var(--bg-tertiary)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--accent-primary)]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-secondary)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
@@ -146,24 +170,29 @@ export const TrustedSitesSettings: React.FC<TrustedSitesSettingsProps> = ({ clas
 
         {/* Trust Level Explanations */}
         <div className="mt-6 p-4 bg-[var(--bg-secondary)] rounded-lg">
-          <h4 className="text-sm font-medium text-[var(--text-primary)] mb-3">Trust Level Explanations</h4>
+          <h4 className="text-sm font-medium text-[var(--text-primary)] mb-3">
+            Trust Level Explanations
+          </h4>
           <div className="space-y-2 text-xs text-[var(--text-secondary)]">
             <div className="flex items-start space-x-2">
               <span className="text-[var(--success)]">🛡️</span>
               <div>
-                <span className="font-medium">Full Trust:</span> No monitoring, privacy score boosted to minimum B+ (85)
+                <span className="font-medium">Full Trust:</span> No monitoring,
+                privacy score boosted to minimum B+ (85)
               </div>
             </div>
             <div className="flex items-start space-x-2">
               <span className="text-[var(--warning)]">⚡</span>
               <div>
-                <span className="font-medium">Partial Trust:</span> Reduced monitoring, privacy score boosted by 15 points
+                <span className="font-medium">Partial Trust:</span> Reduced
+                monitoring, privacy score boosted by 15 points
               </div>
             </div>
             <div className="flex items-start space-x-2">
               <span className="text-[var(--accent-primary)]">⚙️</span>
               <div>
-                <span className="font-medium">Conditional Trust:</span> Trust with specific conditions (e.g., max trackers allowed)
+                <span className="font-medium">Conditional Trust:</span> Trust
+                with specific conditions (e.g., max trackers allowed)
               </div>
             </div>
           </div>

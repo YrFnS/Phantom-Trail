@@ -3,13 +3,17 @@
 ## What I Noticed in Your Screenshots
 
 ### Screenshot 1: Network Graph View
+
 **Issues Found:**
+
 1. ✅ Export button was solid bright purple (too prominent)
 2. ✅ Legend text "Click nodes to explore connections" was too long
 3. ✅ Overall good - network graph working well
 
 ### Screenshot 2: AI Assistant View
+
 **Issues Found:**
+
 1. ✅ "Send" button was solid bright purple (inconsistent with design)
 2. ✅ Settings gear icon hover state too subtle
 3. ✅ Overall good - chat interface clean
@@ -19,18 +23,21 @@
 ## Fixes Applied
 
 ### 1. Export Button (High Priority)
+
 **Problem:** Solid purple fill - too bright, doesn't match Phantom aesthetic
 
 **Before:**
+
 ```tsx
 bg-primary-500 hover:bg-primary-600 text-white
 ```
 
 **After:**
+
 ```tsx
-bg-hud text-terminal 
-border border-plasma/30 
-hover:border-plasma 
+bg-hud text-terminal
+border border-plasma/30
+hover:border-plasma
 hover:shadow-[0_0_15px_rgba(188,19,254,0.4)]
 ```
 
@@ -39,17 +46,20 @@ hover:shadow-[0_0_15px_rgba(188,19,254,0.4)]
 ---
 
 ### 2. Send Button (High Priority)
+
 **Problem:** Solid purple fill - inconsistent with other buttons
 
 **Before:**
+
 ```tsx
 bg-primary-500 hover:bg-primary-600 text-white
 ```
 
 **After:**
+
 ```tsx
-bg-hud border border-plasma/30 
-hover:border-plasma 
+bg-hud border border-plasma/30
+hover:border-plasma
 hover:shadow-[0_0_10px_rgba(188,19,254,0.4)]
 text-terminal
 ```
@@ -59,17 +69,20 @@ text-terminal
 ---
 
 ### 3. Settings Icon Hover (Medium Priority)
+
 **Problem:** Hover state too subtle (just darker grey)
 
 **Before:**
+
 ```tsx
 hover:bg-dark-700 text-gray-400 hover:text-gray-300
 ```
 
 **After:**
+
 ```tsx
-hover:bg-hud 
-hover:border hover:border-plasma/30 
+hover:bg-hud
+hover:border hover:border-plasma/30
 text-gray-400 hover:text-terminal
 ```
 
@@ -78,14 +91,17 @@ text-gray-400 hover:text-terminal
 ---
 
 ### 4. Network Graph Legend (Low Priority)
+
 **Problem:** Text too long "Click nodes to explore connections"
 
 **Before:**
+
 ```tsx
 Click nodes to explore connections
 ```
 
 **After:**
+
 ```tsx
 Click nodes to explore
 ```
@@ -99,16 +115,19 @@ Click nodes to explore
 ### Button Hierarchy (Now Consistent)
 
 **Primary Actions** (Export, Send):
+
 ```
 bg-hud + border-plasma/30 + glow on hover
 ```
 
 **Secondary Actions** (Settings):
+
 ```
 transparent + plasma border on hover
 ```
 
 **Navigation** (Feed, Map, Stats, AI):
+
 ```
 bg-hud + border-l-2 border-plasma when active
 ```
@@ -118,6 +137,7 @@ bg-hud + border-l-2 border-plasma when active
 ## Visual Comparison
 
 ### Before (From Screenshots)
+
 ```
 Export:   [████████] Solid bright purple
 Send:     [████████] Solid bright purple
@@ -125,6 +145,7 @@ Settings: [  ⚙️  ] Subtle grey hover
 ```
 
 ### After (Fixed)
+
 ```
 Export:   [▓▓▓▓▓▓▓▓] Dark HUD + plasma border + glow
 Send:     [▓▓▓▓▓▓▓▓] Dark HUD + plasma border + glow
@@ -158,21 +179,25 @@ Settings: [  ⚙️  ] Plasma border on hover
 ## Remaining Observations (Not Fixed - Your Call)
 
 ### 1. Score Shows "F (0)"
+
 - Is this accurate or placeholder?
 - Might confuse users if no tracking detected yet
 - Consider: "No data yet" instead of F grade?
 
 ### 2. Network Graph Legend
+
 - Text is small (10px)
 - Might be hard to read for some users
 - Consider: Slightly larger (11px) or remove if space tight?
 
 ### 3. Empty State Icons
+
 - Using emojis (💬, 🕸️, etc.)
 - Might not render consistently across OS
 - Consider: SVG icons for consistency?
 
 ### 4. Navigation Labels
+
 - "Feed", "Map", "Stats", "AI"
 - All good, but "Stats" could be "Dash" (shorter)?
 
@@ -193,6 +218,7 @@ Settings: [  ⚙️  ] Plasma border on hover
 **After:** Subtle HUD grey with plasma accents (matches Phantom aesthetic)
 
 **User Experience:**
+
 - More cohesive visual design
 - Consistent button styling
 - Better follows "JARVIS/hacker terminal" theme

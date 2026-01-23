@@ -18,7 +18,9 @@ function MessageDisplay({ message }: MessageDisplayProps) {
       <div className={`max-w-[90%] ${isUser ? 'max-w-[75%]' : ''}`}>
         {isUser ? (
           <div className="px-2.5 py-1.5 rounded-lg text-xs bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--accent-primary)]/30">
-            <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+            <p className="whitespace-pre-wrap leading-relaxed">
+              {message.content}
+            </p>
             <p className="text-[10px] mt-1 text-[var(--accent-primary)]">
               {new Date(message.timestamp).toLocaleTimeString()}
             </p>
@@ -30,7 +32,9 @@ function MessageDisplay({ message }: MessageDisplayProps) {
               <AnalysisResult content={message.content} />
             ) : (
               <div className="bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-primary)] px-2.5 py-1.5 rounded-lg text-xs">
-                <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                <p className="whitespace-pre-wrap leading-relaxed">
+                  {message.content}
+                </p>
               </div>
             )}
             <p className="text-[10px] text-[var(--text-muted)] px-1">
@@ -58,10 +62,10 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
   } = useChat();
 
   const examplePrompts = [
-    "Analyze my tracking patterns",
+    'Analyze my tracking patterns',
     "What's my privacy risk?",
-    "Show me tracking timeline",
-    "Audit this website's privacy"
+    'Show me tracking timeline',
+    "Audit this website's privacy",
   ];
 
   const handleExampleClick = (prompt: string) => {
@@ -88,7 +92,9 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
     <div className={`flex flex-col h-full ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between px-1 mb-2">
-        <h2 className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Privacy Assistant</h2>
+        <h2 className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
+          Privacy Assistant
+        </h2>
         {messages.length > 0 && (
           <button
             onClick={clearChat}
@@ -103,14 +109,22 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
       <div className="flex-1 overflow-y-auto mb-2 space-y-3 min-h-[300px]">
         {messages.length === 0 ? (
           <div className="text-center text-[var(--text-tertiary)] mt-8">
-            <svg className="w-12 h-12 mx-auto mb-3 text-[var(--text-muted)] opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            <svg
+              className="w-12 h-12 mx-auto mb-3 text-[var(--text-muted)] opacity-30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             <p className="text-xs mb-3 font-medium">Ask about your privacy</p>
-            
+
             {/* Example prompts */}
             <div className="space-y-2">
-              <p className="text-[10px] text-[var(--text-muted)] mb-2">Try these examples:</p>
+              <p className="text-[10px] text-[var(--text-muted)] mb-2">
+                Try these examples:
+              </p>
               {examplePrompts.map((prompt, index) => (
                 <button
                   key={index}
@@ -132,7 +146,9 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
               <div className="flex justify-start">
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] px-2 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
                   <LoadingSpinner size="sm" />
-                  <span className="text-[var(--text-tertiary)]">Analyzing...</span>
+                  <span className="text-[var(--text-tertiary)]">
+                    Analyzing...
+                  </span>
                 </div>
               </div>
             )}

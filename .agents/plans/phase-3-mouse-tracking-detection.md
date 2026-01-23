@@ -200,11 +200,13 @@ pnpm build
 ### Level 2: Mouse Tracking Detection Test
 
 **Test Sites:**
+
 - Amazon product pages (https://amazon.com)
 - eBay listings (https://ebay.com)
 - Any e-commerce site
 
 **Steps:**
+
 1. Reload extension in Chrome
 2. Visit Amazon product page
 3. Move mouse rapidly across page for 3-5 seconds
@@ -219,6 +221,7 @@ pnpm build
 **Critical: No lag during mouse movement**
 
 **Steps:**
+
 1. Visit test site
 2. Move mouse rapidly in circles
 3. Verify smooth cursor movement (no stuttering)
@@ -229,6 +232,7 @@ pnpm build
 ### Level 4: False Positive Check
 
 **Test on non-tracking sites:**
+
 - Wikipedia articles
 - GitHub repositories
 - News sites (CNN, BBC)
@@ -266,21 +270,25 @@ pnpm build
 ## TROUBLESHOOTING
 
 **Issue: Cursor lag during movement**
+
 - Increase throttle timeout from 2000ms to 3000ms
 - Use requestAnimationFrame for smoother counting
 - Consider debouncing instead of throttling
 
 **Issue: Too many false positives**
+
 - Increase threshold from 50 to 75 events/second
 - Add minimum duration requirement (5+ seconds)
 - Whitelist gaming/interactive sites
 
 **Issue: Not detecting on test sites**
+
 - Lower threshold temporarily to 30 for testing
 - Check console for event count logs
 - Verify passive: true is set (performance optimization)
 
 **Issue: High CPU usage**
+
 - Verify throttleTimeout is working correctly
 - Check for event listener leaks
 - Profile with Chrome DevTools Performance tab
@@ -290,16 +298,19 @@ pnpm build
 ## PERFORMANCE OPTIMIZATION NOTES
 
 **Why passive: true?**
+
 - Prevents blocking scroll performance
 - Browser can optimize event handling
 - Required for smooth 60fps scrolling
 
 **Why 2-second throttle?**
+
 - Balances detection speed vs performance
 - Allows pattern to emerge before reporting
 - Prevents event spam to background script
 
 **Why reset counters?**
+
 - Prevents unbounded memory growth
 - Provides fresh measurement windows
 - Enables detection of intermittent tracking
@@ -309,5 +320,6 @@ pnpm build
 ## NEXT STEPS
 
 After Phase 3 completion:
+
 - **Phase 4:** Form Monitoring (critical for password fields)
 - **Phase 5:** Device API Detection (hardware fingerprinting)

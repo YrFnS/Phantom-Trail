@@ -30,7 +30,7 @@ Reviewed fixes to `public/content-main-world.js` addressing memory management in
 function checkStorageAccess() {
   const now = Date.now();
   const cutoff = now - 60000;
-  
+
   // Remove old entries
   for (let i = storageOperations.length - 1; i >= 0; i--) {
     if (storageOperations[i].timestamp < cutoff) {
@@ -42,9 +42,9 @@ function checkStorageAccess() {
     reportDetection({
       type: 'storage-access',
       operations: storageOperations.slice(),
-      timestamp: now
+      timestamp: now,
     });
-    
+
     // Clear after reporting to avoid duplicates
     storageOperations.length = 0;
   }
@@ -66,17 +66,17 @@ formMonitoringTimeout = setTimeout(() => {
     // Capture and reset atomically
     const fieldsToReport = monitoredFields;
     monitoredFields = new Set();
-    
+
     const fields = Array.from(fieldsToReport).map(field => ({
       type: field.type || 'text',
       name: field.name || field.id || 'unnamed',
-      monitored: true
+      monitored: true,
     }));
 
     reportDetection({
       type: 'form-monitoring',
       fields,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
   formMonitoringTimeout = null;
@@ -130,6 +130,7 @@ The changes address previously identified issues and improve code quality. The m
 **Overall Assessment**: ✅ Approved with minor fix recommended for storage operations
 
 **Recommended Next Steps**:
+
 1. Fix duplicate reporting in storage operations
 2. Test on long-running pages with frequent storage access
 3. Verify error handling works in browsers with restricted properties

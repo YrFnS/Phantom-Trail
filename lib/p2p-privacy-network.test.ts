@@ -9,36 +9,40 @@ import { AnonymizationService } from '../lib/anonymization';
 (global as { chrome?: unknown }).chrome = {
   storage: {
     local: {
-      get: jest.fn().mockResolvedValue({ p2pSettings: { joinPrivacyNetwork: true } }),
-      set: jest.fn().mockResolvedValue(undefined)
-    }
+      get: jest
+        .fn()
+        .mockResolvedValue({ p2pSettings: { joinPrivacyNetwork: true } }),
+      set: jest.fn().mockResolvedValue(undefined),
+    },
   },
   tabs: {
     query: jest.fn().mockResolvedValue([]),
-    sendMessage: jest.fn().mockResolvedValue(undefined)
+    sendMessage: jest.fn().mockResolvedValue(undefined),
   },
   runtime: {
     id: 'test-extension-id',
     onMessage: {
-      addListener: jest.fn()
-    }
-  }
+      addListener: jest.fn(),
+    },
+  },
 };
 
 // Mock WebRTC
-(global as { RTCPeerConnection?: unknown }).RTCPeerConnection = jest.fn().mockImplementation(() => ({
-  createDataChannel: jest.fn().mockReturnValue({
-    readyState: 'open',
-    send: jest.fn(),
+(global as { RTCPeerConnection?: unknown }).RTCPeerConnection = jest
+  .fn()
+  .mockImplementation(() => ({
+    createDataChannel: jest.fn().mockReturnValue({
+      readyState: 'open',
+      send: jest.fn(),
+      close: jest.fn(),
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+    }),
     close: jest.fn(),
-    onopen: null,
-    onmessage: null,
-    onerror: null
-  }),
-  close: jest.fn(),
-  iceConnectionState: 'connected',
-  oniceconnectionstatechange: null
-}));
+    iceConnectionState: 'connected',
+    oniceconnectionstatechange: null,
+  }));
 
 describe('P2P Privacy Network', () => {
   let network: P2PPrivacyNetwork;
@@ -78,9 +82,9 @@ describe('Anonymization Service', () => {
           domain: 'example.com',
           trackerType: 'advertising' as const,
           riskLevel: 'medium' as const,
-          description: 'Test tracker'
-        }
-      ]
+          description: 'Test tracker',
+        },
+      ],
     };
 
     const anonymized = AnonymizationService.anonymizeForP2P(mockPrivacyData);
@@ -98,14 +102,14 @@ describe('Anonymization Service', () => {
       trackerCount: 25, // Under cap
       riskDistribution: { low: 10, medium: 20, high: 5, critical: 0 },
       websiteCategories: ['advertising', 'analytics'],
-      timestamp: new Date('2024-01-01T12:00:00.000Z').getTime() // Rounded to hour
+      timestamp: new Date('2024-01-01T12:00:00.000Z').getTime(), // Rounded to hour
     };
 
     expect(AnonymizationService.validateAnonymization(validData)).toBe(true);
 
     const invalidData = {
       ...validData,
-      privacyScore: 87 // Not multiple of 5
+      privacyScore: 87, // Not multiple of 5
     };
 
     expect(AnonymizationService.validateAnonymization(invalidData)).toBe(false);

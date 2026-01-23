@@ -57,18 +57,24 @@ export class PrivacyInsights {
   static async generatePersonalizedInsights(): Promise<PersonalizedInsights> {
     const events = await EventsStorage.getRecentEvents(1000);
     const snapshots = await ReportsStorage.getDailySnapshots(30);
-    
+
     const browsingPattern = this.analyzeBrowsingPatterns(events);
     const privacyTrends = this.analyzePrivacyTrends(snapshots);
-    const recommendations = this.generatePersonalizedRecommendations(browsingPattern, privacyTrends);
-    const achievements = await this.checkForNewAchievements(browsingPattern, privacyTrends);
+    const recommendations = this.generatePersonalizedRecommendations(
+      browsingPattern,
+      privacyTrends
+    );
+    const achievements = await this.checkForNewAchievements(
+      browsingPattern,
+      privacyTrends
+    );
 
     const insights: PersonalizedInsights = {
       browsingPattern,
       privacyTrends,
       recommendations,
       achievements,
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
     };
 
     await BaseStorage.set(this.STORAGE_KEY, insights);
@@ -79,7 +85,9 @@ export class PrivacyInsights {
     return await BaseStorage.get<PersonalizedInsights>(this.STORAGE_KEY);
   }
 
-  private static analyzeBrowsingPatterns(events: TrackingEvent[]): BrowsingPatternAnalysis {
+  private static analyzeBrowsingPatterns(
+    events: TrackingEvent[]
+  ): BrowsingPatternAnalysis {
     if (events.length === 0) {
       return {
         averagePrivacyScore: 100,
@@ -88,7 +96,10 @@ export class PrivacyInsights {
         improvementAreas: [],
         strengths: ['No tracking detected'],
         totalEvents: 0,
-        timePatterns: { peakHours: [], weekdayVsWeekend: { weekday: 0, weekend: 0 } }
+        timePatterns: {
+          peakHours: [],
+          weekdayVsWeekend: { weekday: 0, weekend: 0 },
+        },
       };
     }
 
@@ -104,33 +115,35 @@ export class PrivacyInsights {
       improvementAreas: this.suggestImprovements(riskPatterns),
       strengths: this.identifyStrengths(events, averageScore),
       totalEvents: events.length,
-      timePatterns
+      timePatterns,
     };
   }
 
-  private static analyzePrivacyTrends(snapshots: Array<{ date: string; privacyScore: number }>): PrivacyTrendAnalysis {
+  private static analyzePrivacyTrends(
+    snapshots: Array<{ date: string; privacyScore: number }>
+  ): PrivacyTrendAnalysis {
     if (snapshots.length < 2) {
       return {
         scoreChange: 0,
         trendDirection: 'stable',
         weeklyAverage: 100,
         bestDay: { date: new Date().toISOString().split('T')[0], score: 100 },
-        worstDay: { date: new Date().toISOString().split('T')[0], score: 100 }
+        worstDay: { date: new Date().toISOString().split('T')[0], score: 100 },
       };
     }
 
     const scores = snapshots.map(s => s.privacyScore);
     const weeklyAverage = scores.reduce((a, b) => a + b, 0) / scores.length;
     const scoreChange = scores[scores.length - 1] - scores[0];
-    
+
     let trendDirection: 'improving' | 'declining' | 'stable' = 'stable';
     if (scoreChange > 5) trendDirection = 'improving';
     else if (scoreChange < -5) trendDirection = 'declining';
 
-    const bestSnapshot = snapshots.reduce((best, current) => 
+    const bestSnapshot = snapshots.reduce((best, current) =>
       current.privacyScore > best.privacyScore ? current : best
     );
-    const worstSnapshot = snapshots.reduce((worst, current) => 
+    const worstSnapshot = snapshots.reduce((worst, current) =>
       current.privacyScore < worst.privacyScore ? current : worst
     );
 
@@ -139,11 +152,13 @@ export class PrivacyInsights {
       trendDirection,
       weeklyAverage,
       bestDay: { date: bestSnapshot.date, score: bestSnapshot.privacyScore },
-      worstDay: { date: worstSnapshot.date, score: worstSnapshot.privacyScore }
+      worstDay: { date: worstSnapshot.date, score: worstSnapshot.privacyScore },
     };
   }
 
-  private static calculateCategoryDistribution(events: TrackingEvent[]): Record<string, number> {
+  private static calculateCategoryDistribution(
+    events: TrackingEvent[]
+  ): Record<string, number> {
     const distribution: Record<string, number> = {};
     events.forEach(event => {
       const category = this.categorizeWebsite(event.domain);
@@ -154,12 +169,41 @@ export class PrivacyInsights {
 
   private static categorizeWebsite(domain: string): string {
     const categories = {
-      'Social Media': ['facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com', 'tiktok.com'],
-      'Shopping': ['amazon.com', 'ebay.com', 'shopify.com', 'etsy.com', 'walmart.com'],
-      'News': ['cnn.com', 'bbc.com', 'nytimes.com', 'reuters.com', 'theguardian.com'],
-      'Entertainment': ['youtube.com', 'netflix.com', 'spotify.com', 'twitch.tv', 'hulu.com'],
-      'Search': ['google.com', 'bing.com', 'duckduckgo.com', 'yahoo.com'],
-      'Technology': ['github.com', 'stackoverflow.com', 'reddit.com', 'medium.com']
+      'Social Media': [
+        'facebook.com',
+        'twitter.com',
+        'instagram.com',
+        'linkedin.com',
+        'tiktok.com',
+      ],
+      Shopping: [
+        'amazon.com',
+        'ebay.com',
+        'shopify.com',
+        'etsy.com',
+        'walmart.com',
+      ],
+      News: [
+        'cnn.com',
+        'bbc.com',
+        'nytimes.com',
+        'reuters.com',
+        'theguardian.com',
+      ],
+      Entertainment: [
+        'youtube.com',
+        'netflix.com',
+        'spotify.com',
+        'twitch.tv',
+        'hulu.com',
+      ],
+      Search: ['google.com', 'bing.com', 'duckduckgo.com', 'yahoo.com'],
+      Technology: [
+        'github.com',
+        'stackoverflow.com',
+        'reddit.com',
+        'medium.com',
+      ],
     };
 
     for (const [category, domains] of Object.entries(categories)) {
@@ -170,15 +214,17 @@ export class PrivacyInsights {
     return 'Other';
   }
 
-  private static identifyRiskPatterns(events: TrackingEvent[]): Record<string, number> {
+  private static identifyRiskPatterns(
+    events: TrackingEvent[]
+  ): Record<string, number> {
     const patterns: Record<string, number> = {};
-    
+
     events.forEach(event => {
       if (event.riskLevel === 'high' || event.riskLevel === 'critical') {
         const pattern = `${event.trackerType}_tracking`;
         patterns[pattern] = (patterns[pattern] || 0) + 1;
       }
-      
+
       if (event.inPageTracking?.method) {
         const method = event.inPageTracking.method;
         patterns[method] = (patterns[method] || 0) + 1;
@@ -188,7 +234,9 @@ export class PrivacyInsights {
     return patterns;
   }
 
-  private static analyzeTimePatterns(events: TrackingEvent[]): BrowsingPatternAnalysis['timePatterns'] {
+  private static analyzeTimePatterns(
+    events: TrackingEvent[]
+  ): BrowsingPatternAnalysis['timePatterns'] {
     const hourCounts: Record<number, number> = {};
     let weekdayCount = 0;
     let weekendCount = 0;
@@ -197,9 +245,9 @@ export class PrivacyInsights {
       const date = new Date(event.timestamp);
       const hour = date.getHours();
       const dayOfWeek = date.getDay();
-      
+
       hourCounts[hour] = (hourCounts[hour] || 0) + 1;
-      
+
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         weekendCount++;
       } else {
@@ -208,13 +256,13 @@ export class PrivacyInsights {
     });
 
     const peakHours = Object.entries(hourCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 3)
       .map(([hour]) => parseInt(hour));
 
     return {
       peakHours,
-      weekdayVsWeekend: { weekday: weekdayCount, weekend: weekendCount }
+      weekdayVsWeekend: { weekday: weekdayCount, weekend: weekendCount },
     };
   }
 
@@ -222,19 +270,26 @@ export class PrivacyInsights {
     // Simplified score calculation based on risk levels
     const riskWeights = { low: 95, medium: 85, high: 70, critical: 50 };
     const scores = events.map(e => riskWeights[e.riskLevel] || 85);
-    return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 100;
+    return scores.length > 0
+      ? scores.reduce((a, b) => a + b, 0) / scores.length
+      : 100;
   }
 
-  private static getTopCategories(distribution: Record<string, number>, limit: number): string[] {
+  private static getTopCategories(
+    distribution: Record<string, number>,
+    limit: number
+  ): string[] {
     return Object.entries(distribution)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, limit)
       .map(([category]) => category);
   }
 
-  private static identifyRiskyBehaviors(patterns: Record<string, number>): string[] {
+  private static identifyRiskyBehaviors(
+    patterns: Record<string, number>
+  ): string[] {
     const risky = [];
-    
+
     if (patterns['social_media_tracking'] > 10) {
       risky.push('Heavy social media tracking exposure');
     }
@@ -251,9 +306,11 @@ export class PrivacyInsights {
     return risky;
   }
 
-  private static suggestImprovements(patterns: Record<string, number>): string[] {
+  private static suggestImprovements(
+    patterns: Record<string, number>
+  ): string[] {
     const improvements = [];
-    
+
     if (patterns['advertising_tracking'] > 15) {
       improvements.push('Consider using an ad blocker');
     }
@@ -270,16 +327,22 @@ export class PrivacyInsights {
     return improvements;
   }
 
-  private static identifyStrengths(events: TrackingEvent[], averageScore: number): string[] {
+  private static identifyStrengths(
+    events: TrackingEvent[],
+    averageScore: number
+  ): string[] {
     const strengths = [];
-    
+
     if (averageScore > 85) {
       strengths.push('Maintaining good privacy practices');
     }
     if (events.filter(e => e.riskLevel === 'critical').length === 0) {
       strengths.push('No critical privacy risks detected');
     }
-    if (events.filter(e => e.url.startsWith('https')).length / events.length > 0.9) {
+    if (
+      events.filter(e => e.url.startsWith('https')).length / events.length >
+      0.9
+    ) {
       strengths.push('Consistently using secure HTTPS connections');
     }
 
@@ -298,21 +361,25 @@ export class PrivacyInsights {
         id: 'improve-score',
         type: 'behavior_change',
         title: 'Improve Your Privacy Score',
-        description: 'Your average privacy score could be better. Focus on reducing tracker exposure.',
+        description:
+          'Your average privacy score could be better. Focus on reducing tracker exposure.',
         priority: 'high',
-        estimatedImpact: '+20 privacy score points'
+        estimatedImpact: '+20 privacy score points',
       });
     }
 
     // Pattern-based recommendations
-    if (patterns.riskiestHabits.includes('Heavy social media tracking exposure')) {
+    if (
+      patterns.riskiestHabits.includes('Heavy social media tracking exposure')
+    ) {
       recommendations.push({
         id: 'social-media-protection',
         type: 'tool_suggestion',
         title: 'Protect Against Social Media Tracking',
-        description: 'Use browser containers or adjust privacy settings to limit social media tracking.',
+        description:
+          'Use browser containers or adjust privacy settings to limit social media tracking.',
         priority: 'medium',
-        estimatedImpact: '+10 privacy score points'
+        estimatedImpact: '+10 privacy score points',
       });
     }
 
@@ -321,9 +388,10 @@ export class PrivacyInsights {
         id: 'ad-blocker',
         type: 'tool_suggestion',
         title: 'Install an Ad Blocker',
-        description: 'Ad blockers can significantly reduce tracking and improve your privacy score.',
+        description:
+          'Ad blockers can significantly reduce tracking and improve your privacy score.',
         priority: 'high',
-        estimatedImpact: '+25 privacy score points'
+        estimatedImpact: '+25 privacy score points',
       });
     }
 
@@ -333,9 +401,10 @@ export class PrivacyInsights {
         id: 'reverse-trend',
         type: 'behavior_change',
         title: 'Reverse Privacy Decline',
-        description: 'Your privacy score has been declining. Review recent browsing habits.',
+        description:
+          'Your privacy score has been declining. Review recent browsing habits.',
         priority: 'high',
-        estimatedImpact: 'Stop privacy score decline'
+        estimatedImpact: 'Stop privacy score decline',
       });
     }
 
@@ -357,7 +426,7 @@ export class PrivacyInsights {
         description: 'Maintained an A+ privacy score average',
         icon: '🏆',
         unlockedAt: now,
-        category: 'improvement'
+        category: 'improvement',
       });
     }
 
@@ -369,7 +438,7 @@ export class PrivacyInsights {
         description: 'Improved privacy score by 15+ points',
         icon: '📈',
         unlockedAt: now,
-        category: 'improvement'
+        category: 'improvement',
       });
     }
 
@@ -381,7 +450,7 @@ export class PrivacyInsights {
         description: 'No critical privacy risks detected',
         icon: '🛡️',
         unlockedAt: now,
-        category: 'learning'
+        category: 'learning',
       });
     }
 

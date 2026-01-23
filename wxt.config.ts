@@ -7,30 +7,39 @@ export default defineConfig({
     description:
       'AI-native Chrome extension that makes invisible data collection visible in real-time',
     version: '0.1.0',
-    permissions: ['webRequest', 'storage', 'activeTab', 'tabs', 'alarms', 'notifications', 'downloads', 'management'],
+    permissions: [
+      'webRequest',
+      'storage',
+      'activeTab',
+      'tabs',
+      'alarms',
+      'notifications',
+      'downloads',
+      'management',
+    ],
     host_permissions: ['<all_urls>'],
     commands: {
       'toggle-popup': {
         suggested_key: {
           default: 'Ctrl+Shift+P',
-          mac: 'Command+Shift+P'
+          mac: 'Command+Shift+P',
         },
-        description: 'Toggle Phantom Trail popup'
+        description: 'Toggle Phantom Trail popup',
       },
       'quick-analysis': {
         suggested_key: {
           default: 'Ctrl+Shift+A',
-          mac: 'Command+Shift+A'
+          mac: 'Command+Shift+A',
         },
-        description: 'Quick privacy analysis of current site'
+        description: 'Quick privacy analysis of current site',
       },
       'export-data': {
         suggested_key: {
           default: 'Ctrl+Shift+E',
-          mac: 'Command+Shift+E'
+          mac: 'Command+Shift+E',
         },
-        description: 'Export privacy data'
-      }
+        description: 'Export privacy data',
+      },
     },
     icons: {
       16: '/icon/icon-16.png',
@@ -76,7 +85,8 @@ export default defineConfig({
     resolve: {
       alias: {
         // Ensure proper resolution of chrome APIs
-        'webextension-polyfill': 'webextension-polyfill/dist/browser-polyfill.js',
+        'webextension-polyfill':
+          'webextension-polyfill/dist/browser-polyfill.js',
       },
     },
   }),

@@ -9,19 +9,19 @@ export class AlarmManager {
     // Clean up old events daily
     chrome.alarms.create('cleanup-old-events', {
       delayInMinutes: 1,
-      periodInMinutes: 24 * 60 // Daily
+      periodInMinutes: 24 * 60, // Daily
     });
 
     // Daily privacy summary
     chrome.alarms.create('daily-privacy-summary', {
       delayInMinutes: 60,
-      periodInMinutes: 24 * 60 // Daily
+      periodInMinutes: 24 * 60, // Daily
     });
 
     // Daily snapshot for trends
     chrome.alarms.create('daily-snapshot', {
       delayInMinutes: 30,
-      periodInMinutes: 24 * 60 // Daily
+      periodInMinutes: 24 * 60, // Daily
     });
   }
 
@@ -47,13 +47,15 @@ export class AlarmManager {
 
   private static async cleanupOldEvents(): Promise<void> {
     const { EventsStorage } = await import('../../lib/storage/events-storage');
-    const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days
-    
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000; // 30 days
+
     const events = await EventsStorage.getTrackingEvents();
     const filtered = events.filter(event => event.timestamp > cutoff);
-    
+
     await EventsStorage.setTrackingEvents(filtered);
-    console.log(`[Alarm Manager] Cleaned up ${events.length - filtered.length} old events`);
+    console.log(
+      `[Alarm Manager] Cleaned up ${events.length - filtered.length} old events`
+    );
   }
 
   private static async generateDailySummary(): Promise<void> {

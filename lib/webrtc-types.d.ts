@@ -1,14 +1,19 @@
 // WebRTC type declarations for P2P functionality
 declare global {
   const RTCPeerConnection: {
-    new(configuration?: RTCConfiguration): RTCPeerConnection;
+    new (configuration?: RTCConfiguration): RTCPeerConnection;
   };
 
   interface RTCPeerConnection {
-    createDataChannel(label: string, dataChannelDict?: RTCDataChannelInit): RTCDataChannel;
+    createDataChannel(
+      label: string,
+      dataChannelDict?: RTCDataChannelInit
+    ): RTCDataChannel;
     close(): void;
     iceConnectionState: RTCIceConnectionState;
-    oniceconnectionstatechange: ((this: RTCPeerConnection, ev: Event) => void) | null;
+    oniceconnectionstatechange:
+      | ((this: RTCPeerConnection, ev: Event) => void)
+      | null;
   }
 
   interface RTCDataChannel {
@@ -32,7 +37,14 @@ declare global {
     ordered?: boolean;
   }
 
-  type RTCIceConnectionState = 'new' | 'checking' | 'connected' | 'completed' | 'failed' | 'disconnected' | 'closed';
+  type RTCIceConnectionState =
+    | 'new'
+    | 'checking'
+    | 'connected'
+    | 'completed'
+    | 'failed'
+    | 'disconnected'
+    | 'closed';
   type RTCDataChannelState = 'connecting' | 'open' | 'closing' | 'closed';
 }
 

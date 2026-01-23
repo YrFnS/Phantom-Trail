@@ -5,15 +5,15 @@ interface P2PSettingsComponentProps {
   onSettingsChange?: (settings: P2PSettings) => void;
 }
 
-export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({ 
-  onSettingsChange 
+export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
+  onSettingsChange,
 }) => {
   const [settings, setSettings] = useState<P2PSettings>({
     joinPrivacyNetwork: false,
     shareAnonymousData: false,
     shareRegionalData: false,
     maxConnections: 10,
-    autoReconnect: true
+    autoReconnect: true,
   });
   const [loading, setLoading] = useState(false);
 
@@ -33,14 +33,14 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
   };
 
   const updateSetting = async <K extends keyof P2PSettings>(
-    key: K, 
+    key: K,
     value: P2PSettings[K]
   ) => {
     setLoading(true);
     try {
       const newSettings = { ...settings, [key]: value };
       setSettings(newSettings);
-      
+
       await chrome.storage.local.set({ p2pSettings: newSettings });
       onSettingsChange?.(newSettings);
     } catch (error) {
@@ -57,8 +57,9 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
           Peer-to-Peer Privacy Network
         </h3>
         <p className="text-sm text-[var(--text-secondary)] mb-4">
-          Connect with other privacy-conscious users to compare practices and get recommendations. 
-          All data is anonymized and shared directly between browsers - no servers involved.
+          Connect with other privacy-conscious users to compare practices and
+          get recommendations. All data is anonymized and shared directly
+          between browsers - no servers involved.
         </p>
       </div>
 
@@ -77,7 +78,9 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
             <input
               type="checkbox"
               checked={settings.joinPrivacyNetwork}
-              onChange={(e) => updateSetting('joinPrivacyNetwork', e.target.checked)}
+              onChange={e =>
+                updateSetting('joinPrivacyNetwork', e.target.checked)
+              }
               disabled={loading}
               className="sr-only peer"
             />
@@ -94,14 +97,17 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
                   Share Anonymous Data
                 </label>
                 <p className="text-xs text-[var(--text-secondary)]">
-                  Share privacy scores and tracker counts (no URLs or personal data)
+                  Share privacy scores and tracker counts (no URLs or personal
+                  data)
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={settings.shareAnonymousData}
-                  onChange={(e) => updateSetting('shareAnonymousData', e.target.checked)}
+                  onChange={e =>
+                    updateSetting('shareAnonymousData', e.target.checked)
+                  }
                   disabled={loading}
                   className="sr-only peer"
                 />
@@ -123,7 +129,9 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
                 <input
                   type="checkbox"
                   checked={settings.shareRegionalData}
-                  onChange={(e) => updateSetting('shareRegionalData', e.target.checked)}
+                  onChange={e =>
+                    updateSetting('shareRegionalData', e.target.checked)
+                  }
                   disabled={loading}
                   className="sr-only peer"
                 />
@@ -141,7 +149,9 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
                 min="1"
                 max="20"
                 value={settings.maxConnections}
-                onChange={(e) => updateSetting('maxConnections', parseInt(e.target.value))}
+                onChange={e =>
+                  updateSetting('maxConnections', parseInt(e.target.value))
+                }
                 disabled={loading}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
               />
@@ -165,7 +175,9 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
                 <input
                   type="checkbox"
                   checked={settings.autoReconnect}
-                  onChange={(e) => updateSetting('autoReconnect', e.target.checked)}
+                  onChange={e =>
+                    updateSetting('autoReconnect', e.target.checked)
+                  }
                   disabled={loading}
                   className="sr-only peer"
                 />
@@ -194,9 +206,25 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
       {loading && (
         <div className="text-center">
           <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-[var(--text-primary)] bg-[var(--bg-secondary)] transition ease-in-out duration-150">
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[var(--accent-primary)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <svg
+              className="animate-spin -ml-1 mr-3 h-5 w-5 text-[var(--accent-primary)]"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
             Updating settings...
           </div>

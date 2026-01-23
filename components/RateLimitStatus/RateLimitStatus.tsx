@@ -7,7 +7,10 @@ interface RateLimitStatusProps {
   showDetails?: boolean;
 }
 
-export function RateLimitStatus({ className = '', showDetails = false }: RateLimitStatusProps) {
+export function RateLimitStatus({
+  className = '',
+  showDetails = false,
+}: RateLimitStatusProps) {
   const [status, setStatus] = useState<RateLimitStatusType | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
@@ -16,15 +19,17 @@ export function RateLimitStatus({ className = '', showDetails = false }: RateLim
 
     const updateStatus = async () => {
       if (!mounted) return;
-      
+
       try {
         const rateLimitStatus = await AIEngine.getRateLimitStatus();
         if (!mounted) return;
-        
+
         setStatus(rateLimitStatus);
-        
+
         if (!rateLimitStatus.canMakeRequest) {
-          const remaining = rateLimitStatus.retryAfter || (rateLimitStatus.resetTime - Date.now());
+          const remaining =
+            rateLimitStatus.retryAfter ||
+            rateLimitStatus.resetTime - Date.now();
           setTimeRemaining(Math.max(0, remaining));
         } else {
           setTimeRemaining(0);
@@ -37,7 +42,7 @@ export function RateLimitStatus({ className = '', showDetails = false }: RateLim
 
     updateStatus();
     const interval = setInterval(updateStatus, 1000);
-    
+
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -64,13 +69,15 @@ export function RateLimitStatus({ className = '', showDetails = false }: RateLim
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {/* Status Indicator */}
-      <div className={`w-2 h-2 rounded-full ${
-        isLimited 
-          ? 'bg-red-400 animate-pulse' 
-          : isLowRequests 
-            ? 'bg-yellow-400' 
-            : 'bg-green-400'
-      }`} />
+      <div
+        className={`w-2 h-2 rounded-full ${
+          isLimited
+            ? 'bg-red-400 animate-pulse'
+            : isLowRequests
+              ? 'bg-yellow-400'
+              : 'bg-green-400'
+        }`}
+      />
 
       {/* Status Text */}
       <div className="text-xs">
@@ -79,7 +86,9 @@ export function RateLimitStatus({ className = '', showDetails = false }: RateLim
             AI Limited {timeRemaining > 0 && `(${formatTime(timeRemaining)})`}
           </span>
         ) : (
-          <span className={isLowRequests ? 'text-yellow-400' : 'text-green-400'}>
+          <span
+            className={isLowRequests ? 'text-yellow-400' : 'text-green-400'}
+          >
             AI Ready ({status.requestsRemaining} left)
           </span>
         )}
@@ -88,15 +97,11 @@ export function RateLimitStatus({ className = '', showDetails = false }: RateLim
       {/* Detailed Status */}
       {showDetails && (
         <div className="text-[10px] text-gray-500">
-          {isLimited ? (
-            timeRemaining > 0 ? (
-              `Retry in ${formatTime(timeRemaining)}`
-            ) : (
-              'Checking availability...'
-            )
-          ) : (
-            `Resets ${formatTime(Math.max(0, status.resetTime - Date.now()))}`
-          )}
+          {isLimited
+            ? timeRemaining > 0
+              ? `Retry in ${formatTime(timeRemaining)}`
+              : 'Checking availability...'
+            : `Resets ${formatTime(Math.max(0, status.resetTime - Date.now()))}`}
         </div>
       )}
     </div>

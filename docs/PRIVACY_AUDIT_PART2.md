@@ -3,6 +3,7 @@
 ## 3. Trusted Sites System Analysis
 
 ### Current State
+
 - **11 default trusted sites** (hardcoded)
 - **3-layer system**: Default → User → Context detection
 - **Context detection**: Login, banking, payment, password fields
@@ -11,6 +12,7 @@
 ### Privacy Risks
 
 #### DEFAULT WHITELIST CONCERNS:
+
 1. **Too Permissive**:
    - `facebook.com` NOT in trusted list (correct)
    - `accounts.google.com` trusted for fingerprinting (reasonable for auth)
@@ -27,6 +29,7 @@
    - `chase.com` allows all fingerprinting methods (too broad)
 
 #### CONTEXT DETECTION RISKS:
+
 1. **False Positives**:
    - `/login` in URL doesn't guarantee legitimate auth (phishing sites)
    - Banking keywords can be spoofed
@@ -44,7 +47,9 @@
 ### Recommendations
 
 #### HIGH PRIORITY:
+
 **Add Domain Reputation Check**:
+
 ```typescript
 // Before trusting context, verify domain
 static async isReputableDomain(domain: string): Promise<boolean> {
@@ -56,6 +61,7 @@ static async isReputableDomain(domain: string): Promise<boolean> {
 ```
 
 **Expand Default Whitelist**:
+
 ```typescript
 // Healthcare
 { domain: 'mychart.com', reason: 'security', ... }
@@ -73,6 +79,7 @@ static async isReputableDomain(domain: string): Promise<boolean> {
 ```
 
 **Restrict Allowed Methods**:
+
 ```typescript
 // Be more specific about what's allowed
 {
@@ -84,7 +91,9 @@ static async isReputableDomain(domain: string): Promise<boolean> {
 ```
 
 #### MEDIUM PRIORITY:
+
 **Improve Confidence Scoring**:
+
 ```typescript
 // Add more indicators
 - SSL certificate validation (+2 confidence)
@@ -94,6 +103,7 @@ static async isReputableDomain(domain: string): Promise<boolean> {
 ```
 
 **Add Temporary Trust**:
+
 ```typescript
 // Allow users to trust site for current session only
 {
@@ -104,17 +114,21 @@ static async isReputableDomain(domain: string): Promise<boolean> {
 ```
 
 **User Notification**:
+
 - Notify users when site is auto-trusted by context
 - Allow users to override context detection
 - Show trust reason in popup
 
 #### LOW PRIORITY:
+
 **Whitelist Sync**:
+
 - Sync user whitelist across devices (chrome.storage.sync)
 - Export/import whitelist (already implemented ✓)
 - Share whitelist with community (privacy-preserving)
 
 ### Compliance Considerations
+
 - **GDPR Recital 47**: Legitimate interest for security fingerprinting
 - **User Control**: Users must be able to override trust decisions
 - **Transparency**: Show why site is trusted (already implemented ✓)
@@ -124,6 +138,7 @@ static async isReputableDomain(domain: string): Promise<boolean> {
 ## 4. In-Page Tracking Detection Analysis
 
 ### Current State
+
 - **5 detection methods**: Canvas, storage, mouse, forms, device APIs
 - **Thresholds**: 3+ canvas ops, 10+ storage ops/min, 50+ mouse events/sec
 - **Risk levels**: Low, medium, high, critical
@@ -132,6 +147,7 @@ static async isReputableDomain(domain: string): Promise<boolean> {
 ### Privacy Risks
 
 #### DETECTION GAPS:
+
 1. **Missing Tracking Methods**:
    - **WebRTC leaks** (IP address exposure) - CRITICAL
    - **Font fingerprinting** (installed fonts) - HIGH
@@ -154,6 +170,7 @@ static async isReputableDomain(domain: string): Promise<boolean> {
    - Mouse tracking for UX improvements (scroll depth)
 
 #### DETECTION ACCURACY:
+
 1. **Canvas Fingerprinting**:
    - Current: Detects `getContext`, `toDataURL`, `getImageData`
    - Missing: `measureText` + `fillText` combo (common fingerprinting)
@@ -172,12 +189,14 @@ static async isReputableDomain(domain: string): Promise<boolean> {
 ### Recommendations
 
 #### HIGH PRIORITY:
+
 **Add Missing Detection Methods**:
+
 ```typescript
 // WebRTC leak detection
 static analyzeWebRTC(rtcCalls: string[]): DetectionResult {
-  const detected = rtcCalls.some(call => 
-    call.includes('RTCPeerConnection') || 
+  const detected = rtcCalls.some(call =>
+    call.includes('RTCPeerConnection') ||
     call.includes('createDataChannel')
   );
   return {
@@ -208,7 +227,7 @@ static analyzeAudioFingerprint(audioCalls: string[]): DetectionResult {
     'createDynamicsCompressor',
     'getFloatFrequencyData'
   ];
-  const detected = suspiciousPatterns.every(p => 
+  const detected = suspiciousPatterns.every(p =>
     audioCalls.some(call => call.includes(p))
   );
   return {
@@ -222,6 +241,7 @@ static analyzeAudioFingerprint(audioCalls: string[]): DetectionResult {
 ```
 
 **Refine Thresholds**:
+
 ```typescript
 // Canvas: Add pattern detection
 private static readonly CANVAS_FINGERPRINT_PATTERNS = [
@@ -239,21 +259,22 @@ private static readonly SUPERCOOKIE_PATTERNS = [
 ```
 
 **Improve Canvas Detection**:
+
 ```typescript
 static analyzeCanvasFingerprint(operations: string[]): DetectionResult {
   // Check for hidden canvas (off-screen rendering)
-  const hasHiddenCanvas = operations.some(op => 
+  const hasHiddenCanvas = operations.some(op =>
     op.includes('width:0') || op.includes('height:0')
   );
-  
+
   // Check for fingerprinting patterns
   const matchedPatterns = this.CANVAS_FINGERPRINT_PATTERNS.filter(pattern =>
     pattern.every(op => operations.some(o => o.includes(op)))
   );
-  
-  const detected = matchedPatterns.length > 0 || 
+
+  const detected = matchedPatterns.length > 0 ||
     (hasHiddenCanvas && operations.length >= 2);
-  
+
   return {
     detected,
     method: 'canvas-fingerprint',
@@ -261,7 +282,7 @@ static analyzeCanvasFingerprint(operations: string[]): DetectionResult {
       ? `Canvas fingerprinting detected (${matchedPatterns.length} patterns)`
       : 'Normal canvas usage',
     riskLevel: detected ? 'critical' : 'low',
-    details: hasHiddenCanvas 
+    details: hasHiddenCanvas
       ? 'Hidden canvas detected - likely fingerprinting'
       : `${operations.length} canvas operations`,
   };
@@ -269,7 +290,9 @@ static analyzeCanvasFingerprint(operations: string[]): DetectionResult {
 ```
 
 #### MEDIUM PRIORITY:
+
 **Add Confidence Scores**:
+
 ```typescript
 interface DetectionResult {
   detected: boolean;
@@ -280,11 +303,13 @@ interface DetectionResult {
 ```
 
 **Reduce False Positives**:
+
 - Whitelist legitimate canvas libraries (Chart.js, D3.js)
 - Detect SPA frameworks (React, Vue) for storage exceptions
 - Allow user feedback ("This is a false positive")
 
 **Add Detection Context**:
+
 ```typescript
 // Detect if tracking is for legitimate purposes
 static getTrackingContext(method: string, domain: string): string {
@@ -299,15 +324,17 @@ static getTrackingContext(method: string, domain: string): string {
 ```
 
 #### LOW PRIORITY:
+
 **Machine Learning Detection**:
+
 - Train model on known fingerprinting patterns
 - Detect novel tracking techniques
 - Reduce false positives with behavioral analysis
 
 ### Compliance Considerations
+
 - **GDPR Article 5**: Detection must be accurate (false positives = misleading users)
 - **Transparency**: Users should understand why something is flagged
 - **Right to Object**: Users should be able to whitelist false positives
 
 ---
-

@@ -58,21 +58,23 @@ export class SyncManager {
 
   static async getDeviceId(): Promise<string> {
     if (this.deviceId) return this.deviceId;
-    
-    const deviceId = await BaseStorage.get('deviceId') as string | null;
+
+    const deviceId = (await BaseStorage.get('deviceId')) as string | null;
     if (!deviceId) {
       const newDeviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       await BaseStorage.set('deviceId', newDeviceId);
       this.deviceId = newDeviceId;
       return newDeviceId;
     }
-    
+
     this.deviceId = deviceId;
     return deviceId;
   }
 
   static async getSyncSettings(): Promise<SyncSettings> {
-    const settings = await BaseStorage.get('syncSettings') as Partial<SyncSettings> | null;
+    const settings = (await BaseStorage.get(
+      'syncSettings'
+    )) as Partial<SyncSettings> | null;
     const defaultSettings: SyncSettings = {
       enabled: false,
       syncPrivacySettings: true,
@@ -80,9 +82,9 @@ export class SyncManager {
       syncPrivacyGoals: true,
       syncExportSchedules: true,
       conflictResolution: 'newest-wins',
-      lastSyncTime: 0
+      lastSyncTime: 0,
     };
-    
+
     return settings ? { ...defaultSettings, ...settings } : defaultSettings;
   }
 
@@ -101,7 +103,11 @@ export class SyncManager {
     await this.setSyncSettings({ enabled: false });
     // Clear sync data from chrome.storage.sync
     try {
-      await chrome.storage.sync.remove(['phantom-trail-sync', 'sync-timestamp', 'sync-version']);
+      await chrome.storage.sync.remove([
+        'phantom-trail-sync',
+        'sync-timestamp',
+        'sync-version',
+      ]);
     } catch (error) {
       console.warn('Failed to clear sync data:', error);
     }
@@ -109,15 +115,15 @@ export class SyncManager {
 
   static async getSyncStatus(): Promise<SyncStatus> {
     const settings = await this.getSyncSettings();
-    const status = await BaseStorage.get('syncStatus') as string || 'idle';
-    const error = await BaseStorage.get('syncError') as string | undefined;
-    
+    const status = ((await BaseStorage.get('syncStatus')) as string) || 'idle';
+    const error = (await BaseStorage.get('syncError')) as string | undefined;
+
     return {
       enabled: settings.enabled,
       lastSyncTime: settings.lastSyncTime,
       status: status as 'idle' | 'syncing' | 'error' | 'success',
       error,
-      deviceCount: await this.getDeviceCount()
+      deviceCount: await this.getDeviceCount(),
     };
   }
 
@@ -134,7 +140,12 @@ export class SyncManager {
   static async syncNow(): Promise<SyncResult> {
     const settings = await this.getSyncSettings();
     if (!settings.enabled) {
-      return { success: false, conflicts: [], error: 'Sync is disabled', syncedDataTypes: [] };
+      return {
+        success: false,
+        conflicts: [],
+        error: 'Sync is disabled',
+        syncedDataTypes: [],
+      };
     }
 
     await BaseStorage.set('syncStatus', 'syncing');
@@ -142,18 +153,23 @@ export class SyncManager {
     try {
       const localData = await this.collectLocalData();
       const remoteData = await this.getRemoteData();
-      
+
       let conflicts: DataConflict[] = [];
       let syncedData = localData;
 
       if (remoteData) {
         conflicts = this.detectConflicts(localData, remoteData);
-        syncedData = await this.resolveConflicts(localData, remoteData, conflicts, settings.conflictResolution);
+        syncedData = await this.resolveConflicts(
+          localData,
+          remoteData,
+          conflicts,
+          settings.conflictResolution
+        );
       }
 
       await this.uploadSyncData(syncedData);
       await this.updateDeviceList();
-      
+
       const now = Date.now();
       await this.setSyncSettings({ lastSyncTime: now });
       await BaseStorage.set('syncStatus', 'success');
@@ -162,17 +178,20 @@ export class SyncManager {
       return {
         success: true,
         conflicts,
-        syncedDataTypes: this.getSyncedDataTypes(settings)
+        syncedDataTypes: this.getSyncedDataTypes(settings),
       };
     } catch (error) {
       await BaseStorage.set('syncStatus', 'error');
-      await BaseStorage.set('syncError', error instanceof Error ? error.message : 'Unknown error');
-      
+      await BaseStorage.set(
+        'syncError',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+
       return {
         success: false,
         conflicts: [],
         error: error instanceof Error ? error.message : 'Unknown error',
-        syncedDataTypes: []
+        syncedDataTypes: [],
       };
     }
   }
@@ -180,7 +199,7 @@ export class SyncManager {
   private static async collectLocalData(): Promise<SyncData> {
     const deviceId = await this.getDeviceId();
     const settings = await this.getSyncSettings();
-    
+
     const data: SyncData = {
       settings: {},
       trustedSites: [],
@@ -188,23 +207,23 @@ export class SyncManager {
       exportSchedules: [],
       version: SYNC_VERSION,
       deviceId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     if (settings.syncPrivacySettings) {
-      data.settings = await BaseStorage.get('extensionSettings') || {};
+      data.settings = (await BaseStorage.get('extensionSettings')) || {};
     }
 
     if (settings.syncTrustedSites) {
-      data.trustedSites = await BaseStorage.get('trustedSites') || [];
+      data.trustedSites = (await BaseStorage.get('trustedSites')) || [];
     }
 
     if (settings.syncPrivacyGoals) {
-      data.privacyGoals = await BaseStorage.get('privacyGoals') || [];
+      data.privacyGoals = (await BaseStorage.get('privacyGoals')) || [];
     }
 
     if (settings.syncExportSchedules) {
-      data.exportSchedules = await BaseStorage.get('exportSchedules') || [];
+      data.exportSchedules = (await BaseStorage.get('exportSchedules')) || [];
     }
 
     return data;
@@ -220,26 +239,35 @@ export class SyncManager {
     }
   }
 
-  private static detectConflicts(localData: SyncData, remoteData: SyncData): DataConflict[] {
+  private static detectConflicts(
+    localData: SyncData,
+    remoteData: SyncData
+  ): DataConflict[] {
     const conflicts: DataConflict[] = [];
 
     // Compare timestamps for simple conflict detection
     if (localData.timestamp !== remoteData.timestamp) {
-      if (JSON.stringify(localData.settings) !== JSON.stringify(remoteData.settings)) {
+      if (
+        JSON.stringify(localData.settings) !==
+        JSON.stringify(remoteData.settings)
+      ) {
         conflicts.push({
           type: 'settings',
           localData: localData.settings,
           remoteData: remoteData.settings,
-          field: 'settings'
+          field: 'settings',
         });
       }
 
-      if (JSON.stringify(localData.trustedSites) !== JSON.stringify(remoteData.trustedSites)) {
+      if (
+        JSON.stringify(localData.trustedSites) !==
+        JSON.stringify(remoteData.trustedSites)
+      ) {
         conflicts.push({
           type: 'trusted-sites',
           localData: localData.trustedSites,
           remoteData: remoteData.trustedSites,
-          field: 'trustedSites'
+          field: 'trustedSites',
         });
       }
     }
@@ -257,47 +285,63 @@ export class SyncManager {
 
     switch (strategy) {
       case 'newest-wins':
-        return localData.timestamp > remoteData.timestamp ? localData : remoteData;
-      
+        return localData.timestamp > remoteData.timestamp
+          ? localData
+          : remoteData;
+
       case 'merge':
         return this.mergeData(localData, remoteData);
-      
+
       case 'manual':
         // For now, default to newest wins - manual resolution would need UI
-        return localData.timestamp > remoteData.timestamp ? localData : remoteData;
-      
+        return localData.timestamp > remoteData.timestamp
+          ? localData
+          : remoteData;
+
       default:
         return localData;
     }
   }
 
-  private static mergeData(localData: SyncData, remoteData: SyncData): SyncData {
+  private static mergeData(
+    localData: SyncData,
+    remoteData: SyncData
+  ): SyncData {
     return {
       ...localData,
       settings: { ...remoteData.settings, ...localData.settings },
-      trustedSites: this.mergeTrustedSites(localData.trustedSites, remoteData.trustedSites),
+      trustedSites: this.mergeTrustedSites(
+        localData.trustedSites,
+        remoteData.trustedSites
+      ),
       privacyGoals: [...remoteData.privacyGoals, ...localData.privacyGoals],
-      exportSchedules: [...remoteData.exportSchedules, ...localData.exportSchedules],
-      timestamp: Math.max(localData.timestamp, remoteData.timestamp)
+      exportSchedules: [
+        ...remoteData.exportSchedules,
+        ...localData.exportSchedules,
+      ],
+      timestamp: Math.max(localData.timestamp, remoteData.timestamp),
     };
   }
 
-  private static mergeTrustedSites(local: UserTrustedSite[], remote: UserTrustedSite[]): UserTrustedSite[] {
+  private static mergeTrustedSites(
+    local: UserTrustedSite[],
+    remote: UserTrustedSite[]
+  ): UserTrustedSite[] {
     const merged = [...remote];
     const remoteDomains = new Set(remote.map(site => site.domain));
-    
+
     for (const localSite of local) {
       if (!remoteDomains.has(localSite.domain)) {
         merged.push(localSite);
       }
     }
-    
+
     return merged;
   }
 
   private static async uploadSyncData(data: SyncData): Promise<void> {
     const serialized = JSON.stringify(data);
-    
+
     if (serialized.length > SYNC_STORAGE_LIMIT) {
       throw new Error('Sync data exceeds storage limit');
     }
@@ -305,7 +349,7 @@ export class SyncManager {
     await chrome.storage.sync.set({
       'phantom-trail-sync': serialized,
       'sync-timestamp': data.timestamp,
-      'sync-version': SYNC_VERSION
+      'sync-version': SYNC_VERSION,
     });
   }
 
@@ -313,7 +357,7 @@ export class SyncManager {
     const deviceId = await this.getDeviceId();
     const devices = await chrome.storage.sync.get('phantom-trail-devices');
     const deviceList = devices['phantom-trail-devices'] || [];
-    
+
     if (!deviceList.includes(deviceId)) {
       deviceList.push(deviceId);
       await chrome.storage.sync.set({ 'phantom-trail-devices': deviceList });
@@ -335,19 +379,19 @@ export class SyncManager {
 
   static async importSyncData(data: SyncData): Promise<void> {
     const settings = await this.getSyncSettings();
-    
+
     if (settings.syncPrivacySettings && data.settings) {
       await BaseStorage.set('extensionSettings', data.settings);
     }
-    
+
     if (settings.syncTrustedSites && data.trustedSites) {
       await BaseStorage.set('trustedSites', data.trustedSites);
     }
-    
+
     if (settings.syncPrivacyGoals && data.privacyGoals) {
       await BaseStorage.set('privacyGoals', data.privacyGoals);
     }
-    
+
     if (settings.syncExportSchedules && data.exportSchedules) {
       await BaseStorage.set('exportSchedules', data.exportSchedules);
     }
@@ -359,7 +403,7 @@ if (typeof chrome !== 'undefined' && chrome.storage) {
   chrome.storage.local.onChanged.addListener(async () => {
     const syncSettings = await SyncManager.getSyncSettings();
     if (!syncSettings.enabled) return;
-    
+
     // Debounce sync operations
     if (syncTimeout) clearTimeout(syncTimeout);
     syncTimeout = setTimeout(async () => {

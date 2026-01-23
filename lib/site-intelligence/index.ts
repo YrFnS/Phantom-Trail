@@ -6,7 +6,7 @@ export class SiteIntelligence {
     return {
       url,
       analyzed: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 }

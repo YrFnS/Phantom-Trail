@@ -31,10 +31,8 @@ Reviewed the implementation of storage access tracking, mouse tracking, form mon
 function checkStorageAccess() {
   const now = Date.now();
   // Remove entries older than 1 minute
-  const recentOps = storageOperations.filter(
-    op => now - op.timestamp < 60000
-  );
-  
+  const recentOps = storageOperations.filter(op => now - op.timestamp < 60000);
+
   // Update the array to only keep recent operations
   storageOperations.length = 0;
   storageOperations.push(...recentOps);
@@ -43,7 +41,7 @@ function checkStorageAccess() {
     reportDetection({
       type: 'storage-access',
       operations: recentOps,
-      timestamp: now
+      timestamp: now,
     });
   }
 }
@@ -61,12 +59,12 @@ function checkStorageAccess() {
 ```javascript
 function monitorFormFields() {
   let pendingFields = new Set();
-  
+
   document.addEventListener(
     'input',
-    (event) => {
+    event => {
       const target = event.target;
-      
+
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
         pendingFields.add(target);
 
@@ -79,13 +77,13 @@ function monitorFormFields() {
             const fields = Array.from(pendingFields).map(field => ({
               type: field.type || 'text',
               name: field.name || field.id || 'unnamed',
-              monitored: true
+              monitored: true,
             }));
 
             reportDetection({
               type: 'form-monitoring',
               fields,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
 
             pendingFields = new Set(); // Create new Set instead of clearing
@@ -127,14 +125,14 @@ screenProps.forEach(prop => {
     const descriptor = Object.getOwnPropertyDescriptor(screen, prop);
     if (descriptor && descriptor.get) {
       screenValues[prop] = descriptor.get.call(screen);
-      
+
       Object.defineProperty(screen, prop, {
         get() {
           deviceAPICalls.push(`screen.${prop}`);
           checkDeviceAPIs();
           return screenValues[prop];
         },
-        configurable: true
+        configurable: true,
       });
     }
   } catch (error) {

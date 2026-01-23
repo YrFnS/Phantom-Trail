@@ -13,11 +13,13 @@
 **Problem**: AI models returning malformed JSON (3 occurrences in log)
 
 **Solution**:
+
 - Installed `jsonrepair` library (3.13.2)
 - Added automatic JSON repair before parsing
 - Graceful fallback chain: repair → direct parse → default analysis
 
 **Files Modified**:
+
 - `lib/ai-engine.ts` (2 changes)
 
 **Expected Impact**: 90%+ reduction in parsing errors
@@ -29,11 +31,13 @@
 **Problem**: Creating graph edges before validating nodes exist (2 occurrences in log)
 
 **Solution**:
+
 - Build Set of valid node IDs before processing edges
 - Only create edges if both source and target nodes exist
 - Invalid edges silently skipped (no console errors)
 
 **Files Modified**:
+
 - `components/NetworkGraph/NetworkGraph.tsx` (1 change)
 
 **Expected Impact**: 100% elimination of Cytoscape errors

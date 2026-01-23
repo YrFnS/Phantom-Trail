@@ -35,11 +35,13 @@
 ### First-Time Users
 
 **What You'll See:**
+
 - A live feed of tracking events as they happen
 - Privacy scores for the current website
 - A network graph showing data flows
 
 **No Setup Required:**
+
 - Basic tracker detection works immediately
 - AI features require an API key (free tier available at openrouter.ai)
 
@@ -50,15 +52,18 @@
 ### Main Tabs
 
 #### 1. Live Feed
+
 **What it shows:** Real-time list of tracking events as they happen
 
 **How to read it:**
+
 - **Green badges** = Low risk (analytics, performance monitoring)
 - **Yellow badges** = Medium risk (behavioral tracking)
 - **Orange badges** = High risk (cross-site tracking)
 - **Red badges** = Critical risk (fingerprinting, keylogging)
 
 **Example:**
+
 ```
 🔴 CRITICAL: Canvas Fingerprinting
 doubleclick.net is creating a unique browser fingerprint
@@ -66,9 +71,11 @@ Detected: 2 minutes ago
 ```
 
 #### 2. Network Graph
+
 **What it shows:** Visual map of where your data flows
 
 **How to read it:**
+
 - **Circles (nodes)** = Websites and trackers
 - **Lines (edges)** = Data connections
 - **Colors** = Risk levels (same as Live Feed)
@@ -78,15 +85,18 @@ Detected: 2 minutes ago
 Your visit to `news.com` → sends data to → `google-analytics.com`, `facebook.com`, `doubleclick.net`
 
 #### 3. Dashboard
+
 **What it shows:** Privacy metrics and trends
 
 **Key Metrics:**
+
 - **Overall Risk Score** (0-100, higher = riskier)
 - **Risk Distribution** (pie chart of risk levels)
 - **Risk Trend** (line chart over last 12 hours)
 - **Top Trackers** (most frequent trackers)
 
 **Privacy Score Grades:**
+
 - **A (90-100)**: Excellent privacy
 - **B (80-89)**: Good privacy
 - **C (70-79)**: Fair privacy
@@ -94,9 +104,11 @@ Your visit to `news.com` → sends data to → `google-analytics.com`, `facebook
 - **F (0-59)**: Very poor privacy
 
 #### 4. Chat
+
 **What it shows:** AI-powered Q&A about your privacy
 
 **Example Questions:**
+
 - "What did Google learn about me today?"
 - "Is this website trustworthy?"
 - "Why is my privacy score low?"
@@ -121,6 +133,7 @@ Your visit to `news.com` → sends data to → `google-analytics.com`, `facebook
    - Shows total events tracked
 
 **What Affects Your Score:**
+
 - ✅ **HTTPS** = +5 points
 - ❌ **Critical Risk Trackers** = -25 points each
 - ❌ **High Risk Trackers** = -15 points each
@@ -131,11 +144,13 @@ Your visit to `news.com` → sends data to → `google-analytics.com`, `facebook
 ### Export Your Data
 
 **Why Export:**
+
 - Keep records of tracking activity
 - Share with privacy advocates
 - Analyze patterns over time
 
 **How to Export:**
+
 1. Click "Export" button in top-right
 2. Choose format:
    - **CSV** = Spreadsheet-friendly
@@ -144,6 +159,7 @@ Your visit to `news.com` → sends data to → `google-analytics.com`, `facebook
 3. File downloads automatically
 
 **What's Included:**
+
 - All tracking events with timestamps
 - Tracker names and types
 - Risk levels and URLs
@@ -172,6 +188,7 @@ Sites where tracking is expected and legitimate (e.g., your bank using fingerpri
    - Payment checkouts
 
 **How to Add Trusted Sites:**
+
 1. Go to Settings → Trusted Sites tab
 2. Click "Add Trusted Site"
 3. Enter domain (e.g., `mybank.com`)
@@ -179,6 +196,7 @@ Sites where tracking is expected and legitimate (e.g., your bank using fingerpri
 5. Choose if temporary (session-only)
 
 **Managing Trusted Sites:**
+
 - **View List**: See all trusted sites
 - **Remove**: Click X next to any site
 - **Export/Import**: Backup or share your list
@@ -190,11 +208,13 @@ Sites where tracking is expected and legitimate (e.g., your bank using fingerpri
 ### General Settings
 
 **API Key Configuration:**
+
 - Required for AI features (narrative, chat, recommendations)
 - Get free key at openrouter.ai
 - Stored locally (never sent to our servers)
 
 **AI Model Selection:**
+
 - **Claude Haiku** (default) = Fast, cost-effective
 - **GPT-4o-mini** = Alternative option
 - **Nemotron** = Free tier option
@@ -203,11 +223,13 @@ Sites where tracking is expected and legitimate (e.g., your bank using fingerpri
 
 **Current Page Context:**
 Shows why a site might be auto-trusted:
+
 - **Security Context**: Login page, banking, payment
 - **Confidence Level**: Low, Medium, High
 - **Detection Reason**: URL patterns, password fields, keywords
 
 **Whitelist Management:**
+
 - Add/remove trusted sites
 - Export whitelist (JSON backup)
 - Import whitelist (restore from backup)
@@ -219,8 +241,10 @@ Shows why a site might be auto-trusted:
 ### Understanding Risk Levels
 
 #### 🟢 Low Risk
+
 **What it means:** Normal website functionality
 **Examples:**
+
 - Google Analytics (page views)
 - Performance monitoring
 - Error tracking
@@ -228,8 +252,10 @@ Shows why a site might be auto-trusted:
 **Should you worry?** No - this is standard website operation
 
 #### 🟡 Medium Risk
+
 **What it means:** Behavioral tracking
 **Examples:**
+
 - Mouse movement tracking
 - Scroll depth monitoring
 - Session recording
@@ -237,8 +263,10 @@ Shows why a site might be auto-trusted:
 **Should you worry?** Depends on the website - expected on e-commerce, concerning on news sites
 
 #### 🟠 High Risk
+
 **What it means:** Cross-site tracking
 **Examples:**
+
 - Facebook Pixel
 - Google DoubleClick
 - Third-party cookies
@@ -246,8 +274,10 @@ Shows why a site might be auto-trusted:
 **Should you worry?** Yes - your data is being shared across websites
 
 #### 🔴 Critical Risk
+
 **What it means:** Invasive tracking
 **Examples:**
+
 - Canvas fingerprinting
 - Device fingerprinting
 - Keylogging on forms
@@ -257,11 +287,13 @@ Shows why a site might be auto-trusted:
 ### AI Recommendations
 
 **When You See Recommendations:**
+
 - Privacy score drops below 70
 - Critical risk trackers detected
 - Unusual tracking patterns
 
 **Common Recommendations:**
+
 1. **Install Privacy Tools**
    - uBlock Origin (ad/tracker blocker)
    - Privacy Badger (intelligent blocking)
@@ -286,6 +318,7 @@ Shows why a site might be auto-trusted:
 **Symptoms:** No tracking events appear
 
 **Solutions:**
+
 1. Refresh the page you're monitoring
 2. Check if extension is enabled (chrome://extensions)
 3. Ensure you're on a real website (not chrome:// pages)
@@ -296,6 +329,7 @@ Shows why a site might be auto-trusted:
 **Symptoms:** No AI narrative or chat responses
 
 **Solutions:**
+
 1. Check if API key is configured (Settings → General)
 2. Verify API key is valid (test at openrouter.ai)
 3. Check internet connection
@@ -306,6 +340,7 @@ Shows why a site might be auto-trusted:
 **Symptoms:** Browser feels slow
 
 **Solutions:**
+
 1. Extension should use <5% CPU normally
 2. Close unused tabs
 3. Disable extension temporarily
@@ -316,6 +351,7 @@ Shows why a site might be auto-trusted:
 **Symptoms:** Score doesn't match expectations
 
 **Solutions:**
+
 1. Check both scores (Current Site vs Recent Activity)
 2. Current Site score is domain-specific
 3. Recent Activity score includes all recent browsing
@@ -359,11 +395,13 @@ A: Yes, but verify. AI provides general privacy advice, not legal counsel.
 ### Technical Questions
 
 **Q: Why does the extension need these permissions?**
+
 - `webRequest`: Monitor network requests for tracker detection
 - `storage`: Save settings and tracking history locally
 - `activeTab`: Analyze current page for in-page tracking
 
 **Q: What's the difference between network and in-page tracking?**
+
 - **Network tracking**: Requests to third-party domains (e.g., google-analytics.com)
 - **In-page tracking**: JavaScript on the page (e.g., canvas fingerprinting)
 
@@ -386,6 +424,7 @@ A: Yes! Project is open source. Submit issues or PRs on GitHub.
 ### Reporting Issues
 
 **Include:**
+
 1. Chrome version
 2. Extension version
 3. Steps to reproduce
@@ -395,6 +434,7 @@ A: Yes! Project is open source. Submit issues or PRs on GitHub.
 ### Feature Requests
 
 **We'd love to hear:**
+
 - What features would help you?
 - What's confusing or unclear?
 - What trackers are we missing?
@@ -429,16 +469,19 @@ A: Yes! Project is open source. Submit issues or PRs on GitHub.
 ### When to Take Action
 
 **Immediate Action Required:**
+
 - 🔴 Critical risk on banking/financial sites
 - 🔴 Keylogging detected on login forms
 - 🔴 Device fingerprinting on sensitive sites
 
 **Consider Action:**
+
 - 🟠 High risk on news/content sites
 - 🟠 Cross-site tracking across multiple sites
 - 🟡 Excessive behavioral tracking
 
 **Monitor:**
+
 - 🟢 Low risk tracking
 - 🟢 Expected analytics on trusted sites
 

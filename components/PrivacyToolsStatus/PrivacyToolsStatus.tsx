@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { PrivacyToolDetector, type PrivacyToolsStatus as ToolsStatus } from '../../lib/privacy-tool-detector';
+import {
+  PrivacyToolDetector,
+  type PrivacyToolsStatus as ToolsStatus,
+} from '../../lib/privacy-tool-detector';
 import type { TrackingEvent } from '../../lib/types';
 
 interface PrivacyToolsStatusProps {
@@ -9,7 +12,7 @@ interface PrivacyToolsStatusProps {
 
 export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
   events,
-  className = ''
+  className = '',
 }) => {
   const [status, setStatus] = useState<ToolsStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +22,10 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
       try {
         setLoading(true);
         const tools = await PrivacyToolDetector.detectInstalledTools();
-        const toolStatus = await PrivacyToolDetector.analyzeEffectiveness(tools, events);
+        const toolStatus = await PrivacyToolDetector.analyzeEffectiveness(
+          tools,
+          events
+        );
         setStatus(toolStatus);
       } catch (error) {
         console.error('Failed to analyze privacy tools:', error);
@@ -57,17 +63,23 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
   };
 
   return (
-    <div className={`${className} bg-[var(--bg-secondary)] rounded-lg p-3 border border-[var(--border-primary)]`}>
+    <div
+      className={`${className} bg-[var(--bg-secondary)] rounded-lg p-3 border border-[var(--border-primary)]`}
+    >
       {/* Header with overall effectiveness */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg">{getEffectivenessIcon(status.overallEffectiveness)}</span>
+          <span className="text-lg">
+            {getEffectivenessIcon(status.overallEffectiveness)}
+          </span>
           <h3 className="text-sm font-medium text-[var(--text-primary)]">
             Privacy Protection
           </h3>
         </div>
         <div className="text-right">
-          <div className={`text-lg font-bold ${getEffectivenessColor(status.overallEffectiveness)}`}>
+          <div
+            className={`text-lg font-bold ${getEffectivenessColor(status.overallEffectiveness)}`}
+          >
             {status.overallEffectiveness}%
           </div>
           <div className="text-[10px] text-[var(--text-secondary)]">
@@ -90,9 +102,7 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
           <div className="text-lg font-bold text-[var(--error)]">
             {status.missedTrackers}
           </div>
-          <div className="text-[10px] text-[var(--text-secondary)]">
-            Missed
-          </div>
+          <div className="text-[10px] text-[var(--text-secondary)]">Missed</div>
         </div>
       </div>
 
@@ -102,11 +112,18 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
           Detected Tools
         </h4>
         {status.tools.slice(0, 3).map((tool, index) => (
-          <div key={index} className="flex items-center justify-between p-2 bg-[var(--bg-tertiary)] rounded">
+          <div
+            key={index}
+            className="flex items-center justify-between p-2 bg-[var(--bg-tertiary)] rounded"
+          >
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${
-                tool.enabled ? 'bg-[var(--success)]' : 'bg-[var(--text-secondary)]'
-              }`} />
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  tool.enabled
+                    ? 'bg-[var(--success)]'
+                    : 'bg-[var(--text-secondary)]'
+                }`}
+              />
               <span className="text-xs text-[var(--text-primary)]">
                 {tool.name}
               </span>
@@ -118,7 +135,10 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
                 </span>
               ) : (
                 <button
-                  onClick={() => tool.installUrl && chrome.tabs.create({ url: tool.installUrl })}
+                  onClick={() =>
+                    tool.installUrl &&
+                    chrome.tabs.create({ url: tool.installUrl })
+                  }
                   className="text-xs px-2 py-1 bg-[var(--accent-primary)] text-white rounded hover:opacity-80 transition-opacity"
                 >
                   Install
@@ -136,7 +156,10 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
             Improve Protection
           </h4>
           {status.recommendations.slice(0, 2).map((rec, index) => (
-            <div key={index} className="p-2 bg-[var(--bg-primary)] rounded border-l-2 border-[var(--accent-primary)]">
+            <div
+              key={index}
+              className="p-2 bg-[var(--bg-primary)] rounded border-l-2 border-[var(--accent-primary)]"
+            >
               <p className="text-xs text-[var(--text-primary)] leading-relaxed">
                 💡 {rec}
               </p>

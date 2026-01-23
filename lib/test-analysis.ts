@@ -12,10 +12,14 @@ async function testAnalysis() {
   try {
     // Test 1: Pattern Analysis
     console.log('1️⃣ Testing Pattern Analysis...');
-    const patternResult = await TrackingAnalysis.analyzePatterns(24 * 60 * 60 * 1000);
+    const patternResult = await TrackingAnalysis.analyzePatterns(
+      24 * 60 * 60 * 1000
+    );
     console.log('✅ Pattern analysis completed');
     console.log(`   Summary: ${patternResult.summary}`);
-    console.log(`   Recommendations: ${patternResult.recommendations.length}\n`);
+    console.log(
+      `   Recommendations: ${patternResult.recommendations.length}\n`
+    );
 
     // Test 2: Risk Assessment
     console.log('2️⃣ Testing Risk Assessment...');
@@ -26,24 +30,35 @@ async function testAnalysis() {
 
     // Test 3: Tracker Analysis
     console.log('3️⃣ Testing Tracker Analysis...');
-    const trackerResult = await TrackingAnalysis.analyzeTracker('doubleclick.net');
+    const trackerResult =
+      await TrackingAnalysis.analyzeTracker('doubleclick.net');
     console.log('✅ Tracker analysis completed');
     console.log(`   Summary: ${trackerResult.summary}`);
-    console.log(`   Recommendations: ${trackerResult.recommendations.length}\n`);
+    console.log(
+      `   Recommendations: ${trackerResult.recommendations.length}\n`
+    );
 
     // Test 4: Website Audit
     console.log('4️⃣ Testing Website Audit...');
-    const websiteResult = await TrackingAnalysis.auditWebsite('https://example.com');
+    const websiteResult = await TrackingAnalysis.auditWebsite(
+      'https://example.com'
+    );
     console.log('✅ Website audit completed');
     console.log(`   Summary: ${websiteResult.summary}`);
-    console.log(`   Recommendations: ${websiteResult.recommendations.length}\n`);
+    console.log(
+      `   Recommendations: ${websiteResult.recommendations.length}\n`
+    );
 
     // Test 5: Timeline Analysis
     console.log('5️⃣ Testing Timeline Analysis...');
-    const timelineResult = await TrackingAnalysis.analyzeTimeline(24 * 60 * 60 * 1000);
+    const timelineResult = await TrackingAnalysis.analyzeTimeline(
+      24 * 60 * 60 * 1000
+    );
     console.log('✅ Timeline analysis completed');
     console.log(`   Summary: ${timelineResult.summary}`);
-    console.log(`   Recommendations: ${timelineResult.recommendations.length}\n`);
+    console.log(
+      `   Recommendations: ${timelineResult.recommendations.length}\n`
+    );
 
     // Test 6: AI Prompt Processing
     console.log('6️⃣ Testing AI Prompt Processing...');
@@ -70,7 +85,6 @@ async function testAnalysis() {
     console.log('   ✅ Timeline analysis with anomaly detection');
     console.log('   ✅ Natural language query processing');
     console.log('   ✅ Formatted analysis results with recommendations');
-
   } catch (error) {
     console.error('❌ Test failed:', error);
     console.log('\n🔧 Troubleshooting:');

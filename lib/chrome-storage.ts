@@ -97,7 +97,10 @@ export class ChromeStorage {
    * Listen for storage changes
    */
   static onChanged(
-    callback: (changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => void
+    callback: (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      areaName: string
+    ) => void
   ): void {
     chrome.storage.onChanged.addListener(callback);
   }

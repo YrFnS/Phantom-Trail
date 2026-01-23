@@ -11,10 +11,11 @@ export default defineBackground(() => {
   AlarmManager.initialize();
 
   // Handle keyboard shortcuts
-  chrome.commands.onCommand.addListener(async (command) => {
+  chrome.commands.onCommand.addListener(async command => {
     console.log('[Phantom Trail] Keyboard command received:', command);
     try {
-      const { KeyboardShortcuts } = await import('../../lib/keyboard-shortcuts');
+      const { KeyboardShortcuts } =
+        await import('../../lib/keyboard-shortcuts');
       await KeyboardShortcuts.handleCommand(command);
     } catch (error) {
       console.error('[Phantom Trail] Keyboard shortcut failed:', error);
@@ -24,12 +25,13 @@ export default defineBackground(() => {
   // Handle extension installation and startup
   chrome.runtime.onInstalled.addListener(async () => {
     console.log('[Phantom Trail] Extension installed/updated');
-    
+
     try {
       // Initialize default settings
-      const { SettingsStorage } = await import('../../lib/storage/settings-storage');
+      const { SettingsStorage } =
+        await import('../../lib/storage/settings-storage');
       await SettingsStorage.initializeDefaults();
-      
+
       // Run data migration to clean up any corrupted data
       const { DataMigration } = await import('../../lib/data-migration');
       await DataMigration.runMigrations();
@@ -41,7 +43,7 @@ export default defineBackground(() => {
   // Also run migration on startup (in case of extension reload)
   chrome.runtime.onStartup.addListener(async () => {
     console.log('[Phantom Trail] Extension startup');
-    
+
     try {
       const { DataMigration } = await import('../../lib/data-migration');
       await DataMigration.runMigrations();

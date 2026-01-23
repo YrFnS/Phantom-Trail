@@ -36,9 +36,12 @@ ChartJS.register(
   Legend
 );
 
-export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) {
+export function RiskDashboard({
+  className,
+  currentDomain,
+}: RiskDashboardProps) {
   const { metrics, loading, error, recommendations } = useRiskMetrics();
-  
+
   // Get events from storage for PrivacyToolsStatus
   const [events] = useStorage<TrackingEvent[]>('phantom_trail_events', []);
 
@@ -67,11 +70,17 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
     return (
       <Card className={cn('p-8', className)}>
         <div className="text-center text-gray-400">
-          <svg className="w-12 h-12 mx-auto mb-2 text-gray-600 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="7" height="7"/>
-            <rect x="14" y="3" width="7" height="7"/>
-            <rect x="14" y="14" width="7" height="7"/>
-            <rect x="3" y="14" width="7" height="7"/>
+          <svg
+            className="w-12 h-12 mx-auto mb-2 text-gray-600 opacity-30"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
           </svg>
           <p>No tracking data available yet.</p>
           <p className="text-sm mt-2">
@@ -83,10 +92,10 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
   }
 
   const riskColors = {
-    low: 'rgb(16, 185, 129)',      // green-500
-    medium: 'rgb(245, 158, 11)',   // yellow-500
-    high: 'rgb(249, 115, 22)',     // orange-500
-    critical: 'rgb(239, 68, 68)',  // red-500
+    low: 'rgb(16, 185, 129)', // green-500
+    medium: 'rgb(245, 158, 11)', // yellow-500
+    high: 'rgb(249, 115, 22)', // orange-500
+    critical: 'rgb(239, 68, 68)', // red-500
   };
 
   const riskDistributionData = {
@@ -146,7 +155,9 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
     <div className={cn('space-y-3', className)}>
       {/* Compact score header */}
       <div className="flex items-center justify-between px-1">
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Dashboard</h2>
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          Dashboard
+        </h2>
         <Badge className={getRiskBadgeColor(metrics.overallRiskScore)}>
           {getRiskLevel(metrics.overallRiskScore)}
         </Badge>
@@ -168,7 +179,9 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
       <div className="grid grid-cols-2 gap-2">
         {/* Risk Distribution */}
         <div className="p-2 rounded-lg bg-dark-800/50 border border-dark-600/50">
-          <h3 className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Distribution</h3>
+          <h3 className="text-[10px] font-semibold text-gray-400 uppercase mb-2">
+            Distribution
+          </h3>
           <div className="h-32">
             <Doughnut
               data={riskDistributionData}
@@ -185,7 +198,9 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
 
         {/* Risk Trend */}
         <div className="p-2 rounded-lg bg-dark-800/50 border border-dark-600/50">
-          <h3 className="text-[10px] font-semibold text-gray-400 uppercase mb-2">Trend</h3>
+          <h3 className="text-[10px] font-semibold text-gray-400 uppercase mb-2">
+            Trend
+          </h3>
           <div className="h-32">
             <Line
               data={trendData}
@@ -213,7 +228,9 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
 
       {/* Top Trackers */}
       <div className="space-y-1.5">
-        <h3 className="text-[10px] font-semibold text-gray-400 uppercase px-1">Top Trackers</h3>
+        <h3 className="text-[10px] font-semibold text-gray-400 uppercase px-1">
+          Top Trackers
+        </h3>
         {metrics.topTrackers.map(tracker => (
           <div
             key={tracker.domain}
@@ -227,7 +244,10 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
                 {tracker.count} events
               </div>
             </div>
-            <Badge variant={tracker.riskLevel} className="text-[10px] px-1.5 py-0.5">
+            <Badge
+              variant={tracker.riskLevel}
+              className="text-[10px] px-1.5 py-0.5"
+            >
               {tracker.riskLevel}
             </Badge>
           </div>
@@ -237,7 +257,9 @@ export function RiskDashboard({ className, currentDomain }: RiskDashboardProps) 
       {/* AI Recommendations */}
       {recommendations.length > 0 && (
         <div className="p-2 rounded-lg bg-accent-cyan/5 border-l-2 border-accent-cyan">
-          <h3 className="text-[10px] font-semibold text-accent-cyan uppercase mb-1">Recommendations</h3>
+          <h3 className="text-[10px] font-semibold text-accent-cyan uppercase mb-1">
+            Recommendations
+          </h3>
           <div className="space-y-1">
             {recommendations.map((rec, index) => (
               <div key={index} className="flex items-start gap-1.5">

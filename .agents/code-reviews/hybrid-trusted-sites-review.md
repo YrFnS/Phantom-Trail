@@ -36,17 +36,19 @@ const attemptRecovery = (attempt: number) => {
   if (attempt > MAX_RECOVERY_ATTEMPTS || isRecovering) {
     return;
   }
-  
+
   isRecovering = true;
   const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
-  
+
   setTimeout(() => {
     try {
       if (chrome.runtime?.id !== undefined) {
         contextValid = true;
         recoveryAttempts = 0;
         isRecovering = false;
-        console.log(`[Phantom Trail] Context recovered after ${attempt + 1} attempts`);
+        console.log(
+          `[Phantom Trail] Context recovered after ${attempt + 1} attempts`
+        );
       } else {
         isRecovering = false;
         attemptRecovery(attempt + 1);
@@ -111,7 +113,7 @@ severity: medium
 file: lib/trusted-sites.ts
 line: 73-82, 169-178
 issue: Subdomain matching logic is duplicated in two functions with identical implementation
-detail: The subdomain matching pattern `domain.endsWith(\`.${site.domain}\`) || domain === site.domain` appears in both `isTrustedSite()` and `isUserTrusted()`. This violates DRY principle and could lead to inconsistencies if one is updated but not the other.
+detail: The subdomain matching pattern `domain.endsWith(\`.${site.domain}\`) || domain === site.domain`appears in both`isTrustedSite()`and`isUserTrusted()`. This violates DRY principle and could lead to inconsistencies if one is updated but not the other.
 suggestion: Extract to shared utility function:
 
 ```typescript
@@ -209,14 +211,14 @@ const handleImport = async () => {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'application/json';
-      input.onchange = (e) => {
+      input.onchange = e => {
         const file = (e.target as HTMLInputElement).files?.[0];
         if (file) resolve(file);
         else reject(new Error('No file selected'));
       };
       input.click();
     });
-    
+
     const text = await file.text();
     await UserWhitelistManager.importWhitelist(text);
     await loadUserSites();
@@ -254,6 +256,7 @@ const uniqueSites = new Set(
 The hybrid trusted sites implementation is well-structured and follows the project's architecture patterns. The code is readable, properly typed, and includes good separation of concerns.
 
 **Key Strengths:**
+
 - Clean separation between default, user, and context-based trust layers
 - Comprehensive TypeScript typing with no `any` types
 - Good error handling in most paths
@@ -261,6 +264,7 @@ The hybrid trusted sites implementation is well-structured and follows the proje
 - Well-documented functions and clear naming
 
 **Areas for Improvement:**
+
 - Race condition in context recovery needs fixing (HIGH priority)
 - Memory leak in event signature cleanup should be addressed (HIGH priority)
 - Input validation in import function needs strengthening (MEDIUM priority)

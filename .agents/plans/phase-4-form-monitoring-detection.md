@@ -104,9 +104,9 @@ let formMonitoringTimeout: ReturnType<typeof setTimeout> | null = null;
 function monitorFormFields() {
   document.addEventListener(
     'input',
-    (event) => {
+    event => {
       const target = event.target as HTMLElement;
-      
+
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
         const inputElement = target as HTMLInputElement;
         monitoredFields.add(inputElement);
@@ -182,15 +182,16 @@ case 'form-monitoring':
 ```typescript
 if (event.inPageTracking?.method === 'form-monitoring') {
   const hasPassword = event.inPageTracking.details.includes('PASSWORD');
-  
+
   prompt += `\n\nForm Monitoring Details:
 - Fields Monitored: ${event.inPageTracking.frequency || 'N/A'}
 - Field Types: ${event.inPageTracking.apiCalls?.join(', ') || 'N/A'}
 - Risk Level: ${event.riskLevel.toUpperCase()}
 
-${hasPassword 
-  ? '🚨 CRITICAL SECURITY ALERT: This website is monitoring password field inputs. This is potential keylogging behavior. DO NOT enter sensitive passwords on this site. Recommend using a password manager and enabling two-factor authentication.'
-  : 'This website is monitoring what you type in form fields. This data can be used to track your behavior, analyze your inputs, and potentially capture sensitive information before you submit the form.'
+${
+  hasPassword
+    ? '🚨 CRITICAL SECURITY ALERT: This website is monitoring password field inputs. This is potential keylogging behavior. DO NOT enter sensitive passwords on this site. Recommend using a password manager and enabling two-factor authentication.'
+    : 'This website is monitoring what you type in form fields. This data can be used to track your behavior, analyze your inputs, and potentially capture sensitive information before you submit the form.'
 }`;
 }
 ```
@@ -212,11 +213,13 @@ pnpm build
 ### Level 2: Form Monitoring Detection Test
 
 **Test Sites:**
+
 - Any login page (Gmail, Facebook, Twitter)
 - Banking sites
 - E-commerce checkout forms
 
 **Steps:**
+
 1. Reload extension in Chrome
 2. Visit login page (e.g., https://accounts.google.com)
 3. Type in username field
@@ -234,6 +237,7 @@ pnpm build
 **Critical: Security warning for password fields**
 
 **Steps:**
+
 1. Trigger password field monitoring
 2. Wait for AI analysis (3-5 seconds)
 3. Verify narrative includes:
@@ -246,6 +250,7 @@ pnpm build
 ### Level 4: False Positive Check
 
 **Test on legitimate form validation:**
+
 - Forms with client-side validation
 - Auto-save draft features
 - Character counters
@@ -283,21 +288,25 @@ pnpm build
 ## TROUBLESHOOTING
 
 **Issue: Too many events (every keystroke)**
+
 - Increase debounce timeout from 1000ms to 2000ms
 - Only report once per form session
 - Add cooldown period (30 seconds)
 
 **Issue: Not detecting password fields**
+
 - Check field.type === 'password' logic
 - Verify password input elements are captured
 - Log field types to console for debugging
 
 **Issue: False positives on autosave**
+
 - This is expected behavior (autosave IS monitoring)
 - AI should explain legitimate use case
 - Consider adding "legitimate monitoring" category
 
 **Issue: Performance impact on typing**
+
 - Verify passive: true is set
 - Check debounce timeout is working
 - Ensure monitoredFields Set is cleared properly
@@ -307,23 +316,27 @@ pnpm build
 ## SECURITY CONSIDERATIONS
 
 **Why Critical Risk for Passwords?**
+
 - Password monitoring = potential keylogging
 - Immediate security threat to user accounts
 - Requires urgent user action (don't enter password)
 - Justifies prominent warning in UI
 
 **Why High Risk for Other Fields?**
+
 - Still privacy invasion (tracking inputs)
 - Can capture PII (names, emails, addresses)
 - Less urgent than passwords but still concerning
 
 **Legitimate Use Cases:**
+
 - Form validation (checking email format)
 - Auto-save drafts (Google Docs, email clients)
 - Character counters (Twitter, text limits)
 - Password strength meters
 
 **User Guidance:**
+
 - AI should distinguish malicious vs legitimate monitoring
 - Provide context-aware recommendations
 - Emphasize password managers for critical fields
@@ -333,12 +346,14 @@ pnpm build
 ## UI CONSIDERATIONS
 
 **Critical Risk Badge:**
+
 - Should be visually distinct (red, bold)
 - Icon: 🚨 or ⚠️
 - Prominent placement in Live Feed
 - Consider browser notification for critical events
 
 **Description Clarity:**
+
 - Non-technical language
 - Clear action items
 - Explain why it matters
@@ -349,6 +364,7 @@ pnpm build
 ## NEXT STEPS
 
 After Phase 4 completion:
+
 - **Phase 5:** Device API Detection (hardware fingerprinting)
 - **Optional:** Browser notifications for critical events
 - **Optional:** Form field whitelist (trusted sites)

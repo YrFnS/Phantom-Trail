@@ -25,10 +25,10 @@ export class P2PDiscoveryService {
 
     try {
       this.discoveryActive = true;
-      
+
       // Set up content script messaging for cross-tab discovery
       this.setupContentScriptDiscovery();
-      
+
       // Start periodic broadcast
       this.broadcastInterval = setInterval(() => {
         this.broadcastDiscovery();
@@ -36,7 +36,7 @@ export class P2PDiscoveryService {
 
       // Initial discovery
       await this.broadcastDiscovery();
-      
+
       console.log('P2P discovery service started');
     } catch (error) {
       console.error('Failed to start peer discovery:', error);
@@ -49,12 +49,12 @@ export class P2PDiscoveryService {
    */
   stopDiscovery(): void {
     this.discoveryActive = false;
-    
+
     if (this.broadcastInterval) {
       clearInterval(this.broadcastInterval);
       this.broadcastInterval = null;
     }
-    
+
     console.log('P2P discovery service stopped');
   }
 
@@ -67,21 +67,20 @@ export class P2PDiscoveryService {
     try {
       // Get all tabs
       const tabs = await chrome.tabs.query({});
-      
+
       const discoveryMessage = {
         type: 'phantom_trail_discovery',
         extensionId: chrome.runtime.id,
         timestamp: Date.now(),
-        version: chrome.runtime.getManifest().version
+        version: chrome.runtime.getManifest().version,
       };
 
       // Send discovery message to all tabs
       const promises = tabs.map(tab => {
         if (tab.id) {
-          return chrome.tabs.sendMessage(tab.id, discoveryMessage)
-            .catch(() => {
-              // Ignore errors for tabs without content script
-            });
+          return chrome.tabs.sendMessage(tab.id, discoveryMessage).catch(() => {
+            // Ignore errors for tabs without content script
+          });
         }
         return Promise.resolve();
       });
@@ -98,9 +97,10 @@ export class P2PDiscoveryService {
   private setupContentScriptDiscovery(): void {
     // Listen for discovery responses from content scripts
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      if (message.type === 'phantom_trail_peer_found' && 
-          message.extensionId === chrome.runtime.id) {
-        
+      if (
+        message.type === 'phantom_trail_peer_found' &&
+        message.extensionId === chrome.runtime.id
+      ) {
         this.handlePeerDiscovered(message.peerId, sender.tab?.id);
         sendResponse({ acknowledged: true });
       }
@@ -110,14 +110,17 @@ export class P2PDiscoveryService {
   /**
    * Handle discovered peer
    */
-  private async handlePeerDiscovered(peerId: string, tabId?: number): Promise<void> {
+  private async handlePeerDiscovered(
+    peerId: string,
+    tabId?: number
+  ): Promise<void> {
     try {
       // Attempt to connect to discovered peer
       const connection = await this.network.connectToPeer(peerId);
-      
+
       if (connection) {
         console.log(`Successfully connected to peer: ${peerId}`);
-        
+
         // Optionally store peer info for reconnection
         this.storePeerInfo(peerId, tabId);
       }
@@ -133,21 +136,21 @@ export class P2PDiscoveryService {
     try {
       const result = await chrome.storage.local.get(['knownPeers']);
       const knownPeers = result.knownPeers || {};
-      
+
       knownPeers[peerId] = {
         lastSeen: Date.now(),
         tabId,
-        connectionAttempts: (knownPeers[peerId]?.connectionAttempts || 0) + 1
+        connectionAttempts: (knownPeers[peerId]?.connectionAttempts || 0) + 1,
       };
-      
+
       // Keep only recent peers (last 24 hours)
-      const dayAgo = Date.now() - (24 * 60 * 60 * 1000);
+      const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
       Object.keys(knownPeers).forEach(id => {
         if (knownPeers[id].lastSeen < dayAgo) {
           delete knownPeers[id];
         }
       });
-      
+
       await chrome.storage.local.set({ knownPeers });
     } catch (error) {
       console.error('Failed to store peer info:', error);
@@ -164,20 +167,25 @@ export class P2PDiscoveryService {
   }> {
     try {
       const result = await chrome.storage.local.get(['knownPeers']);
-      const knownPeers: Record<string, { lastSeen: number; connectionAttempts: number; tabId?: number }> = result.knownPeers || {};
-      
+      const knownPeers: Record<
+        string,
+        { lastSeen: number; connectionAttempts: number; tabId?: number }
+      > = result.knownPeers || {};
+
       return {
         isActive: this.discoveryActive,
         knownPeersCount: Object.keys(knownPeers).length,
-        lastDiscoveryTime: Object.keys(knownPeers).length > 0 ? 
-          Math.max(...Object.values(knownPeers).map(peer => peer.lastSeen)) : 0
+        lastDiscoveryTime:
+          Object.keys(knownPeers).length > 0
+            ? Math.max(...Object.values(knownPeers).map(peer => peer.lastSeen))
+            : 0,
       };
     } catch (error) {
       console.error('Failed to get discovery stats:', error);
       return {
         isActive: this.discoveryActive,
         knownPeersCount: 0,
-        lastDiscoveryTime: 0
+        lastDiscoveryTime: 0,
       };
     }
   }
@@ -189,16 +197,19 @@ export class P2PDiscoveryService {
     try {
       const result = await chrome.storage.local.get(['knownPeers']);
       const knownPeers = result.knownPeers || {};
-      
+
       // Try to reconnect to recent peers
       const recentPeers = Object.entries(knownPeers)
         .filter(([, info]) => {
-          const peerInfo = info as {lastSeen: number; connectionAttempts: number};
-          const hourAgo = Date.now() - (60 * 60 * 1000);
+          const peerInfo = info as {
+            lastSeen: number;
+            connectionAttempts: number;
+          };
+          const hourAgo = Date.now() - 60 * 60 * 1000;
           return peerInfo.lastSeen > hourAgo && peerInfo.connectionAttempts < 5;
         })
         .slice(0, 5); // Limit reconnection attempts
-      
+
       for (const [peerId] of recentPeers) {
         try {
           await this.network.connectToPeer(peerId);

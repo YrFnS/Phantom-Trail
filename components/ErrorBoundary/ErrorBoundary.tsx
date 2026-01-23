@@ -13,7 +13,10 @@ interface ErrorBoundaryProps {
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -23,16 +26,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return {
       hasError: true,
       error,
-      errorId: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      errorId: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
-    
+
     // Log error for debugging
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
     // Call custom error handler if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
@@ -48,7 +51,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       if (this.props.fallback) {
         return this.props.fallback(this.state.error!, this.handleRetry);
       }
-      
+
       return (
         <ErrorFallback
           error={this.state.error}
@@ -92,8 +95,16 @@ export function ErrorFallback({ error, errorId, onRetry }: ErrorFallbackProps) {
     <div className="error-fallback p-4 bg-red-50 border border-red-200 rounded-lg">
       <div className="flex items-start">
         <div className="flex-shrink-0">
-          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          <svg
+            className="h-5 w-5 text-red-400"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clipRule="evenodd"
+            />
           </svg>
         </div>
         <div className="ml-3 flex-1">
@@ -101,9 +112,10 @@ export function ErrorFallback({ error, errorId, onRetry }: ErrorFallbackProps) {
             Something went wrong
           </h3>
           <p className="mt-1 text-sm text-red-700">
-            The extension encountered an error but is still working. You can try again or reload the extension.
+            The extension encountered an error but is still working. You can try
+            again or reload the extension.
           </p>
-          
+
           {error && (
             <details className="mt-2">
               <summary className="text-sm text-red-600 cursor-pointer hover:text-red-800">
@@ -114,13 +126,14 @@ export function ErrorFallback({ error, errorId, onRetry }: ErrorFallbackProps) {
                 <div>Message: {error.message}</div>
                 {error.stack && (
                   <div className="mt-1">
-                    Stack: <pre className="whitespace-pre-wrap">{error.stack}</pre>
+                    Stack:{' '}
+                    <pre className="whitespace-pre-wrap">{error.stack}</pre>
                   </div>
                 )}
               </div>
             </details>
           )}
-          
+
           <div className="mt-4 flex space-x-2">
             <button
               onClick={onRetry}
@@ -161,7 +174,7 @@ export function withErrorBoundary<P extends object>(
   );
 
   WithErrorBoundaryComponent.displayName = `withErrorBoundary(${WrappedComponent.displayName || WrappedComponent.name})`;
-  
+
   return WithErrorBoundaryComponent;
 }
 

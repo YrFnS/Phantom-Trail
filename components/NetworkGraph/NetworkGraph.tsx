@@ -228,13 +228,17 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <div className={className}>
         <Card>
           <CardHeader>
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Network Graph</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+              Network Graph
+            </h3>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <LoadingSpinner size="lg" className="mb-3" />
-                <p className="text-sm text-[var(--text-secondary)]">Loading network...</p>
+                <p className="text-sm text-[var(--text-secondary)]">
+                  Loading network...
+                </p>
               </div>
             </div>
           </CardContent>
@@ -248,17 +252,25 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <div className={className}>
         <Card>
           <CardHeader>
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Network Graph</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+              Network Graph
+            </h3>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <svg className="w-12 h-12 mx-auto mb-3 text-[var(--text-tertiary)] opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="2"/>
-                  <circle cx="19" cy="5" r="2"/>
-                  <circle cx="5" cy="19" r="2"/>
-                  <circle cx="19" cy="19" r="2"/>
-                  <path d="M13.5 10.5l4-4M10.5 13.5l-4 4M13.5 13.5l4 4"/>
+                <svg
+                  className="w-12 h-12 mx-auto mb-3 text-[var(--text-tertiary)] opacity-30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="19" cy="5" r="2" />
+                  <circle cx="5" cy="19" r="2" />
+                  <circle cx="19" cy="19" r="2" />
+                  <path d="M13.5 10.5l4-4M10.5 13.5l-4 4M13.5 13.5l4 4" />
                 </svg>
                 <p className="text-sm text-[var(--text-secondary)] mb-1">
                   No tracking data yet
@@ -279,7 +291,9 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h3 className="font-medium text-[var(--text-primary)]">Network Graph</h3>
+            <h3 className="font-medium text-[var(--text-primary)]">
+              Network Graph
+            </h3>
             <div className="text-xs text-[var(--text-secondary)]">
               {data.nodes.length} domains, {data.edges.length} connections
             </div>

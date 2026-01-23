@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { ExportService } from '../../lib/export-service';
-import type { ExportButtonProps, ExportFormatOption } from './ExportButton.types';
+import type {
+  ExportButtonProps,
+  ExportFormatOption,
+} from './ExportButton.types';
 import type { ExportFormat } from '../../lib/export-service';
 
 const EXPORT_FORMATS: ExportFormatOption[] = [
@@ -27,11 +30,11 @@ const EXPORT_FORMATS: ExportFormatOption[] = [
 /**
  * Export Button Component
  */
-export function ExportButton({ 
-  events, 
-  privacyScore, 
-  className = '', 
-  disabled = false 
+export function ExportButton({
+  events,
+  privacyScore,
+  className = '',
+  disabled = false,
 }: ExportButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -47,20 +50,27 @@ export function ExportButton({
     try {
       const options = {
         format,
-        dateRange: events.length > 0 ? {
-          start: new Date(Math.min(...events.map(e => e.timestamp))),
-          end: new Date(Math.max(...events.map(e => e.timestamp))),
-        } : undefined,
+        dateRange:
+          events.length > 0
+            ? {
+                start: new Date(Math.min(...events.map(e => e.timestamp))),
+                end: new Date(Math.max(...events.map(e => e.timestamp))),
+              }
+            : undefined,
       };
 
-      const { blob, filename } = await ExportService.prepareExport(events, privacyScore, options);
+      const { blob, filename } = await ExportService.prepareExport(
+        events,
+        privacyScore,
+        options
+      );
       ExportService.downloadBlob(blob, filename);
-      
+
       setExportStatus({
         type: 'success',
         message: `Successfully exported ${events.length} events as ${format.toUpperCase()}`,
       });
-      
+
       setIsOpen(false);
     } catch (error) {
       console.error('Export failed:', error);
@@ -84,22 +94,29 @@ export function ExportButton({
         className={`
           inline-flex items-center px-3 py-2 text-sm font-medium rounded-md
           transition-all duration-200
-          ${hasData && !disabled
-            ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--accent-primary)]/30 hover:border-[var(--accent-primary)] hover:shadow-[0_0_15px_rgba(188,19,254,0.4)]'
-            : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] cursor-not-allowed border border-[var(--border-primary)]'
+          ${
+            hasData && !disabled
+              ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--accent-primary)]/30 hover:border-[var(--accent-primary)] hover:shadow-[0_0_15px_rgba(188,19,254,0.4)]'
+              : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] cursor-not-allowed border border-[var(--border-primary)]'
           }
         `}
-        title={hasData ? 'Export tracking data (Ctrl+Shift+E)' : 'No data to export'}
+        title={
+          hasData ? 'Export tracking data (Ctrl+Shift+E)' : 'No data to export'
+        }
       >
-        <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
+        <svg
+          className="w-4 h-4 mr-2"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
         Export
-        <span className="ml-1">
-          {isOpen ? '▲' : '▼'}
-        </span>
+        <span className="ml-1">{isOpen ? '▲' : '▼'}</span>
       </button>
 
       {/* Dropdown Menu */}
@@ -107,10 +124,11 @@ export function ExportButton({
         <div className="absolute right-0 mt-2 w-72 bg-[var(--bg-elevated)] rounded-md shadow-lg border border-[var(--border-primary)] z-50">
           <div className="py-1">
             <div className="px-4 py-2 text-xs text-[var(--text-tertiary)] border-b border-[var(--border-primary)]">
-              Export {events.length} tracking event{events.length !== 1 ? 's' : ''}
+              Export {events.length} tracking event
+              {events.length !== 1 ? 's' : ''}
             </div>
-            
-            {EXPORT_FORMATS.map((option) => (
+
+            {EXPORT_FORMATS.map(option => (
               <button
                 key={option.format}
                 onClick={() => handleExport(option.format)}
@@ -150,13 +168,16 @@ export function ExportButton({
 
       {/* Status Messages */}
       {exportStatus.type && (
-        <div className={`
+        <div
+          className={`
           absolute top-full left-0 right-0 mt-2 p-3 rounded-md text-sm z-40
-          ${exportStatus.type === 'success' 
-            ? 'bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/30' 
-            : 'bg-[var(--error)]/10 text-[var(--error)] border border-[var(--error)]/30'
+          ${
+            exportStatus.type === 'success'
+              ? 'bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/30'
+              : 'bg-[var(--error)]/10 text-[var(--error)] border border-[var(--error)]/30'
           }
-        `}>
+        `}
+        >
           <div className="flex items-center">
             <span className="mr-2">
               {exportStatus.type === 'success' ? '✅' : '❌'}
@@ -174,10 +195,7 @@ export function ExportButton({
 
       {/* Click outside to close */}
       {isOpen && (
-        <div
-          className="fixed inset-0 z-30"
-          onClick={() => setIsOpen(false)}
-        />
+        <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
       )}
     </div>
   );

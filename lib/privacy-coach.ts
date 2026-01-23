@@ -36,7 +36,11 @@ export interface CompletedAction {
 }
 
 export interface BehaviorPattern {
-  pattern: 'high_risk_sites' | 'social_heavy' | 'shopping_frequent' | 'banking_insecure';
+  pattern:
+    | 'high_risk_sites'
+    | 'social_heavy'
+    | 'shopping_frequent'
+    | 'banking_insecure';
   frequency: number;
   riskLevel: 'low' | 'medium' | 'high';
   recommendation: string;
@@ -55,14 +59,16 @@ export class PrivacyCoach {
   /**
    * Initialize privacy journey for new user
    */
-  static async initializeJourney(initialScore: number): Promise<PrivacyJourney> {
+  static async initializeJourney(
+    initialScore: number
+  ): Promise<PrivacyJourney> {
     const journey: PrivacyJourney = {
       startDate: Date.now(),
       currentScore: initialScore,
       scoreHistory: [{ date: Date.now(), score: initialScore }],
       improvementGoals: await this.generateInitialGoals(initialScore),
       completedActions: [],
-      behaviorPatterns: []
+      behaviorPatterns: [],
     };
 
     await BaseStorage.set('privacy_journey', journey);
@@ -74,7 +80,7 @@ export class PrivacyCoach {
    */
   static async updateJourney(newScore: number): Promise<PrivacyJourney> {
     let journey = await BaseStorage.get<PrivacyJourney>('privacy_journey');
-    
+
     if (!journey) {
       journey = await this.initializeJourney(newScore);
     }
@@ -83,18 +89,23 @@ export class PrivacyCoach {
     const now = Date.now();
     journey.scoreHistory.push({ date: now, score: newScore });
     journey.scoreHistory = journey.scoreHistory
-      .filter((entry: { date: number; score: number }) => now - entry.date < 30 * 24 * 60 * 60 * 1000)
+      .filter(
+        (entry: { date: number; score: number }) =>
+          now - entry.date < 30 * 24 * 60 * 60 * 1000
+      )
       .slice(-30);
 
     journey.currentScore = newScore;
 
     // Update goal progress
-    journey.improvementGoals = journey.improvementGoals.map((goal: PrivacyGoal) => {
-      if (goal.status === 'active' && newScore >= goal.targetScore) {
-        return { ...goal, status: 'completed' as const };
+    journey.improvementGoals = journey.improvementGoals.map(
+      (goal: PrivacyGoal) => {
+        if (goal.status === 'active' && newScore >= goal.targetScore) {
+          return { ...goal, status: 'completed' as const };
+        }
+        return goal;
       }
-      return goal;
-    });
+    );
 
     await BaseStorage.set('privacy_journey', journey);
     return journey;
@@ -103,7 +114,9 @@ export class PrivacyCoach {
   /**
    * Analyze behavior patterns from recent events
    */
-  static async analyzeBehaviorPatterns(events: TrackingEvent[]): Promise<BehaviorPattern[]> {
+  static async analyzeBehaviorPatterns(
+    events: TrackingEvent[]
+  ): Promise<BehaviorPattern[]> {
     const patterns: BehaviorPattern[] = [];
     const domainCounts = new Map<string, number>();
     const riskCounts = { low: 0, medium: 0, high: 0, critical: 0 };
@@ -120,13 +133,18 @@ export class PrivacyCoach {
         pattern: 'high_risk_sites',
         frequency: riskCounts.high + riskCounts.critical,
         riskLevel: 'high',
-        recommendation: 'You frequently visit high-risk sites. Consider using a VPN and strict privacy settings.'
+        recommendation:
+          'You frequently visit high-risk sites. Consider using a VPN and strict privacy settings.',
       });
     }
 
     // Social media heavy usage
     const socialDomains = Array.from(domainCounts.entries())
-      .filter(([domain]) => ['facebook', 'twitter', 'instagram', 'tiktok', 'linkedin'].some(social => domain.includes(social)))
+      .filter(([domain]) =>
+        ['facebook', 'twitter', 'instagram', 'tiktok', 'linkedin'].some(
+          social => domain.includes(social)
+        )
+      )
       .reduce((sum, [, count]) => sum + count, 0);
 
     if (socialDomains > events.length * 0.4) {
@@ -134,7 +152,8 @@ export class PrivacyCoach {
         pattern: 'social_heavy',
         frequency: socialDomains,
         riskLevel: 'medium',
-        recommendation: 'Heavy social media usage detected. Review privacy settings and consider alternatives like Signal or Mastodon.'
+        recommendation:
+          'Heavy social media usage detected. Review privacy settings and consider alternatives like Signal or Mastodon.',
       });
     }
 
@@ -159,7 +178,7 @@ export class PrivacyCoach {
         title: 'Great Progress!',
         message: `Your privacy score improved by ${scoreChange} points this week. Keep it up!`,
         actionable: false,
-        priority: 1
+        priority: 1,
       });
     } else if (scoreChange < -10) {
       insights.push({
@@ -167,7 +186,7 @@ export class PrivacyCoach {
         title: 'Privacy Score Declining',
         message: `Your score dropped by ${Math.abs(scoreChange)} points. Let's identify what changed.`,
         actionable: true,
-        priority: 3
+        priority: 3,
       });
     }
 
@@ -178,19 +197,22 @@ export class PrivacyCoach {
         title: this.getPatternTitle(pattern.pattern),
         message: pattern.recommendation,
         actionable: true,
-        priority: pattern.riskLevel === 'high' ? 3 : 2
+        priority: pattern.riskLevel === 'high' ? 3 : 2,
       });
     }
 
     // Goal-based insights
-    const activeGoals = journey.improvementGoals.filter(g => g.status === 'active');
+    const activeGoals = journey.improvementGoals.filter(
+      g => g.status === 'active'
+    );
     if (activeGoals.length === 0 && journey.currentScore < 80) {
       insights.push({
         type: 'suggestion',
         title: 'Set New Privacy Goals',
-        message: 'Ready for the next step? Set a new privacy improvement goal to continue your journey.',
+        message:
+          'Ready for the next step? Set a new privacy improvement goal to continue your journey.',
         actionable: true,
-        priority: 2
+        priority: 2,
       });
     }
 
@@ -240,7 +262,7 @@ export class PrivacyCoach {
           title: title.trim(),
           message: message.trim(),
           actionable: type.toLowerCase() === 'suggestion',
-          priority: type.toLowerCase() === 'warning' ? 3 : 2
+          priority: type.toLowerCase() === 'warning' ? 3 : 2,
         });
       }
     }
@@ -251,18 +273,21 @@ export class PrivacyCoach {
   /**
    * Generate initial improvement goals based on current score
    */
-  private static async generateInitialGoals(score: number): Promise<PrivacyGoal[]> {
+  private static async generateInitialGoals(
+    score: number
+  ): Promise<PrivacyGoal[]> {
     const goals: PrivacyGoal[] = [];
 
     if (score < 60) {
       goals.push({
         id: 'basic_protection',
         title: 'Install Basic Privacy Tools',
-        description: 'Get essential privacy protection with uBlock Origin and Privacy Badger',
+        description:
+          'Get essential privacy protection with uBlock Origin and Privacy Badger',
         targetScore: 70,
         priority: 'high',
         status: 'active',
-        actions: ['install_ublock', 'install_privacy_badger', 'enable_dnt']
+        actions: ['install_ublock', 'install_privacy_badger', 'enable_dnt'],
       });
     } else if (score < 80) {
       goals.push({
@@ -272,7 +297,11 @@ export class PrivacyCoach {
         targetScore: 85,
         priority: 'medium',
         status: 'active',
-        actions: ['strict_tracking_protection', 'disable_third_party_cookies', 'use_private_dns']
+        actions: [
+          'strict_tracking_protection',
+          'disable_third_party_cookies',
+          'use_private_dns',
+        ],
       });
     } else {
       goals.push({
@@ -282,29 +311,36 @@ export class PrivacyCoach {
         targetScore: 95,
         priority: 'low',
         status: 'active',
-        actions: ['use_tor_browser', 'enable_vpn', 'compartmentalize_browsing']
+        actions: ['use_tor_browser', 'enable_vpn', 'compartmentalize_browsing'],
       });
     }
 
     return goals;
   }
 
-  private static calculateScoreChange(history: Array<{ date: number; score: number }>): number {
+  private static calculateScoreChange(
+    history: Array<{ date: number; score: number }>
+  ): number {
     if (history.length < 2) return 0;
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const recentScores = history.filter(h => h.date >= weekAgo);
     if (recentScores.length < 2) return 0;
-    
+
     return recentScores[recentScores.length - 1].score - recentScores[0].score;
   }
 
   private static getPatternTitle(pattern: BehaviorPattern['pattern']): string {
     switch (pattern) {
-      case 'high_risk_sites': return 'High-Risk Browsing Detected';
-      case 'social_heavy': return 'Heavy Social Media Usage';
-      case 'shopping_frequent': return 'Frequent Online Shopping';
-      case 'banking_insecure': return 'Insecure Banking Practices';
-      default: return 'Behavior Pattern Detected';
+      case 'high_risk_sites':
+        return 'High-Risk Browsing Detected';
+      case 'social_heavy':
+        return 'Heavy Social Media Usage';
+      case 'shopping_frequent':
+        return 'Frequent Online Shopping';
+      case 'banking_insecure':
+        return 'Insecure Banking Practices';
+      default:
+        return 'Behavior Pattern Detected';
     }
   }
 }

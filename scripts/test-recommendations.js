@@ -14,7 +14,7 @@ const mockEvents = [
     domain: 'facebook.com',
     trackerType: 'social',
     riskLevel: 'high',
-    description: 'Facebook tracking pixel'
+    description: 'Facebook tracking pixel',
   },
   {
     id: '2',
@@ -23,7 +23,7 @@ const mockEvents = [
     domain: 'google-analytics.com',
     trackerType: 'analytics',
     riskLevel: 'medium',
-    description: 'Google Analytics tracking'
+    description: 'Google Analytics tracking',
   },
   {
     id: '3',
@@ -32,8 +32,8 @@ const mockEvents = [
     domain: 'doubleclick.net',
     trackerType: 'advertising',
     riskLevel: 'high',
-    description: 'DoubleClick advertising tracker'
-  }
+    description: 'DoubleClick advertising tracker',
+  },
 ];
 
 async function testRecommendations() {
@@ -42,19 +42,23 @@ async function testRecommendations() {
   try {
     // Test personalized actions
     console.log('📋 Getting personalized actions...');
-    const actions = await PrivacyRecommendations.getPersonalizedActions(mockEvents);
+    const actions =
+      await PrivacyRecommendations.getPersonalizedActions(mockEvents);
     console.log(`Found ${actions.length} recommendations:`);
-    
+
     actions.forEach((action, index) => {
-      console.log(`  ${index + 1}. ${action.title} (${action.difficulty}, ${action.impact} impact)`);
+      console.log(
+        `  ${index + 1}. ${action.title} (${action.difficulty}, ${action.impact} impact)`
+      );
       console.log(`     ${action.description}`);
     });
 
     // Test service alternatives
     console.log('\n🔄 Getting service alternatives...');
-    const alternatives = await PrivacyRecommendations.suggestAlternatives('facebook.com');
+    const alternatives =
+      await PrivacyRecommendations.suggestAlternatives('facebook.com');
     console.log(`Found ${alternatives.length} alternatives:`);
-    
+
     alternatives.forEach((alt, index) => {
       console.log(`  ${index + 1}. ${alt.alternative} - ${alt.description}`);
       console.log(`     Benefit: ${alt.privacyBenefit}`);
@@ -62,19 +66,19 @@ async function testRecommendations() {
 
     // Test contextual recommendations
     console.log('\n🎯 Getting contextual recommendations...');
-    const contextual = await PrivacyRecommendations.getContextualRecommendations(
-      'facebook.com', 
-      mockEvents
-    );
+    const contextual =
+      await PrivacyRecommendations.getContextualRecommendations(
+        'facebook.com',
+        mockEvents
+      );
     console.log(`Found ${contextual.length} contextual recommendations:`);
-    
+
     contextual.forEach((rec, index) => {
       console.log(`  ${index + 1}. ${rec.title}`);
       console.log(`     ${rec.description}`);
     });
 
     console.log('\n✅ All tests completed successfully!');
-
   } catch (error) {
     console.error('❌ Test failed:', error);
   }

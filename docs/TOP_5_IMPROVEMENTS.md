@@ -8,15 +8,18 @@
 ## Top 5 Privacy Improvements
 
 ### 1. Expand Tracker Database (CRITICAL)
+
 **Privacy Issue**: Only 15 trackers detected, missing 40+ major trackers including fingerprinting services
 
 **User Impact**:
+
 - Users believe they're protected but 60% of trackers go undetected
 - False sense of security
 - Extension claims "90%+ detection" but achieves ~40%
 
 **Recommendation**:
 Add 45+ major trackers across categories:
+
 - **Fingerprinting** (CRITICAL): FingerprintJS, Seon.io, MaxMind, ThreatMetrix
 - **Session Recording** (CRITICAL): FullStory, LogRocket, Smartlook, Lucky Orange
 - **Social Media** (HIGH): LinkedIn Insight, Pinterest Tag, Snapchat Pixel, Reddit Pixel
@@ -24,17 +27,19 @@ Add 45+ major trackers across categories:
 - **Analytics** (MEDIUM): Amplitude, Heap, Pendo, Kissmetrics
 
 **Implementation**:
+
 ```typescript
 // Add to lib/tracker-db.ts
 const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
   // ... existing trackers ...
-  
+
   // Fingerprinting (CRITICAL RISK)
   'fingerprint.com': {
     domain: 'fingerprint.com',
     name: 'FingerprintJS',
     category: 'Fingerprinting',
-    description: 'Advanced browser fingerprinting - tracks across incognito mode',
+    description:
+      'Advanced browser fingerprinting - tracks across incognito mode',
     riskLevel: 'critical',
   },
   'seon.io': {
@@ -44,7 +49,7 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Device fingerprinting for fraud detection',
     riskLevel: 'critical',
   },
-  
+
   // Session Recording (CRITICAL RISK)
   'fullstory.com': {
     domain: 'fullstory.com',
@@ -60,7 +65,7 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Session replay and user monitoring',
     riskLevel: 'critical',
   },
-  
+
   // Social Media (HIGH RISK)
   'linkedin.com': {
     domain: 'linkedin.com',
@@ -76,7 +81,7 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Pinterest advertising and analytics',
     riskLevel: 'medium',
   },
-  
+
   // Advertising (HIGH RISK)
   'criteo.com': {
     domain: 'criteo.com',
@@ -106,7 +111,7 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Audience measurement and real-time advertising',
     riskLevel: 'high',
   },
-  
+
   // Analytics (MEDIUM RISK)
   'amplitude.com': {
     domain: 'amplitude.com',
@@ -131,15 +136,18 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
 ---
 
 ### 2. Add Missing Tracking Detection Methods (CRITICAL)
+
 **Privacy Issue**: Missing 8 major tracking techniques (WebRTC leaks, font/audio/WebGL fingerprinting, etc.)
 
 **User Impact**:
+
 - WebRTC leaks expose real IP address even with VPN (CRITICAL)
 - Font/audio/WebGL fingerprinting bypasses cookie blockers
 - Users unaware of advanced tracking methods
 
 **Recommendation**:
 Add detection for:
+
 1. **WebRTC IP leaks** (CRITICAL) - Exposes real IP through VPN
 2. **Font fingerprinting** (HIGH) - Detects installed fonts
 3. **Audio fingerprinting** (HIGH) - AudioContext API abuse
@@ -150,6 +158,7 @@ Add detection for:
 8. **Notification API** (LOW) - Permission fingerprinting
 
 **Implementation**:
+
 ```typescript
 // Add to lib/in-page-detector.ts
 
@@ -163,11 +172,11 @@ static analyzeWebRTC(rtcCalls: string[]): DetectionResult {
     'createOffer',
     'setLocalDescription',
   ];
-  
-  const detected = suspiciousAPIs.some(api => 
+
+  const detected = suspiciousAPIs.some(api =>
     rtcCalls.some(call => call.includes(api))
   );
-  
+
   return {
     detected,
     method: 'webrtc-leak',
@@ -188,7 +197,7 @@ static analyzeWebRTC(rtcCalls: string[]): DetectionResult {
  */
 static analyzeFontFingerprint(fonts: string[]): DetectionResult {
   const detected = fonts.length > 20; // Checking 20+ fonts = fingerprinting
-  
+
   return {
     detected,
     method: 'font-fingerprint',
@@ -211,11 +220,11 @@ static analyzeAudioFingerprint(audioCalls: string[]): DetectionResult {
     'createDynamicsCompressor',
     'getFloatFrequencyData',
   ];
-  
+
   const detected = fingerprintingPattern.every(api =>
     audioCalls.some(call => call.includes(api))
   );
-  
+
   return {
     detected,
     method: 'audio-fingerprint',
@@ -242,13 +251,13 @@ static analyzeWebGLFingerprint(webglCalls: string[]): DetectionResult {
     'RENDERER',
     'VENDOR',
   ];
-  
+
   const matchedAPIs = webglCalls.filter(call =>
     suspiciousAPIs.some(api => call.includes(api))
   );
-  
+
   const detected = matchedAPIs.length >= 3;
-  
+
   return {
     detected,
     method: 'webgl-fingerprint',
@@ -269,21 +278,25 @@ static analyzeWebGLFingerprint(webglCalls: string[]): DetectionResult {
 ---
 
 ### 3. Sanitize Data Before AI Processing (HIGH)
+
 **Privacy Issue**: Full URLs (with session tokens, user IDs) sent to OpenRouter API without sanitization
 
 **User Impact**:
+
 - Sensitive browsing data shared with third-party AI provider
 - Session tokens, user IDs exposed in API requests
 - Violates data minimization principle (GDPR Article 5)
 - No explicit user consent for data sharing
 
 **Recommendation**:
+
 1. Sanitize URLs before sending to AI (remove query params, hash)
 2. Aggregate data instead of sending individual events
 3. Add explicit user consent for AI features
 4. Implement local-only AI fallback
 
 **Implementation**:
+
 ```typescript
 // Add to lib/ai-engine.ts
 
@@ -326,11 +339,11 @@ private static sanitizeEvent(event: TrackingEvent): Partial<TrackingEvent> {
 static async requestAIConsent(): Promise<boolean> {
   const result = await chrome.storage.local.get('aiConsentGiven');
   if (result.aiConsentGiven) return true;
-  
+
   // Show consent dialog (implement in UI)
   const consent = await showConsentDialog({
     title: 'AI Privacy Analysis',
-    message: 
+    message:
       'Phantom Trail uses AI to explain tracking in plain English. ' +
       'This sends anonymized tracking data (domain names, tracker types) ' +
       'to OpenRouter API. Your full URLs and browsing history are NOT shared.\n\n' +
@@ -338,14 +351,14 @@ static async requestAIConsent(): Promise<boolean> {
     learnMore: 'https://phantom-trail.com/ai-privacy',
     buttons: ['Accept', 'Decline'],
   });
-  
+
   if (consent) {
-    await chrome.storage.local.set({ 
+    await chrome.storage.local.set({
       aiConsentGiven: true,
       aiConsentDate: Date.now(),
     });
   }
-  
+
   return consent;
 }
 
@@ -354,10 +367,10 @@ static async requestAIConsent(): Promise<boolean> {
  */
 private static buildPrompt(events: TrackingEvent[]): string {
   const recentEvents = events.slice(-10);
-  
+
   // Sanitize events before including in prompt
   const sanitized = recentEvents.map(e => this.sanitizeEvent(e));
-  
+
   const eventSummary = sanitized
     .map(e => `- ${e.domain} (${e.trackerType}): ${e.description}`)
     .join('\n');
@@ -369,7 +382,7 @@ ${eventSummary}
 
 Respond with a JSON object containing:
 - "narrative": A 1-2 sentence plain English explanation
-- "riskAssessment": Overall risk level (low/medium/high/critical)  
+- "riskAssessment": Overall risk level (low/medium/high/critical)
 - "recommendations": Array of 1-2 actionable recommendations
 - "confidence": Confidence score 0-1`;
 }
@@ -381,9 +394,11 @@ Respond with a JSON object containing:
 ---
 
 ### 4. Refine Privacy Scoring Algorithm (MEDIUM)
+
 **Privacy Issue**: Scoring weights don't accurately reflect privacy risks
 
 **User Impact**:
+
 - Site with 1 critical tracker + HTTPS gets B grade (should be D/F)
 - HTTPS bonus too small (+5) compared to tracker penalties
 - No penalty for cross-site tracking or persistent fingerprinting
@@ -393,6 +408,7 @@ Respond with a JSON object containing:
 Rebalance scoring weights and add new penalties:
 
 **Implementation**:
+
 ```typescript
 // Update lib/privacy-score.ts
 
@@ -401,7 +417,7 @@ export function calculatePrivacyScore(
   isHttps: boolean = true
 ): PrivacyScore {
   let score = 100;
-  
+
   const breakdown = {
     totalTrackers: events.length,
     highRisk: 0,
@@ -416,12 +432,12 @@ export function calculatePrivacyScore(
 
   // Track unique tracker companies for cross-site detection
   const trackerCompanies = new Set<string>();
-  
+
   events.forEach(event => {
     // Extract company from domain (e.g., google-analytics.com → google)
     const company = event.domain.split('.')[0];
     trackerCompanies.add(company);
-    
+
     // Deduct points per tracker type (REBALANCED)
     switch (event.riskLevel) {
       case 'critical':
@@ -451,7 +467,8 @@ export function calculatePrivacyScore(
   }
 
   // Excessive tracking penalty (STRICTER)
-  if (events.length > 5) { // Changed from 10
+  if (events.length > 5) {
+    // Changed from 10
     score -= 25; // Increased from 20
   }
 
@@ -467,11 +484,12 @@ export function calculatePrivacyScore(
   }
 
   // NEW: Password monitoring auto-fail
-  const hasPasswordMonitoring = events.some(e =>
-    e.inPageTracking?.method === 'form-monitoring' &&
-    e.inPageTracking?.details?.includes('PASSWORD')
+  const hasPasswordMonitoring = events.some(
+    e =>
+      e.inPageTracking?.method === 'form-monitoring' &&
+      e.inPageTracking?.details?.includes('PASSWORD')
   );
-  
+
   if (hasPasswordMonitoring) {
     score = 0; // Auto-fail to F grade
   }
@@ -496,9 +514,9 @@ export function calculatePrivacyScore(
 /**
  * Get letter grade and color (REFINED THRESHOLDS)
  */
-function getGradeAndColor(score: number): { 
-  grade: PrivacyScore['grade']; 
-  color: PrivacyScore['color'] 
+function getGradeAndColor(score: number): {
+  grade: PrivacyScore['grade'];
+  color: PrivacyScore['color'];
 } {
   if (score >= 95) return { grade: 'A', color: 'green' }; // Stricter
   if (score >= 85) return { grade: 'B', color: 'green' }; // Adjusted
@@ -514,21 +532,25 @@ function getGradeAndColor(score: number): {
 ---
 
 ### 5. Add GDPR/CCPA Compliance Disclosures (MEDIUM)
+
 **Privacy Issue**: No privacy policy, no data retention disclosure, no user rights information
 
 **User Impact**:
+
 - Users don't know what data extension collects
 - No information about data retention (events stored indefinitely)
 - No guidance on GDPR/CCPA rights
 - Potential legal liability for extension developer
 
 **Recommendation**:
+
 1. Add privacy policy
 2. Implement data retention policy (auto-delete after 30 days)
 3. Add data deletion functionality
 4. Provide GDPR/CCPA rights information
 
 **Implementation**:
+
 ```typescript
 // Add to lib/storage-manager.ts
 
@@ -538,9 +560,9 @@ function getGradeAndColor(score: number): {
 static async cleanupOldEvents(): Promise<void> {
   const events = await this.getRecentEvents(10000);
   const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days
-  
+
   const recent = events.filter(e => e.timestamp > cutoff);
-  
+
   if (recent.length < events.length) {
     await chrome.storage.local.set({ [this.EVENTS_KEY]: recent });
     console.log(`Deleted ${events.length - recent.length} events older than 30 days`);
@@ -568,7 +590,7 @@ static async exportAllData(): Promise<{
   const settings = await this.getSettings();
   const events = await this.getRecentEvents(10000);
   const whitelist = await UserWhitelistManager.getUserWhitelist();
-  
+
   return {
     settings: {
       ...settings,
@@ -590,37 +612,45 @@ chrome.runtime.onStartup.addListener(() => {
 ```
 
 **Create Privacy Policy** (docs/PRIVACY_POLICY.md):
+
 ```markdown
 # Phantom Trail Privacy Policy
 
 ## Data Collection
+
 Phantom Trail collects:
+
 - Tracking events (domain, tracker type, timestamp)
 - User settings (AI preferences, API key)
 - User whitelist (trusted sites)
 
 ## Data Storage
+
 - All data stored locally on your device (chrome.storage.local)
 - No data sent to our servers (we don't have servers)
 - API key stored unencrypted (only accessible to extension)
 
 ## Data Retention
+
 - Tracking events auto-deleted after 30 days
 - Settings and whitelist persist until you delete them
 - You can delete all data anytime (Settings → Delete All Data)
 
 ## Third-Party Sharing
+
 - AI features send anonymized data to OpenRouter API (optional)
 - No data shared with us or other third parties
 - You control AI features (can disable anytime)
 
 ## Your Rights (GDPR/CCPA)
+
 - **Right to Access**: Export your data (Settings → Export Data)
 - **Right to Erasure**: Delete all data (Settings → Delete All Data)
 - **Right to Object**: Disable AI features (Settings → Disable AI)
 - **Right to Portability**: Export in JSON format
 
 ## Contact
+
 Questions? Open an issue on GitHub: https://github.com/YrFnS/Phantom-Trail
 ```
 
@@ -632,6 +662,7 @@ Questions? Open an issue on GitHub: https://github.com/YrFnS/Phantom-Trail
 ## Implementation Roadmap
 
 ### Phase 1: Critical Fixes (Week 1)
+
 - [ ] Expand tracker database (+45 trackers)
 - [ ] Add missing detection methods (WebRTC, font, audio, WebGL)
 - [ ] Sanitize data before AI processing
@@ -640,6 +671,7 @@ Questions? Open an issue on GitHub: https://github.com/YrFnS/Phantom-Trail
 **Impact**: Fixes critical privacy gaps, improves detection accuracy
 
 ### Phase 2: Algorithm & Compliance (Week 2)
+
 - [ ] Refine privacy scoring algorithm
 - [ ] Add GDPR/CCPA compliance features
 - [ ] Implement data retention policy
@@ -648,6 +680,7 @@ Questions? Open an issue on GitHub: https://github.com/YrFnS/Phantom-Trail
 **Impact**: Improves accuracy, adds legal compliance
 
 ### Phase 3: Testing & Validation (Week 3)
+
 - [ ] Test on top 100 websites
 - [ ] Validate detection accuracy
 - [ ] User testing (non-technical users)
@@ -660,12 +693,14 @@ Questions? Open an issue on GitHub: https://github.com/YrFnS/Phantom-Trail
 ## Success Metrics
 
 **Before Improvements**:
+
 - Tracker detection: ~40% coverage
 - Privacy scoring: Grade inflation (B for critical trackers)
 - Data privacy: PII sent to AI, no retention policy
 - Compliance: No privacy policy, no user rights
 
 **After Improvements**:
+
 - Tracker detection: 90%+ coverage ✓
 - Privacy scoring: Accurate risk assessment ✓
 - Data privacy: Sanitized data, 30-day retention ✓
@@ -676,6 +711,7 @@ Questions? Open an issue on GitHub: https://github.com/YrFnS/Phantom-Trail
 ## Compliance Checklist
 
 ### GDPR Compliance
+
 - [x] Data minimization (sanitize URLs)
 - [x] Purpose limitation (only for privacy analysis)
 - [x] Storage limitation (30-day retention)
@@ -684,12 +720,14 @@ Questions? Open an issue on GitHub: https://github.com/YrFnS/Phantom-Trail
 - [ ] Consent for AI features (implement consent dialog)
 
 ### CCPA Compliance
+
 - [x] Right to know (privacy policy)
 - [x] Right to delete (data deletion)
 - [x] Right to opt-out (disable AI)
 - [x] No data sale (we don't sell data)
 
 ### Chrome Web Store Requirements
+
 - [ ] Privacy policy published
 - [ ] Permissions justified
 - [ ] Data handling disclosed
@@ -698,4 +736,3 @@ Questions? Open an issue on GitHub: https://github.com/YrFnS/Phantom-Trail
 ---
 
 **Next Steps**: Implement Phase 1 (Critical Fixes) before public release.
-

@@ -22,7 +22,7 @@ export function useEventAnalysis(event: TrackingEvent | null) {
       try {
         // Check if site is trusted
         const trusted = await isTrustedSite(event.url);
-        
+
         // Basic risk assessment
         let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
         const riskFactors: string[] = [];
@@ -32,7 +32,7 @@ export function useEventAnalysis(event: TrackingEvent | null) {
           riskLevel = 'high';
           riskFactors.push('Device fingerprinting detected');
         }
-        
+
         if (event.trackerType === 'analytics') {
           riskLevel = 'medium';
           riskFactors.push('Personal data collection');
@@ -75,7 +75,7 @@ export function useEventAnalysis(event: TrackingEvent | null) {
 }
 
 function generateRecommendations(
-  riskLevel: string, 
+  riskLevel: string,
   riskFactors: string[]
 ): string[] {
   const recommendations: string[] = [];

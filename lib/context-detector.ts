@@ -1,6 +1,6 @@
 /**
  * Security Context Detector
- * 
+ *
  * Detects legitimate security contexts where fingerprinting
  * might be used for fraud prevention or authentication.
  */
@@ -33,8 +33,7 @@ export class SecurityContextDetector {
     if (hasAuthKeywords) confidenceScore += 1;
 
     const confidence: 'low' | 'medium' | 'high' =
-      confidenceScore >= 4 ? 'high' :
-      confidenceScore >= 2 ? 'medium' : 'low';
+      confidenceScore >= 4 ? 'high' : confidenceScore >= 2 ? 'medium' : 'low';
 
     return {
       isLoginPage,

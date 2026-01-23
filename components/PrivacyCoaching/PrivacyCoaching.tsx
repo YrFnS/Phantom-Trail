@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { PrivacyCoach, type PrivacyJourney, type CoachingInsight } from '../../lib/privacy-coach';
+import {
+  PrivacyCoach,
+  type PrivacyJourney,
+  type CoachingInsight,
+} from '../../lib/privacy-coach';
 import { calculatePrivacyScore } from '../../lib/privacy-score';
 import { useStorage } from '../../lib/hooks/useStorage';
 import type { TrackingEvent } from '../../lib/types';
@@ -9,7 +13,7 @@ interface PrivacyCoachingProps {
 }
 
 export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
-  className = ''
+  className = '',
 }) => {
   const [journey, setJourney] = useState<PrivacyJourney | null>(null);
   const [insights, setInsights] = useState<CoachingInsight[]>([]);
@@ -20,22 +24,23 @@ export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
     const loadCoachingData = async () => {
       try {
         setLoading(true);
-        
+
         // Calculate current privacy score
         const recentEvents = events.slice(-100);
         const currentScore = calculatePrivacyScore(recentEvents, true);
-        
+
         // Update or initialize journey
-        const updatedJourney = await PrivacyCoach.updateJourney(currentScore.score);
+        const updatedJourney = await PrivacyCoach.updateJourney(
+          currentScore.score
+        );
         setJourney(updatedJourney);
-        
+
         // Generate coaching insights
         const coachingInsights = await PrivacyCoach.generateCoachingInsights(
           updatedJourney,
           recentEvents
         );
         setInsights(coachingInsights);
-        
       } catch (error) {
         console.error('Failed to load coaching data:', error);
       } finally {
@@ -52,21 +57,31 @@ export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
 
   const getInsightIcon = (type: CoachingInsight['type']) => {
     switch (type) {
-      case 'achievement': return '🏆';
-      case 'progress': return '📈';
-      case 'warning': return '⚠️';
-      case 'suggestion': return '💡';
-      default: return '📋';
+      case 'achievement':
+        return '🏆';
+      case 'progress':
+        return '📈';
+      case 'warning':
+        return '⚠️';
+      case 'suggestion':
+        return '💡';
+      default:
+        return '📋';
     }
   };
 
   const getInsightColor = (type: CoachingInsight['type']) => {
     switch (type) {
-      case 'achievement': return 'border-[var(--success)] bg-[var(--success)]/10';
-      case 'progress': return 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10';
-      case 'warning': return 'border-[var(--error)] bg-[var(--error)]/10';
-      case 'suggestion': return 'border-[var(--accent-secondary)] bg-[var(--accent-secondary)]/10';
-      default: return 'border-[var(--border-primary)] bg-[var(--bg-secondary)]';
+      case 'achievement':
+        return 'border-[var(--success)] bg-[var(--success)]/10';
+      case 'progress':
+        return 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10';
+      case 'warning':
+        return 'border-[var(--error)] bg-[var(--error)]/10';
+      case 'suggestion':
+        return 'border-[var(--accent-secondary)] bg-[var(--accent-secondary)]/10';
+      default:
+        return 'border-[var(--border-primary)] bg-[var(--bg-secondary)]';
     }
   };
 
@@ -118,7 +133,7 @@ export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
             Day {journeyDays}
           </div>
         </div>
-        
+
         <div className="grid grid-cols-3 gap-3 mb-3">
           <div className="text-center">
             <div className="text-lg font-bold text-[var(--accent-primary)]">
@@ -129,10 +144,15 @@ export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
             </div>
           </div>
           <div className="text-center">
-            <div className={`text-lg font-bold ${
-              scoreChange >= 0 ? 'text-[var(--success)]' : 'text-[var(--error)]'
-            }`}>
-              {scoreChange >= 0 ? '+' : ''}{scoreChange}
+            <div
+              className={`text-lg font-bold ${
+                scoreChange >= 0
+                  ? 'text-[var(--success)]'
+                  : 'text-[var(--error)]'
+              }`}
+            >
+              {scoreChange >= 0 ? '+' : ''}
+              {scoreChange}
             </div>
             <div className="text-[10px] text-[var(--text-secondary)]">
               This Week
@@ -149,7 +169,8 @@ export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
         </div>
 
         {/* Active Goals */}
-        {journey.improvementGoals.filter(g => g.status === 'active').length > 0 && (
+        {journey.improvementGoals.filter(g => g.status === 'active').length >
+          0 && (
           <div className="space-y-2">
             <h4 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">
               Active Goals
@@ -157,8 +178,11 @@ export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
             {journey.improvementGoals
               .filter(g => g.status === 'active')
               .slice(0, 2)
-              .map((goal) => (
-                <div key={goal.id} className="p-2 bg-[var(--bg-tertiary)] rounded border-l-2 border-[var(--accent-primary)]">
+              .map(goal => (
+                <div
+                  key={goal.id}
+                  className="p-2 bg-[var(--bg-tertiary)] rounded border-l-2 border-[var(--accent-primary)]"
+                >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-[var(--text-primary)]">
                       {goal.title}
@@ -171,10 +195,10 @@ export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
                     {goal.description}
                   </p>
                   <div className="mt-1 bg-[var(--bg-primary)] rounded-full h-1">
-                    <div 
+                    <div
                       className="bg-[var(--accent-primary)] h-1 rounded-full transition-all"
-                      style={{ 
-                        width: `${Math.min(100, (journey.currentScore / goal.targetScore) * 100)}%` 
+                      style={{
+                        width: `${Math.min(100, (journey.currentScore / goal.targetScore) * 100)}%`,
                       }}
                     />
                   </div>
@@ -191,8 +215,8 @@ export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
             Personal Insights
           </h3>
           {insights.map((insight, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className={`p-3 rounded-lg border-l-4 ${getInsightColor(insight.type)}`}
             >
               <div className="flex items-start gap-2">
@@ -227,9 +251,9 @@ export const PrivacyCoaching: React.FC<PrivacyCoachingProps> = ({
               <div
                 key={index}
                 className="flex-1 bg-[var(--accent-primary)] rounded-t opacity-70 hover:opacity-100 transition-opacity"
-                style={{ 
+                style={{
                   height: `${(point.score / 100) * 100}%`,
-                  minHeight: '2px'
+                  minHeight: '2px',
                 }}
                 title={`Score: ${point.score} (${new Date(point.date).toLocaleDateString()})`}
               />

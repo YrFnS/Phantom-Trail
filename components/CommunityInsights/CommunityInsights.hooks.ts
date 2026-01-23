@@ -5,7 +5,9 @@ import { ChromeStorage } from '../../lib/chrome-storage';
 
 export const useCommunityInsights = () => {
   const [network] = useState(() => P2PPrivacyNetwork.getInstance());
-  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
+  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(
+    null
+  );
   const [isEnabled, setIsEnabled] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [peerCount, setPeerCount] = useState(0);
@@ -14,10 +16,10 @@ export const useCommunityInsights = () => {
     try {
       const connected = network.isNetworkActive();
       const count = network.getConnectedPeerCount();
-      
+
       setIsConnected(connected);
       setPeerCount(count);
-      
+
       if (connected) {
         const stats = await network.getCommunityStats();
         setCommunityStats(stats);
@@ -29,16 +31,18 @@ export const useCommunityInsights = () => {
 
   const loadSettings = useCallback(async () => {
     try {
-      const settings = await ChromeStorage.getLocal<P2PSettings>('p2pSettings') || {
+      const settings = (await ChromeStorage.getLocal<P2PSettings>(
+        'p2pSettings'
+      )) || {
         joinPrivacyNetwork: false,
         shareAnonymousData: false,
         shareRegionalData: false,
         maxConnections: 10,
-        autoReconnect: true
+        autoReconnect: true,
       };
-      
+
       setIsEnabled(settings.joinPrivacyNetwork);
-      
+
       if (settings.joinPrivacyNetwork) {
         await network.initializeNetwork();
         updateNetworkStatus();
@@ -50,11 +54,11 @@ export const useCommunityInsights = () => {
 
   useEffect(() => {
     loadSettings();
-    
+
     const interval = setInterval(() => {
       updateNetworkStatus();
     }, 5000);
-    
+
     return () => clearInterval(interval);
   }, [loadSettings, updateNetworkStatus]);
 
@@ -65,12 +69,12 @@ export const useCommunityInsights = () => {
         shareAnonymousData: true,
         shareRegionalData: false,
         maxConnections: 10,
-        autoReconnect: true
+        autoReconnect: true,
       };
-      
+
       await chrome.storage.local.set({ p2pSettings: settings });
       await network.initializeNetwork();
-      
+
       setIsEnabled(true);
       updateNetworkStatus();
     } catch (error) {
@@ -86,12 +90,12 @@ export const useCommunityInsights = () => {
         shareAnonymousData: false,
         shareRegionalData: false,
         maxConnections: 10,
-        autoReconnect: true
+        autoReconnect: true,
       };
-      
+
       await chrome.storage.local.set({ p2pSettings: settings });
       await network.disconnectFromNetwork();
-      
+
       setIsEnabled(false);
       setIsConnected(false);
       setPeerCount(0);
@@ -104,12 +108,12 @@ export const useCommunityInsights = () => {
 
   const sharePrivacyData = async (privacyData: PrivacyData) => {
     if (!isEnabled || !isConnected) return;
-    
+
     try {
       // Anonymize data before sharing
       const { AnonymizationService } = await import('../../lib/anonymization');
       const anonymizedData = AnonymizationService.anonymizeForP2P(privacyData);
-      
+
       await network.shareAnonymousData(anonymizedData);
     } catch (error) {
       console.error('Failed to share privacy data:', error);
@@ -125,6 +129,6 @@ export const useCommunityInsights = () => {
     enableNetwork,
     disableNetwork,
     sharePrivacyData,
-    updateNetworkStatus
+    updateNetworkStatus,
   };
 };

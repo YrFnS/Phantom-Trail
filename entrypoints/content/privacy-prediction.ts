@@ -1,4 +1,8 @@
-import { PrivacyPredictor, type PrivacyPrediction, type PageContext } from '../../lib/privacy-predictor';
+import {
+  PrivacyPredictor,
+  type PrivacyPrediction,
+  type PageContext,
+} from '../../lib/privacy-predictor';
 
 // Privacy prediction state
 let currentTooltip: HTMLElement | null = null;
@@ -22,11 +26,11 @@ export async function handleLinkHover(link: HTMLAnchorElement): Promise<void> {
         currentDomain: window.location.hostname,
         linkText: link.textContent?.trim() || '',
         linkPosition: getLinkPosition(link),
-        isExternal: new URL(href).hostname !== window.location.hostname
+        isExternal: new URL(href).hostname !== window.location.hostname,
       };
 
       const analysis = await PrivacyPredictor.analyzeLinkHover(href, context);
-      
+
       if (analysis.shouldWarn) {
         showPrivacyTooltip(link, analysis.prediction, analysis.displayText);
       }
@@ -44,17 +48,23 @@ export function handleLinkLeave(): void {
   hidePrivacyTooltip();
 }
 
-function getLinkPosition(link: HTMLAnchorElement): 'header' | 'content' | 'footer' | 'sidebar' {
+function getLinkPosition(
+  link: HTMLAnchorElement
+): 'header' | 'content' | 'footer' | 'sidebar' {
   const rect = link.getBoundingClientRect();
   const viewportHeight = window.innerHeight;
-  
+
   if (rect.top < viewportHeight * 0.2) return 'header';
   if (rect.top > viewportHeight * 0.8) return 'footer';
   if (rect.left < 200 || rect.right > window.innerWidth - 200) return 'sidebar';
   return 'content';
 }
 
-function showPrivacyTooltip(link: HTMLAnchorElement, prediction: PrivacyPrediction, displayText: string): void {
+function showPrivacyTooltip(
+  link: HTMLAnchorElement,
+  prediction: PrivacyPrediction,
+  displayText: string
+): void {
   hidePrivacyTooltip();
 
   const tooltip = document.createElement('div');

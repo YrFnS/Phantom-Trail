@@ -1,4 +1,8 @@
-import type { TrackingEvent, PrivacyScore, NotificationSettings } from './types';
+import type {
+  TrackingEvent,
+  PrivacyScore,
+  NotificationSettings,
+} from './types';
 import { SettingsStorage } from './storage/settings-storage';
 
 /**
@@ -34,16 +38,17 @@ export class NotificationManager {
         title,
         message,
         contextMessage: `Phantom Trail • ${new Date().toLocaleTimeString()}`,
-        buttons: [
-          { title: 'View Details' },
-          { title: 'Dismiss' }
-        ]
+        buttons: [{ title: 'View Details' }, { title: 'Dismiss' }],
       });
 
       // Track notification
       this.trackNotification(event.domain);
-      
-      console.log('Privacy alert notification shown:', event.domain, event.trackerType);
+
+      console.log(
+        'Privacy alert notification shown:',
+        event.domain,
+        event.trackerType
+      );
     } catch (error) {
       console.error('Failed to show privacy alert:', error);
     }
@@ -66,10 +71,14 @@ export class NotificationManager {
         iconUrl: '/icon/icon-48.png',
         title,
         message,
-        contextMessage: 'Phantom Trail • Daily Summary'
+        contextMessage: 'Phantom Trail • Daily Summary',
       });
 
-      console.log('Daily summary notification shown:', score.grade, score.score);
+      console.log(
+        'Daily summary notification shown:',
+        score.grade,
+        score.score
+      );
     } catch (error) {
       console.error('Failed to show daily summary:', error);
     }
@@ -91,7 +100,7 @@ export class NotificationManager {
       const currentSettings = await SettingsStorage.getSettings();
       await SettingsStorage.saveSettings({
         ...currentSettings,
-        notifications: settings
+        notifications: settings,
       });
     } catch (error) {
       console.error('Failed to update notification settings:', error);
@@ -104,13 +113,15 @@ export class NotificationManager {
   private static async getSettings(): Promise<NotificationSettings> {
     try {
       const settings = await SettingsStorage.getSettings();
-      return settings.notifications || {
-        enabled: true,
-        criticalOnly: false,
-        dailySummary: true,
-        weeklyReport: false,
-        quietHours: { start: '22:00', end: '08:00' }
-      };
+      return (
+        settings.notifications || {
+          enabled: true,
+          criticalOnly: false,
+          dailySummary: true,
+          weeklyReport: false,
+          quietHours: { start: '22:00', end: '08:00' },
+        }
+      );
     } catch (error) {
       console.error('Failed to get notification settings:', error);
       return {
@@ -118,7 +129,7 @@ export class NotificationManager {
         criticalOnly: true,
         dailySummary: false,
         weeklyReport: false,
-        quietHours: { start: '22:00', end: '08:00' }
+        quietHours: { start: '22:00', end: '08:00' },
       };
     }
   }
@@ -142,10 +153,12 @@ export class NotificationManager {
   private static isQuietHours(settings: NotificationSettings): boolean {
     const now = new Date();
     const currentTime = now.getHours() * 100 + now.getMinutes();
-    
-    const [startHour, startMin] = settings.quietHours.start.split(':').map(Number);
+
+    const [startHour, startMin] = settings.quietHours.start
+      .split(':')
+      .map(Number);
     const [endHour, endMin] = settings.quietHours.end.split(':').map(Number);
-    
+
     const startTime = startHour * 100 + startMin;
     const endTime = endHour * 100 + endMin;
 
@@ -164,7 +177,7 @@ export class NotificationManager {
   private static isThrottled(domain: string): boolean {
     const now = Date.now();
     const lastNotification = this.recentNotifications.get(domain) || 0;
-    
+
     if (now - lastNotification < this.NOTIFICATION_THROTTLE_MS) {
       return true;
     }
@@ -209,7 +222,7 @@ export class NotificationManager {
       critical: '🚨',
       high: '⚠️',
       medium: '📊',
-      low: 'ℹ️'
+      low: 'ℹ️',
     };
 
     const typeDescriptions = {
@@ -218,20 +231,22 @@ export class NotificationManager {
       analytics: 'collecting analytics',
       social: 'social media tracking',
       cryptomining: 'using your device for mining',
-      unknown: 'tracking your activity'
+      unknown: 'tracking your activity',
     };
 
-    const title = event.riskLevel === 'critical' 
-      ? `${riskEmoji[event.riskLevel]} Privacy Alert`
-      : `${riskEmoji[event.riskLevel]} Tracking Alert`;
+    const title =
+      event.riskLevel === 'critical'
+        ? `${riskEmoji[event.riskLevel]} Privacy Alert`
+        : `${riskEmoji[event.riskLevel]} Tracking Alert`;
 
-    const action = typeDescriptions[event.trackerType] || 'tracking your activity';
+    const action =
+      typeDescriptions[event.trackerType] || 'tracking your activity';
     const message = `${event.domain} is ${action}`;
 
     return {
       title,
       message,
-      iconUrl: '/icon/icon-48.png'
+      iconUrl: '/icon/icon-48.png',
     };
   }
 
@@ -247,7 +262,7 @@ export class NotificationManager {
       B: '✅',
       C: '⚠️',
       D: '🔶',
-      F: '🚨'
+      F: '🚨',
     };
 
     const title = `${gradeEmoji[score.grade]} Privacy Summary`;

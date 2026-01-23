@@ -29,32 +29,32 @@ export class PrivacyToolDetector {
       name: 'uBlock Origin',
       patterns: ['ublock', 'ublock origin'],
       effectiveness: 95,
-      installUrl: 'https://ublockorigin.com'
+      installUrl: 'https://ublockorigin.com',
     },
     {
       name: 'AdBlock Plus',
       patterns: ['adblock plus', 'adblock'],
       effectiveness: 80,
-      installUrl: 'https://adblockplus.org'
+      installUrl: 'https://adblockplus.org',
     },
     {
       name: 'Privacy Badger',
       patterns: ['privacy badger'],
       effectiveness: 75,
-      installUrl: 'https://privacybadger.org'
+      installUrl: 'https://privacybadger.org',
     },
     {
       name: 'Ghostery',
       patterns: ['ghostery'],
       effectiveness: 85,
-      installUrl: 'https://ghostery.com'
+      installUrl: 'https://ghostery.com',
     },
     {
       name: 'DuckDuckGo Privacy Essentials',
       patterns: ['duckduckgo', 'privacy essentials'],
       effectiveness: 70,
-      installUrl: 'https://duckduckgo.com/app'
-    }
+      installUrl: 'https://duckduckgo.com/app',
+    },
   ];
 
   /**
@@ -65,11 +65,11 @@ export class PrivacyToolDetector {
 
     try {
       // Try to get installed extensions (requires management permission)
-      const extensions = await chrome.management?.getAll?.() || [];
-      
+      const extensions = (await chrome.management?.getAll?.()) || [];
+
       for (const knownTool of this.KNOWN_TOOLS) {
-        const detected = extensions.find(ext => 
-          knownTool.patterns.some(pattern => 
+        const detected = extensions.find(ext =>
+          knownTool.patterns.some(pattern =>
             ext.name.toLowerCase().includes(pattern.toLowerCase())
           )
         );
@@ -79,10 +79,10 @@ export class PrivacyToolDetector {
           detected: !!detected,
           enabled: detected?.enabled || false,
           effectiveness: detected?.enabled ? knownTool.effectiveness : 0,
-          recommendation: detected?.enabled 
+          recommendation: detected?.enabled
             ? `${knownTool.name} is protecting your privacy`
             : `Install ${knownTool.name} for better protection`,
-          installUrl: knownTool.installUrl
+          installUrl: knownTool.installUrl,
         });
       }
     } catch {
@@ -94,7 +94,7 @@ export class PrivacyToolDetector {
           enabled: false,
           effectiveness: 0,
           recommendation: `Install ${knownTool.name} for ${knownTool.effectiveness}% tracker blocking`,
-          installUrl: knownTool.installUrl
+          installUrl: knownTool.installUrl,
         });
       }
     }
@@ -106,43 +106,52 @@ export class PrivacyToolDetector {
    * Analyze tool effectiveness against detected trackers
    */
   static async analyzeEffectiveness(
-    tools: DetectedTool[], 
+    tools: DetectedTool[],
     events: TrackingEvent[]
   ): Promise<PrivacyToolsStatus> {
     const enabledTools = tools.filter(tool => tool.enabled);
     const totalTrackers = events.length;
-    
+
     // Estimate blocked trackers based on tool effectiveness
     let estimatedBlocked = 0;
     if (enabledTools.length > 0) {
-      const maxEffectiveness = Math.max(...enabledTools.map(t => t.effectiveness));
+      const maxEffectiveness = Math.max(
+        ...enabledTools.map(t => t.effectiveness)
+      );
       estimatedBlocked = Math.floor(totalTrackers * (maxEffectiveness / 100));
     }
 
     const missedTrackers = totalTrackers - estimatedBlocked;
-    const overallEffectiveness = totalTrackers > 0 
-      ? Math.round((estimatedBlocked / totalTrackers) * 100)
-      : 0;
+    const overallEffectiveness =
+      totalTrackers > 0
+        ? Math.round((estimatedBlocked / totalTrackers) * 100)
+        : 0;
 
     // Generate recommendations
     const recommendations: string[] = [];
-    
+
     if (enabledTools.length === 0) {
-      recommendations.push('Install a privacy tool like uBlock Origin for automatic protection');
+      recommendations.push(
+        'Install a privacy tool like uBlock Origin for automatic protection'
+      );
     } else if (overallEffectiveness < 80) {
-      recommendations.push('Consider adding Privacy Badger for better tracker detection');
+      recommendations.push(
+        'Consider adding Privacy Badger for better tracker detection'
+      );
     }
-    
+
     if (missedTrackers > 5) {
-      recommendations.push('Enable strict tracking protection in your browser settings');
+      recommendations.push(
+        'Enable strict tracking protection in your browser settings'
+      );
     }
 
     // Update tools with estimated blocked counts
     const updatedTools = tools.map(tool => ({
       ...tool,
-      blockedCount: tool.enabled 
+      blockedCount: tool.enabled
         ? Math.floor(totalTrackers * (tool.effectiveness / 100))
-        : 0
+        : 0,
     }));
 
     return {
@@ -150,7 +159,7 @@ export class PrivacyToolDetector {
       overallEffectiveness,
       blockedTrackers: estimatedBlocked,
       missedTrackers,
-      recommendations
+      recommendations,
     };
   }
 
@@ -160,22 +169,28 @@ export class PrivacyToolDetector {
   static getImprovementSuggestions(status: PrivacyToolsStatus): string[] {
     const suggestions: string[] = [];
     const { tools, overallEffectiveness, missedTrackers } = status;
-    
+
     const hasUBlock = tools.find(t => t.name.includes('uBlock') && t.enabled);
-    const hasPrivacyBadger = tools.find(t => t.name.includes('Privacy Badger') && t.enabled);
-    
+    const hasPrivacyBadger = tools.find(
+      t => t.name.includes('Privacy Badger') && t.enabled
+    );
+
     if (!hasUBlock) {
-      suggestions.push('Install uBlock Origin - the most effective ad and tracker blocker');
+      suggestions.push(
+        'Install uBlock Origin - the most effective ad and tracker blocker'
+      );
     }
-    
+
     if (!hasPrivacyBadger && missedTrackers > 3) {
       suggestions.push('Add Privacy Badger for intelligent tracker learning');
     }
-    
+
     if (overallEffectiveness < 70) {
-      suggestions.push('Enable Enhanced Tracking Protection in Firefox or use Brave browser');
+      suggestions.push(
+        'Enable Enhanced Tracking Protection in Firefox or use Brave browser'
+      );
     }
-    
+
     if (tools.every(t => !t.enabled)) {
       suggestions.push('Your current setup provides no tracker protection');
     }

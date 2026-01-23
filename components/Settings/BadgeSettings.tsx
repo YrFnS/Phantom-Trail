@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { BadgeManager, BadgeSettings, BadgeStyle } from '../../lib/badge-manager';
+import {
+  BadgeManager,
+  BadgeSettings,
+  BadgeStyle,
+} from '../../lib/badge-manager';
 
 export function BadgeSettingsComponent() {
   const [settings, setSettings] = useState<BadgeSettings>({
@@ -9,7 +13,7 @@ export function BadgeSettingsComponent() {
     showGrade: true,
     colorScheme: 'traffic-light',
     updateFrequency: 'realtime',
-    showOnlyRisks: false
+    showOnlyRisks: false,
   });
   const [loading, setLoading] = useState(false);
 
@@ -30,9 +34,12 @@ export function BadgeSettingsComponent() {
     setLoading(true);
     try {
       await BadgeManager.saveBadgeSettings(settings);
-      
+
       // Update current tab badge immediately to show changes
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
       if (tabs[0]?.id) {
         if (settings.enabled) {
           // Force badge update by clearing and setting again
@@ -59,9 +66,12 @@ export function BadgeSettingsComponent() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-[var(--text-primary)] mb-4">Privacy Badge</h3>
+        <h3 className="text-lg font-medium text-[var(--text-primary)] mb-4">
+          Privacy Badge
+        </h3>
         <p className="text-sm text-[var(--text-secondary)] mb-4">
-          Show privacy scores directly in your browser toolbar for instant feedback.
+          Show privacy scores directly in your browser toolbar for instant
+          feedback.
         </p>
       </div>
 
@@ -97,15 +107,23 @@ export function BadgeSettingsComponent() {
                   name="badgeStyle"
                   value={BadgeStyle.GRADE_ONLY}
                   checked={settings.style === BadgeStyle.GRADE_ONLY}
-                  onChange={e => updateSetting('style', e.target.value as BadgeStyle)}
+                  onChange={e =>
+                    updateSetting('style', e.target.value as BadgeStyle)
+                  }
                   className="mr-3 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                 />
                 <div className="flex items-center justify-between w-full">
                   <div>
-                    <div className="text-sm font-medium text-[var(--text-primary)]">Grade Only</div>
-                    <div className="text-xs text-[var(--text-secondary)]">Show letter grade (A, B, C, D, F)</div>
+                    <div className="text-sm font-medium text-[var(--text-primary)]">
+                      Grade Only
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)]">
+                      Show letter grade (A, B, C, D, F)
+                    </div>
                   </div>
-                  <div className="px-2 py-1 bg-green-500 text-white text-xs rounded font-bold">A</div>
+                  <div className="px-2 py-1 bg-green-500 text-white text-xs rounded font-bold">
+                    A
+                  </div>
                 </div>
               </label>
 
@@ -115,15 +133,23 @@ export function BadgeSettingsComponent() {
                   name="badgeStyle"
                   value={BadgeStyle.SCORE_ONLY}
                   checked={settings.style === BadgeStyle.SCORE_ONLY}
-                  onChange={e => updateSetting('style', e.target.value as BadgeStyle)}
+                  onChange={e =>
+                    updateSetting('style', e.target.value as BadgeStyle)
+                  }
                   className="mr-3 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                 />
                 <div className="flex items-center justify-between w-full">
                   <div>
-                    <div className="text-sm font-medium text-[var(--text-primary)]">Score Only</div>
-                    <div className="text-xs text-[var(--text-secondary)]">Show numeric score (0-100)</div>
+                    <div className="text-sm font-medium text-[var(--text-primary)]">
+                      Score Only
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)]">
+                      Show numeric score (0-100)
+                    </div>
                   </div>
-                  <div className="px-2 py-1 bg-green-500 text-white text-xs rounded font-bold">85</div>
+                  <div className="px-2 py-1 bg-green-500 text-white text-xs rounded font-bold">
+                    85
+                  </div>
                 </div>
               </label>
 
@@ -133,15 +159,23 @@ export function BadgeSettingsComponent() {
                   name="badgeStyle"
                   value={BadgeStyle.COMBINED}
                   checked={settings.style === BadgeStyle.COMBINED}
-                  onChange={e => updateSetting('style', e.target.value as BadgeStyle)}
+                  onChange={e =>
+                    updateSetting('style', e.target.value as BadgeStyle)
+                  }
                   className="mr-3 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                 />
                 <div className="flex items-center justify-between w-full">
                   <div>
-                    <div className="text-sm font-medium text-[var(--text-primary)]">Combined</div>
-                    <div className="text-xs text-[var(--text-secondary)]">Show both grade and score</div>
+                    <div className="text-sm font-medium text-[var(--text-primary)]">
+                      Combined
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)]">
+                      Show both grade and score
+                    </div>
                   </div>
-                  <div className="px-2 py-1 bg-green-500 text-white text-xs rounded font-bold">A85</div>
+                  <div className="px-2 py-1 bg-green-500 text-white text-xs rounded font-bold">
+                    A85
+                  </div>
                 </div>
               </label>
 
@@ -151,13 +185,19 @@ export function BadgeSettingsComponent() {
                   name="badgeStyle"
                   value={BadgeStyle.ICON_COLOR}
                   checked={settings.style === BadgeStyle.ICON_COLOR}
-                  onChange={e => updateSetting('style', e.target.value as BadgeStyle)}
+                  onChange={e =>
+                    updateSetting('style', e.target.value as BadgeStyle)
+                  }
                   className="mr-3 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                 />
                 <div className="flex items-center justify-between w-full">
                   <div>
-                    <div className="text-sm font-medium text-[var(--text-primary)]">Icon Color Only</div>
-                    <div className="text-xs text-[var(--text-secondary)]">Change icon color based on score</div>
+                    <div className="text-sm font-medium text-[var(--text-primary)]">
+                      Icon Color Only
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)]">
+                      Change icon color based on score
+                    </div>
                   </div>
                   <div className="w-4 h-4 bg-green-500 rounded-full"></div>
                 </div>
@@ -172,19 +212,30 @@ export function BadgeSettingsComponent() {
             </label>
             <select
               value={settings.colorScheme}
-              onChange={e => updateSetting('colorScheme', e.target.value as BadgeSettings['colorScheme'])}
+              onChange={e =>
+                updateSetting(
+                  'colorScheme',
+                  e.target.value as BadgeSettings['colorScheme']
+                )
+              }
               className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
             >
-              <option value="traffic-light">Traffic Light (Green/Yellow/Red)</option>
-              <option value="gradient">Gradient (Smooth color transitions)</option>
+              <option value="traffic-light">
+                Traffic Light (Green/Yellow/Red)
+              </option>
+              <option value="gradient">
+                Gradient (Smooth color transitions)
+              </option>
               <option value="minimal">Minimal (Gray with red alerts)</option>
             </select>
           </div>
 
           {/* Advanced Options */}
           <div className="space-y-4">
-            <h4 className="text-sm font-medium text-[var(--text-primary)]">Advanced Options</h4>
-            
+            <h4 className="text-sm font-medium text-[var(--text-primary)]">
+              Advanced Options
+            </h4>
+
             <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
               <div>
                 <label className="text-sm font-medium text-[var(--text-primary)]">
@@ -208,7 +259,12 @@ export function BadgeSettingsComponent() {
               </label>
               <select
                 value={settings.updateFrequency}
-                onChange={e => updateSetting('updateFrequency', e.target.value as BadgeSettings['updateFrequency'])}
+                onChange={e =>
+                  updateSetting(
+                    'updateFrequency',
+                    e.target.value as BadgeSettings['updateFrequency']
+                  )
+                }
                 className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
               >
                 <option value="realtime">Real-time (Immediate updates)</option>
@@ -228,31 +284,41 @@ export function BadgeSettingsComponent() {
                 <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center text-white text-xs font-bold">
                   A
                 </div>
-                <span className="text-xs text-[var(--text-secondary)] mt-1">90-100</span>
+                <span className="text-xs text-[var(--text-secondary)] mt-1">
+                  90-100
+                </span>
               </div>
               <div className="flex flex-col items-center">
                 <div className="w-8 h-8 bg-lime-500 rounded flex items-center justify-center text-white text-xs font-bold">
                   B
                 </div>
-                <span className="text-xs text-[var(--text-secondary)] mt-1">80-89</span>
+                <span className="text-xs text-[var(--text-secondary)] mt-1">
+                  80-89
+                </span>
               </div>
               <div className="flex flex-col items-center">
                 <div className="w-8 h-8 bg-yellow-500 rounded flex items-center justify-center text-white text-xs font-bold">
                   C
                 </div>
-                <span className="text-xs text-[var(--text-secondary)] mt-1">70-79</span>
+                <span className="text-xs text-[var(--text-secondary)] mt-1">
+                  70-79
+                </span>
               </div>
               <div className="flex flex-col items-center">
                 <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center text-white text-xs font-bold">
                   D
                 </div>
-                <span className="text-xs text-[var(--text-secondary)] mt-1">60-69</span>
+                <span className="text-xs text-[var(--text-secondary)] mt-1">
+                  60-69
+                </span>
               </div>
               <div className="flex flex-col items-center">
                 <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center text-white text-xs font-bold">
                   F
                 </div>
-                <span className="text-xs text-[var(--text-secondary)] mt-1">0-59</span>
+                <span className="text-xs text-[var(--text-secondary)] mt-1">
+                  0-59
+                </span>
               </div>
             </div>
           </div>

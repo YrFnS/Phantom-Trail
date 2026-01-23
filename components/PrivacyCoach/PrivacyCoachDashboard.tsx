@@ -5,8 +5,8 @@ interface PrivacyCoachDashboardProps {
   className?: string;
 }
 
-export const PrivacyCoachDashboard: React.FC<PrivacyCoachDashboardProps> = ({ 
-  className = '' 
+export const PrivacyCoachDashboard: React.FC<PrivacyCoachDashboardProps> = ({
+  className = '',
 }) => {
   return (
     <div className={className}>

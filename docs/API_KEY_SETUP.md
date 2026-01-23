@@ -26,17 +26,19 @@
 4. In the console, paste:
 
 ```javascript
-chrome.storage.local.set({
-  'phantom_trail_settings': {
-    enableAI: true,
-    enableNotifications: true,
-    riskThreshold: 'medium',
-    openRouterApiKey: 'YOUR_API_KEY_HERE'
-  }
-}).then(() => {
-  console.log('API key saved!');
-  chrome.runtime.reload();
-});
+chrome.storage.local
+  .set({
+    phantom_trail_settings: {
+      enableAI: true,
+      enableNotifications: true,
+      riskThreshold: 'medium',
+      openRouterApiKey: 'YOUR_API_KEY_HERE',
+    },
+  })
+  .then(() => {
+    console.log('API key saved!');
+    chrome.runtime.reload();
+  });
 ```
 
 5. Replace `YOUR_API_KEY_HERE` with your actual key
@@ -59,10 +61,13 @@ chrome.storage.local.set({
 4. In the console, paste:
 
 ```javascript
-chrome.storage.local.get('phantom_trail_settings', (result) => {
+chrome.storage.local.get('phantom_trail_settings', result => {
   const settings = result.phantom_trail_settings;
   if (settings && settings.openRouterApiKey) {
-    console.log('✓ API key is saved:', '***' + settings.openRouterApiKey.slice(-4));
+    console.log(
+      '✓ API key is saved:',
+      '***' + settings.openRouterApiKey.slice(-4)
+    );
   } else {
     console.log('✗ No API key found');
   }
@@ -74,11 +79,13 @@ chrome.storage.local.get('phantom_trail_settings', (result) => {
 ### Issue: API Key Disappears After Saving
 
 **Symptoms:**
+
 - You enter the key and click Save
 - When you reopen Settings, the field is empty
 - Console shows "AI not available - no API key configured"
 
 **Solution 1 - Clear and Re-enter:**
+
 1. Open Settings
 2. Clear the API key field completely
 3. Paste your key again (make sure no extra spaces)
@@ -90,20 +97,21 @@ chrome.storage.local.get('phantom_trail_settings', (result) => {
 Use Method 2 above to set the key directly via console
 
 **Solution 3 - Check for Corruption:**
+
 ```javascript
 // Check if settings are corrupted
-chrome.storage.local.get('phantom_trail_settings', (result) => {
+chrome.storage.local.get('phantom_trail_settings', result => {
   console.log('Settings type:', typeof result.phantom_trail_settings);
   console.log('Settings value:', result.phantom_trail_settings);
-  
+
   if (typeof result.phantom_trail_settings !== 'object') {
     console.log('Settings corrupted! Resetting...');
     chrome.storage.local.set({
-      'phantom_trail_settings': {
+      phantom_trail_settings: {
         enableAI: true,
         enableNotifications: true,
-        riskThreshold: 'medium'
-      }
+        riskThreshold: 'medium',
+      },
     });
   }
 });
@@ -114,6 +122,7 @@ chrome.storage.local.get('phantom_trail_settings', (result) => {
 **Cause:** The extension checks for the API key on startup.
 
 **Solution:**
+
 1. Verify key is saved (see "Verifying API Key is Saved" above)
 2. Reload the extension:
    - Go to `chrome://extensions`
@@ -124,6 +133,7 @@ chrome.storage.local.get('phantom_trail_settings', (result) => {
 ### Issue: API Key Shows But AI Still Doesn't Work
 
 **Possible Causes:**
+
 1. Invalid API key
 2. API key has no credits
 3. Network issues
@@ -137,24 +147,25 @@ chrome.storage.local.get('phantom_trail_settings', (result) => {
    - No spaces or special characters
 
 2. **Test Key Manually:**
+
    ```javascript
    // Test API key
    const apiKey = 'YOUR_KEY_HERE';
-   
+
    fetch('https://openrouter.ai/api/v1/models', {
      headers: {
-       'Authorization': `Bearer ${apiKey}`
-     }
+       Authorization: `Bearer ${apiKey}`,
+     },
    })
-   .then(r => r.json())
-   .then(data => {
-     if (data.error) {
-       console.error('API key error:', data.error);
-     } else {
-       console.log('✓ API key is valid!');
-     }
-   })
-   .catch(err => console.error('Network error:', err));
+     .then(r => r.json())
+     .then(data => {
+       if (data.error) {
+         console.error('API key error:', data.error);
+       } else {
+         console.log('✓ API key is valid!');
+       }
+     })
+     .catch(err => console.error('Network error:', err));
    ```
 
 3. **Check Credits:**
@@ -204,26 +215,26 @@ Run this complete test in the console:
 ```javascript
 async function testAPISetup() {
   console.log('=== Testing API Setup ===\n');
-  
+
   // 1. Check if key exists
   const result = await chrome.storage.local.get('phantom_trail_settings');
   const settings = result.phantom_trail_settings;
-  
+
   if (!settings || !settings.openRouterApiKey) {
     console.error('✗ No API key found in storage');
     return;
   }
-  
+
   console.log('✓ API key found:', '***' + settings.openRouterApiKey.slice(-4));
-  
+
   // 2. Test key validity
   try {
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       headers: {
-        'Authorization': `Bearer ${settings.openRouterApiKey}`
-      }
+        Authorization: `Bearer ${settings.openRouterApiKey}`,
+      },
     });
-    
+
     if (response.ok) {
       console.log('✓ API key is valid');
       const data = await response.json();
@@ -234,7 +245,7 @@ async function testAPISetup() {
   } catch (error) {
     console.error('✗ Network error:', error);
   }
-  
+
   console.log('\n=== Test Complete ===');
 }
 
@@ -260,6 +271,7 @@ OpenRouter free tier includes:
 - No credit card required
 
 For unlimited access:
+
 - Add credits to your OpenRouter account
 - Use paid models for better performance
 - Higher rate limits

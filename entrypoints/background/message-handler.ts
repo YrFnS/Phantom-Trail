@@ -12,7 +12,11 @@ export class MessageHandler {
     sendResponse: (response?: unknown) => void
   ): Promise<void> {
     try {
-      if (typeof message !== 'object' || message === null || !('type' in message)) {
+      if (
+        typeof message !== 'object' ||
+        message === null ||
+        !('type' in message)
+      ) {
         sendResponse({ error: 'Invalid message format' });
         return;
       }
@@ -21,10 +25,16 @@ export class MessageHandler {
 
       switch (msg.type) {
         case 'TRACKING_DETECTED':
-          await this.handleTrackingDetected(msg as { event?: TrackingEvent }, sendResponse);
+          await this.handleTrackingDetected(
+            msg as { event?: TrackingEvent },
+            sendResponse
+          );
           break;
         case 'GET_PRIVACY_SCORE':
-          await this.handleGetPrivacyScore(msg as { domain?: string }, sendResponse);
+          await this.handleGetPrivacyScore(
+            msg as { domain?: string },
+            sendResponse
+          );
           break;
         case 'QUICK_ANALYSIS_REQUEST':
           await this.handleQuickAnalysis(sender, sendResponse);
@@ -47,7 +57,8 @@ export class MessageHandler {
         sendResponse({ error: 'Missing event data' });
         return;
       }
-      const { EventsStorage } = await import('../../lib/storage/events-storage');
+      const { EventsStorage } =
+        await import('../../lib/storage/events-storage');
       await EventsStorage.addEvent(message.event);
       sendResponse({ success: true });
     } catch {
@@ -90,25 +101,28 @@ export class MessageHandler {
       }
 
       const domain = new URL(tab.url).hostname;
-      
+
       // Get privacy score and event count
       const { PrivacyScoreClass } = await import('../../lib/privacy-score');
-      const { EventsStorage } = await import('../../lib/storage/events-storage');
-      
+      const { EventsStorage } =
+        await import('../../lib/storage/events-storage');
+
       const score = await PrivacyScoreClass.calculateDomainScore();
       const events = await EventsStorage.getTrackingEvents();
-      const domainEvents = events.filter((e: { domain: string }) => e.domain === domain);
+      const domainEvents = events.filter(
+        (e: { domain: string }) => e.domain === domain
+      );
 
       const analysisData = {
         domain,
         score,
-        eventCount: domainEvents.length
+        eventCount: domainEvents.length,
       };
 
       // Send analysis to content script
       chrome.tabs.sendMessage(sender.tab.id, {
         type: 'SHOW_QUICK_ANALYSIS',
-        data: analysisData
+        data: analysisData,
       });
 
       sendResponse({ success: true });

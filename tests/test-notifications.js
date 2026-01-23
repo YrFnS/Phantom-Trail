@@ -6,22 +6,22 @@
 // Test notification settings
 async function testNotificationSettings() {
   console.log('Testing notification settings...');
-  
+
   const { NotificationManager } = await import('./lib/notification-manager.js');
-  
+
   // Test default settings
   const isEnabled = await NotificationManager.isEnabled();
   console.log('Notifications enabled:', isEnabled);
-  
+
   // Test settings update
   const testSettings = {
     enabled: true,
     criticalOnly: false,
     dailySummary: true,
     weeklyReport: false,
-    quietHours: { start: '22:00', end: '08:00' }
+    quietHours: { start: '22:00', end: '08:00' },
   };
-  
+
   await NotificationManager.updateSettings(testSettings);
   console.log('Settings updated successfully');
 }
@@ -29,9 +29,9 @@ async function testNotificationSettings() {
 // Test privacy alert notification
 async function testPrivacyAlert() {
   console.log('Testing privacy alert...');
-  
+
   const { NotificationManager } = await import('./lib/notification-manager.js');
-  
+
   const mockEvent = {
     id: 'test-123',
     timestamp: Date.now(),
@@ -39,9 +39,9 @@ async function testPrivacyAlert() {
     domain: 'example.com',
     trackerType: 'fingerprinting',
     riskLevel: 'critical',
-    description: 'Device fingerprinting detected'
+    description: 'Device fingerprinting detected',
   };
-  
+
   await NotificationManager.showPrivacyAlert(mockEvent);
   console.log('Privacy alert notification sent');
 }
@@ -49,9 +49,9 @@ async function testPrivacyAlert() {
 // Test daily summary notification
 async function testDailySummary() {
   console.log('Testing daily summary...');
-  
+
   const { NotificationManager } = await import('./lib/notification-manager.js');
-  
+
   const mockScore = {
     score: 85,
     grade: 'B',
@@ -63,11 +63,11 @@ async function testDailySummary() {
       lowRisk: 5,
       criticalRisk: 0,
       httpsBonus: true,
-      excessiveTrackingPenalty: false
+      excessiveTrackingPenalty: false,
     },
-    recommendations: ['Consider using a VPN', 'Block third-party cookies']
+    recommendations: ['Consider using a VPN', 'Block third-party cookies'],
   };
-  
+
   await NotificationManager.showDailySummary(mockScore);
   console.log('Daily summary notification sent');
 }
@@ -90,8 +90,10 @@ if (typeof window !== 'undefined') {
     testNotificationSettings,
     testPrivacyAlert,
     testDailySummary,
-    runAllTests
+    runAllTests,
   };
-  
-  console.log('Notification tests loaded. Run window.testNotifications.runAllTests() to test.');
+
+  console.log(
+    'Notification tests loaded. Run window.testNotifications.runAllTests() to test.'
+  );
 }

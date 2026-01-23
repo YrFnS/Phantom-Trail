@@ -18,29 +18,29 @@ export const DEFAULT_SHORTCUTS: ShortcutConfig[] = [
     keys: 'Ctrl+Shift+P',
     description: 'Open/close extension popup',
     category: 'navigation',
-    enabled: true
+    enabled: true,
   },
   {
     command: 'quick-analysis',
     keys: 'Ctrl+Shift+A',
     description: 'Quick privacy analysis of current site',
     category: 'analysis',
-    enabled: true
+    enabled: true,
   },
   {
     command: 'export-data',
     keys: 'Ctrl+Shift+E',
     description: 'Export privacy data',
     category: 'data',
-    enabled: true
-  }
+    enabled: true,
+  },
 ];
 
 export const IN_PAGE_SHORTCUTS: Record<string, string> = {
   'Ctrl+Shift+T': 'toggle-tracking-overlay',
   'Ctrl+Shift+S': 'show-site-analysis',
   'Ctrl+Shift+B': 'toggle-blocking-mode',
-  'Escape': 'close-overlays'
+  Escape: 'close-overlays',
 };
 
 export class KeyboardShortcuts {
@@ -49,7 +49,7 @@ export class KeyboardShortcuts {
   static async handleCommand(command: string): Promise<void> {
     const shortcuts = await this.getShortcuts();
     const shortcut = shortcuts.find(s => s.command === command);
-    
+
     if (!shortcut || !shortcut.enabled) {
       return;
     }
@@ -81,7 +81,7 @@ export class KeyboardShortcuts {
   static async updateShortcut(command: string, keys: string): Promise<void> {
     const shortcuts = await this.getShortcuts();
     const index = shortcuts.findIndex(s => s.command === command);
-    
+
     if (index !== -1) {
       shortcuts[index].keys = keys;
       await BaseStorage.set(this.STORAGE_KEY, shortcuts);
@@ -91,7 +91,7 @@ export class KeyboardShortcuts {
   static async toggleShortcut(command: string): Promise<void> {
     const shortcuts = await this.getShortcuts();
     const index = shortcuts.findIndex(s => s.command === command);
-    
+
     if (index !== -1) {
       shortcuts[index].enabled = !shortcuts[index].enabled;
       await BaseStorage.set(this.STORAGE_KEY, shortcuts);
@@ -108,9 +108,9 @@ export class KeyboardShortcuts {
     if (tabs[0]?.id) {
       // Toggle popup by sending message to content script
       try {
-        await chrome.tabs.sendMessage(tabs[0].id, { 
+        await chrome.tabs.sendMessage(tabs[0].id, {
           type: 'TOGGLE_POPUP',
-          source: 'keyboard_shortcut'
+          source: 'keyboard_shortcut',
         });
       } catch {
         // If content script not available, open popup normally
@@ -122,30 +122,30 @@ export class KeyboardShortcuts {
   private static async performQuickAnalysis(): Promise<void> {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const activeTab = tabs[0];
-    
+
     if (!activeTab?.url) return;
 
     try {
       const domain = new URL(activeTab.url).hostname;
       const isHttps = activeTab.url.startsWith('https:');
-      
+
       // Get recent events for this domain
       const events = await EventsStorage.getRecentEvents(100);
-      const domainEvents = events.filter(event => 
-        event.domain === domain || event.url.includes(domain)
+      const domainEvents = events.filter(
+        event => event.domain === domain || event.url.includes(domain)
       );
-      
+
       // Calculate privacy score
       const score = calculatePrivacyScore(domainEvents, isHttps);
-      
+
       // Send analysis to content script for display
       await chrome.tabs.sendMessage(activeTab.id!, {
         type: 'SHOW_QUICK_ANALYSIS',
         data: {
           domain,
           score,
-          eventCount: domainEvents.length
-        }
+          eventCount: domainEvents.length,
+        },
       });
     } catch (error) {
       console.error('Quick analysis failed:', error);
@@ -155,15 +155,15 @@ export class KeyboardShortcuts {
   private static async exportPrivacyData(): Promise<void> {
     try {
       const events = await EventsStorage.getRecentEvents(1000);
-      
+
       await ExportService.exportAsJSON(events);
-      
+
       // Show success notification
       chrome.notifications.create({
         type: 'basic',
         iconUrl: '/icon/icon-48.png',
         title: 'Phantom Trail',
-        message: 'Privacy data exported successfully'
+        message: 'Privacy data exported successfully',
       });
     } catch {
       console.error('Export failed');
@@ -171,7 +171,7 @@ export class KeyboardShortcuts {
         type: 'basic',
         iconUrl: '/icon/icon-48.png',
         title: 'Phantom Trail',
-        message: 'Export failed. Please try again.'
+        message: 'Export failed. Please try again.',
       });
     }
   }
@@ -204,7 +204,7 @@ export class KeyboardShortcuts {
         }
       </style>
     `;
-    
+
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 2000);
   }

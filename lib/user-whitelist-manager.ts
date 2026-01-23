@@ -1,6 +1,6 @@
 /**
  * User Whitelist Manager
- * 
+ *
  * Manages user-added trusted sites stored in chrome.storage.local
  */
 
@@ -19,7 +19,7 @@ export class UserWhitelistManager {
     }
 
     const whitelist = await this.getUserWhitelist();
-    
+
     // Check for duplicates
     const existingIndex = whitelist.findIndex(s => s.domain === site.domain);
     if (existingIndex >= 0) {
@@ -55,14 +55,16 @@ export class UserWhitelistManager {
    */
   static async isUserTrusted(domain: string): Promise<UserTrustedSite | null> {
     const whitelist = await this.getUserWhitelist();
-    
+
     // Exact match
     const exactMatch = whitelist.find(site => site.domain === domain);
     if (exactMatch) return exactMatch;
-    
+
     // Subdomain match
-    const subdomainMatch = whitelist.find(site => this.matchesDomain(domain, site.domain));
-    
+    const subdomainMatch = whitelist.find(site =>
+      this.matchesDomain(domain, site.domain)
+    );
+
     return subdomainMatch || null;
   }
 
@@ -96,7 +98,7 @@ export class UserWhitelistManager {
   static async importWhitelist(json: string): Promise<void> {
     try {
       const imported = JSON.parse(json);
-      
+
       if (!Array.isArray(imported)) {
         throw new Error('Invalid whitelist format: must be an array');
       }
@@ -134,7 +136,9 @@ export class UserWhitelistManager {
       const merged = [...existing];
 
       for (const importedSite of imported) {
-        const existingIndex = merged.findIndex(s => s.domain === importedSite.domain);
+        const existingIndex = merged.findIndex(
+          s => s.domain === importedSite.domain
+        );
         if (existingIndex >= 0) {
           merged[existingIndex] = importedSite;
         } else {
@@ -144,7 +148,9 @@ export class UserWhitelistManager {
 
       await chrome.storage.local.set({ [STORAGE_KEY]: merged });
     } catch (error) {
-      throw new Error(`Failed to import whitelist: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to import whitelist: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 

@@ -1,10 +1,10 @@
 import { RiskAnalysis } from './risk-analysis';
-import type { 
-  PrivacyPrediction, 
-  RiskFactor, 
-  PredictedTracker, 
-  LinkAnalysis, 
-  PageContext
+import type {
+  PrivacyPrediction,
+  RiskFactor,
+  PredictedTracker,
+  LinkAnalysis,
+  PageContext,
 } from './types';
 import type { RiskLevel, TrackerType } from '../types';
 
@@ -20,21 +20,23 @@ export class PredictionEngine {
 
       // Gather risk factors
       const factors: RiskFactor[] = [];
-      
+
       // Domain reputation analysis
-      const reputationFactors = await RiskAnalysis.analyzeDomainReputation(domain);
+      const reputationFactors =
+        await RiskAnalysis.analyzeDomainReputation(domain);
       factors.push(...reputationFactors);
-      
+
       // Category-based prediction
       const categoryFactors = RiskAnalysis.predictByCategory(url);
       factors.push(...categoryFactors);
-      
+
       // Tracker pattern analysis
       const trackerFactors = RiskAnalysis.analyzeTrackerPatterns(domain);
       factors.push(...trackerFactors);
 
       // Calculate weighted prediction
-      const { score, confidence } = RiskAnalysis.calculateWeightedPrediction(factors);
+      const { score, confidence } =
+        RiskAnalysis.calculateWeightedPrediction(factors);
 
       // Generate expected trackers
       const expectedTrackers = await this.predictTrackers(domain, score);
@@ -52,7 +54,7 @@ export class PredictionEngine {
         expectedTrackers,
         recommendations,
         comparisonToAverage: score - 65, // Assume 65 is average
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Cache the prediction
@@ -65,12 +67,16 @@ export class PredictionEngine {
     }
   }
 
-  static async analyzeLinkHover(url: string, context: PageContext): Promise<LinkAnalysis> {
+  static async analyzeLinkHover(
+    url: string,
+    context: PageContext
+  ): Promise<LinkAnalysis> {
     const prediction = await this.predictPrivacyScore(url);
-    
-    const shouldWarn = prediction.predictedScore < 60 || 
-                      prediction.riskFactors.some(f => f.impact < -20);
-    
+
+    const shouldWarn =
+      prediction.predictedScore < 60 ||
+      prediction.riskFactors.some(f => f.impact < -20);
+
     const displayText = this.generateDisplayText(prediction, context);
 
     return {
@@ -78,33 +84,37 @@ export class PredictionEngine {
       prediction,
       context,
       shouldWarn,
-      displayText
+      displayText,
     };
   }
 
-  private static async predictTrackers(domain: string, privacyScore: number): Promise<PredictedTracker[]> {
+  private static async predictTrackers(
+    domain: string,
+    privacyScore: number
+  ): Promise<PredictedTracker[]> {
     const trackers: PredictedTracker[] = [];
-    
+
     // Higher probability of trackers for lower privacy scores
     const baseProb = Math.max(0.1, (100 - privacyScore) / 100);
-    
+
     // Common tracker types based on domain patterns
     const commonTrackers = [
       { type: 'analytics' as TrackerType, baseProbability: 0.8 },
       { type: 'advertising' as TrackerType, baseProbability: 0.6 },
       { type: 'social-media' as TrackerType, baseProbability: 0.4 },
-      { type: 'fingerprinting' as TrackerType, baseProbability: 0.3 }
+      { type: 'fingerprinting' as TrackerType, baseProbability: 0.3 },
     ];
 
     for (const tracker of commonTrackers) {
       const probability = Math.min(1, tracker.baseProbability * baseProb);
-      
-      if (probability > 0.2) { // Only include likely trackers
+
+      if (probability > 0.2) {
+        // Only include likely trackers
         trackers.push({
           domain: `${tracker.type}.${domain}`,
           type: tracker.type,
           probability,
-          riskLevel: this.probabilityToRisk(probability)
+          riskLevel: this.probabilityToRisk(probability),
         });
       }
     }
@@ -112,9 +122,12 @@ export class PredictionEngine {
     return trackers;
   }
 
-  private static generateRecommendations(score: number, factors: RiskFactor[]): string[] {
+  private static generateRecommendations(
+    score: number,
+    factors: RiskFactor[]
+  ): string[] {
     const recommendations: string[] = [];
-    
+
     if (score < 40) {
       recommendations.push('Consider using a VPN or privacy-focused browser');
       recommendations.push('Enable strict tracking protection');
@@ -126,7 +139,9 @@ export class PredictionEngine {
     }
 
     // Factor-specific recommendations
-    const hasTrackingFactors = factors.some(f => f.type === 'tracker-patterns' && f.impact < -10);
+    const hasTrackingFactors = factors.some(
+      f => f.type === 'tracker-patterns' && f.impact < -10
+    );
     if (hasTrackingFactors) {
       recommendations.push('Multiple trackers detected - use privacy tools');
     }
@@ -134,9 +149,12 @@ export class PredictionEngine {
     return recommendations.slice(0, 3); // Limit to 3 recommendations
   }
 
-  private static generateDisplayText(prediction: PrivacyPrediction, context: PageContext): string {
+  private static generateDisplayText(
+    prediction: PrivacyPrediction,
+    context: PageContext
+  ): string {
     const { predictedScore, predictedGrade } = prediction;
-    
+
     if (predictedScore >= 80) {
       return `This ${context.isExternal ? 'external ' : ''}link appears privacy-friendly (${predictedGrade})`;
     } else if (predictedScore >= 60) {
@@ -166,7 +184,10 @@ export class PredictionEngine {
     return null;
   }
 
-  private static async cachePrediction(_url: string, prediction: PrivacyPrediction): Promise<void> {
+  private static async cachePrediction(
+    _url: string,
+    prediction: PrivacyPrediction
+  ): Promise<void> {
     try {
       // Simple cache implementation - would use BaseStorage in full version
       console.log('Caching prediction:', prediction);
@@ -185,7 +206,7 @@ export class PredictionEngine {
       expectedTrackers: [],
       recommendations: ['Unable to analyze - proceed with caution'],
       comparisonToAverage: -15,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 }

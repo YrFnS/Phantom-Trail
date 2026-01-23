@@ -1,7 +1,7 @@
 export enum Theme {
   LIGHT = 'light',
   DARK = 'dark',
-  AUTO = 'auto'
+  AUTO = 'auto',
 }
 
 export interface ThemeConfig {
@@ -16,7 +16,7 @@ export interface ThemeConfig {
 
 const DEFAULT_THEME_CONFIG: ThemeConfig = {
   current: Theme.AUTO,
-  autoSwitch: true
+  autoSwitch: true,
 };
 
 const STORAGE_KEY = 'phantom-trail-theme';
@@ -46,17 +46,19 @@ export class ThemeManager {
     try {
       const config: ThemeConfig = {
         current: theme,
-        autoSwitch: theme === Theme.AUTO
+        autoSwitch: theme === Theme.AUTO,
       };
-      
+
       await chrome.storage.local.set({ [STORAGE_KEY]: config });
       this.applyTheme(theme);
-      
+
       // Dispatch theme change event (only in browser context)
       if (typeof window !== 'undefined' && window.dispatchEvent) {
-        window.dispatchEvent(new CustomEvent('themechange', { 
-          detail: { theme } 
-        }) as CustomEvent<{ theme: Theme }>);
+        window.dispatchEvent(
+          new CustomEvent('themechange', {
+            detail: { theme },
+          }) as CustomEvent<{ theme: Theme }>
+        );
       }
     } catch (error) {
       console.error('Failed to set theme:', error);
@@ -65,7 +67,7 @@ export class ThemeManager {
 
   static async toggleTheme(): Promise<void> {
     const currentTheme = await this.getCurrentTheme();
-    
+
     let newTheme: Theme;
     if (currentTheme === Theme.AUTO) {
       newTheme = Theme.DARK;
@@ -74,7 +76,7 @@ export class ThemeManager {
     } else {
       newTheme = Theme.DARK;
     }
-    
+
     await this.setTheme(newTheme);
   }
 
@@ -94,19 +96,19 @@ export class ThemeManager {
 
   static applyTheme(theme: Theme): void {
     if (typeof document === 'undefined') return;
-    
+
     const root = document.documentElement;
-    
+
     // Remove existing theme attributes
     root.removeAttribute('data-theme');
-    
+
     if (theme === Theme.AUTO) {
       const systemTheme = this.getSystemTheme();
       root.setAttribute('data-theme', systemTheme);
     } else {
       root.setAttribute('data-theme', theme);
     }
-    
+
     // Also set on body for extension popup
     if (document.body) {
       document.body.removeAttribute('data-theme');
@@ -119,11 +121,13 @@ export class ThemeManager {
     const theme = await this.getCurrentTheme();
     this.applyTheme(theme);
     this.setupSystemThemeListener();
-    
+
     // Set initial theme on document load
     if (typeof document !== 'undefined') {
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => this.applyTheme(theme));
+        document.addEventListener('DOMContentLoaded', () =>
+          this.applyTheme(theme)
+        );
       } else {
         this.applyTheme(theme);
       }
@@ -132,7 +136,10 @@ export class ThemeManager {
 
   private static setupSystemThemeListener(): void {
     // Only set up listener in browser context (not service worker)
-    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function'
+    ) {
       const mediaQuery = this.getMediaQuery();
       if ('addEventListener' in mediaQuery) {
         mediaQuery.addEventListener('change', async () => {

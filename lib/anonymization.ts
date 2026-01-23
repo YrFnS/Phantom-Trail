@@ -1,4 +1,9 @@
-import { AnonymousPrivacyData, PrivacyData, RiskLevel, TrackingEvent } from './types';
+import {
+  AnonymousPrivacyData,
+  PrivacyData,
+  RiskLevel,
+  TrackingEvent,
+} from './types';
 
 export class AnonymizationService {
   /**
@@ -12,7 +17,7 @@ export class AnonymizationService {
       riskDistribution: this.aggregateRiskData(rawData.events || []),
       websiteCategories: this.getTopCategories(rawData.events || [], 3),
       timestamp: this.roundToHour(Date.now()),
-      region: this.getGeneralRegion()
+      region: this.getGeneralRegion(),
     };
   }
 
@@ -33,12 +38,14 @@ export class AnonymizationService {
   /**
    * Aggregate risk data from tracking events
    */
-  private static aggregateRiskData(events: TrackingEvent[]): Record<RiskLevel, number> {
+  private static aggregateRiskData(
+    events: TrackingEvent[]
+  ): Record<RiskLevel, number> {
     const riskCounts: Record<RiskLevel, number> = {
       low: 0,
       medium: 0,
       high: 0,
-      critical: 0
+      critical: 0,
     };
 
     events.forEach(event => {
@@ -48,7 +55,10 @@ export class AnonymizationService {
     });
 
     // Convert to percentages and round
-    const total = Object.values(riskCounts).reduce((sum, count) => sum + count, 0);
+    const total = Object.values(riskCounts).reduce(
+      (sum, count) => sum + count,
+      0
+    );
     if (total === 0) return riskCounts;
 
     (Object.keys(riskCounts) as RiskLevel[]).forEach(risk => {
@@ -61,13 +71,19 @@ export class AnonymizationService {
   /**
    * Get top website categories (limited for privacy)
    */
-  private static getTopCategories(events: TrackingEvent[], limit: number): string[] {
+  private static getTopCategories(
+    events: TrackingEvent[],
+    limit: number
+  ): string[] {
     const categories = new Map<string, number>();
-    
+
     events.forEach(event => {
       // Use trackerType as category since TrackingEvent doesn't have category
       if (event.trackerType) {
-        categories.set(event.trackerType, (categories.get(event.trackerType) || 0) + 1);
+        categories.set(
+          event.trackerType,
+          (categories.get(event.trackerType) || 0) + 1
+        );
       }
     });
 
@@ -101,19 +117,23 @@ export class AnonymizationService {
   static validateAnonymization(data: AnonymousPrivacyData): boolean {
     // Check that score is rounded to 5
     if (data.privacyScore % 5 !== 0) return false;
-    
+
     // Check that tracker count is capped
     if (data.trackerCount > 50) return false;
-    
+
     // Check that timestamp is rounded to hour
     const date = new Date(data.timestamp);
-    if (date.getMinutes() !== 0 || date.getSeconds() !== 0 || date.getMilliseconds() !== 0) {
+    if (
+      date.getMinutes() !== 0 ||
+      date.getSeconds() !== 0 ||
+      date.getMilliseconds() !== 0
+    ) {
       return false;
     }
-    
+
     // Check that categories are limited
     if (data.websiteCategories.length > 5) return false;
-    
+
     return true;
   }
 
@@ -130,10 +150,12 @@ export class AnonymizationService {
   /**
    * Sanitize data before sharing to remove any potential PII
    */
-  static sanitizeForSharing(data: Record<string, unknown>): Record<string, unknown> {
+  static sanitizeForSharing(
+    data: Record<string, unknown>
+  ): Record<string, unknown> {
     // Remove any fields that might contain PII
     const sanitized = { ...data };
-    
+
     // Remove URLs, IPs, and other identifying information
     delete sanitized.url;
     delete sanitized.domain;
@@ -141,7 +163,7 @@ export class AnonymizationService {
     delete sanitized.userAgent;
     delete sanitized.sessionId;
     delete sanitized.userId;
-    
+
     return sanitized;
   }
 }

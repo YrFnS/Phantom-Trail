@@ -14,22 +14,26 @@
 **Validation**: All checks passed ✅
 
 ### What Was Fixed
+
 1. ✅ **Extension Context Invalidation** - Added health monitoring, event queue, and reconnection logic
 2. ✅ **Message Channel Timeout** - Fixed async response handling and added 5-second timeout
 3. ✅ **Storage Event Spam** - Implemented sliding window with 30-second cooldown and event deduplication
 
 ### Validation Results
+
 - ✅ TypeScript: `npx tsc --noEmit` - 0 errors
 - ✅ ESLint: `pnpm lint` - 0 errors, 0 warnings
 - ✅ Build: `pnpm build` (Windows PowerShell) - SUCCESS (953.1 kB)
 
 ### Files Modified
+
 - `lib/content-messaging.ts` - Context health, queue, reconnection, timeout
 - `entrypoints/content.ts` - Context monitoring, event deduplication
 - `entrypoints/background.ts` - Fixed message handler response
 - `public/content-main-world.js` - Sliding window for storage detection
 
 ### Next Steps
+
 - ⏳ Manual testing (4 test scenarios)
 - ⏳ 30-minute soak test
 - ⏳ Chrome Web Store submission
@@ -40,11 +44,11 @@
 
 ## 📊 Issues Summary
 
-| Issue | Priority | Time | Status |
-|-------|----------|------|--------|
+| Issue                                                                              | Priority    | Time | Status      |
+| ---------------------------------------------------------------------------------- | ----------- | ---- | ----------- |
 | [Issue 1: Extension Context Invalidation](#issue-1-extension-context-invalidation) | 🔴 Critical | 2-3h | ✅ Complete |
-| [Issue 2: Message Channel Timeout](#issue-2-message-channel-timeout) | 🟠 High | 1-2h | ✅ Complete |
-| [Issue 3: Storage Event Spam](#issue-3-storage-event-spam) | 🟡 Medium | 1h | ✅ Complete |
+| [Issue 2: Message Channel Timeout](#issue-2-message-channel-timeout)               | 🟠 High     | 1-2h | ✅ Complete |
+| [Issue 3: Storage Event Spam](#issue-3-storage-event-spam)                         | 🟡 Medium   | 1h   | ✅ Complete |
 
 **Implementation Time**: ~45 minutes (faster than estimated)  
 **Validation**: TypeScript ✅ | ESLint ✅ | Build ✅
@@ -54,20 +58,24 @@
 ## Issue 1: Extension Context Invalidation
 
 ### 🐛 Problem
+
 ```
 Error: Extension context invalidated
 Failed to send tracking event: Error: Extension context invalidated
 ```
+
 - **Frequency**: 54+ occurrences in log
 - **Impact**: Extension stops working after reload/update
 - **Root Cause**: Content scripts outlive background script lifecycle
 
 ### 🎯 Solution
+
 Implement context health monitoring + reconnection mechanism + event queue
 
 ### 📝 Implementation Steps
 
 #### Step 1.1: Add Context Health Check
+
 **File**: `lib/content-messaging.ts`
 
 ```typescript
@@ -88,13 +96,15 @@ private static isContextValid(): boolean {
 }
 ```
 
-**Validation**: 
+**Validation**:
+
 - [ ] TypeScript compiles without errors
 - [ ] `isContextValid()` returns boolean
 
 ---
 
 #### Step 1.2: Add Reconnection Logic
+
 **File**: `lib/content-messaging.ts`
 
 ```typescript
@@ -103,7 +113,7 @@ private static isContextValid(): boolean {
  */
 private static async attemptReconnect(): Promise<void> {
   if (this.isReconnecting) return;
-  
+
   this.isReconnecting = true;
   console.log('[Phantom Trail] Attempting reconnection...');
 
@@ -115,7 +125,7 @@ private static async attemptReconnect(): Promise<void> {
     console.log(`[Phantom Trail] Flushing ${this.messageQueue.length} queued events`);
     const queue = [...this.messageQueue];
     this.messageQueue = [];
-    
+
     for (const event of queue) {
       try {
         await chrome.runtime.sendMessage({ type: 'TRACKING_EVENT', event });
@@ -135,12 +145,14 @@ private static async attemptReconnect(): Promise<void> {
 ```
 
 **Validation**:
+
 - [ ] Method compiles without errors
 - [ ] Queue size limit enforced
 
 ---
 
 #### Step 1.3: Update sendTrackingEvent Method
+
 **File**: `lib/content-messaging.ts`
 
 Replace the existing `sendTrackingEvent` method with:
@@ -170,7 +182,7 @@ static async sendTrackingEvent(
     return response || { success: true };
   } catch (error: any) {
     console.error('[Phantom Trail] Failed to send tracking event:', error);
-    
+
     // Handle context invalidation
     if (error.message?.includes('Extension context invalidated')) {
       if (this.messageQueue.length < this.MAX_QUEUE_SIZE) {
@@ -179,13 +191,14 @@ static async sendTrackingEvent(
       this.attemptReconnect();
       return { success: false, error: 'Context invalidated' };
     }
-    
+
     return { success: false, error: error.message };
   }
 }
 ```
 
 **Validation**:
+
 - [ ] Method signature unchanged (no breaking changes)
 - [ ] Returns `BackgroundResponse` type
 - [ ] Handles all error cases
@@ -193,6 +206,7 @@ static async sendTrackingEvent(
 ---
 
 #### Step 1.4: Add Context Monitoring to Content Script
+
 **File**: `entrypoints/content.ts`
 
 Add after the `main()` function declaration, before event listeners:
@@ -204,7 +218,7 @@ const contextCheckInterval = setInterval(() => {
   try {
     const wasValid = contextValid;
     contextValid = chrome.runtime?.id !== undefined;
-    
+
     if (wasValid && !contextValid) {
       console.warn('[Phantom Trail] Context invalidated, stopping detection');
       clearInterval(contextCheckInterval);
@@ -236,6 +250,7 @@ async function processDetection(event: CustomEvent) {
 ```
 
 **Validation**:
+
 - [ ] Context check runs every 5 seconds
 - [ ] Interval clears on context loss
 - [ ] Detection stops when context invalid
@@ -243,7 +258,9 @@ async function processDetection(event: CustomEvent) {
 ---
 
 #### Step 1.5: Test Extension Context Recovery
+
 **Manual Test**:
+
 1. Load extension in Chrome
 2. Open Amazon.com
 3. Open DevTools Console
@@ -252,6 +269,7 @@ async function processDetection(event: CustomEvent) {
 6. Verify events still being detected after reload
 
 **Expected Results**:
+
 - [ ] See "Attempting reconnection..." message
 - [ ] See "Flushing X queued events" message
 - [ ] No "Extension context invalidated" errors
@@ -262,20 +280,24 @@ async function processDetection(event: CustomEvent) {
 ## Issue 2: Message Channel Timeout
 
 ### 🐛 Problem
+
 ```
-Unchecked runtime.lastError: A listener indicated an asynchronous response by returning true, 
+Unchecked runtime.lastError: A listener indicated an asynchronous response by returning true,
 but the message channel closed before a response was received
 ```
+
 - **Frequency**: 4+ occurrences
 - **Impact**: Lost events, console errors
 - **Root Cause**: Background script doesn't respond before channel closes
 
 ### 🎯 Solution
+
 Always call `sendResponse()` + add timeout handling
 
 ### 📝 Implementation Steps
 
 #### Step 2.1: Fix Background Message Handler
+
 **File**: `entrypoints/background.ts`
 
 Find the `chrome.runtime.onMessage.addListener` block and replace it with:
@@ -328,6 +350,7 @@ chrome.runtime.onMessage.addListener(
 ```
 
 **Validation**:
+
 - [ ] `sendResponse()` called in try block
 - [ ] `sendResponse()` called in catch block
 - [ ] Returns `true` to keep channel open
@@ -336,6 +359,7 @@ chrome.runtime.onMessage.addListener(
 ---
 
 #### Step 2.2: Add Timeout to Content Messaging
+
 **File**: `lib/content-messaging.ts`
 
 Update the `sendTrackingEvent` method's try block:
@@ -352,11 +376,11 @@ try {
       setTimeout(() => reject(new Error('Message timeout')), 5000)
     ),
   ]);
-  
+
   return response || { success: true };
 } catch (error: any) {
   console.error('[Phantom Trail] Failed to send tracking event:', error);
-  
+
   // Handle timeout
   if (error.message === 'Message timeout') {
     console.warn('[Phantom Trail] Message timeout, queueing event');
@@ -365,7 +389,7 @@ try {
     }
     return { success: false, error: 'Timeout' };
   }
-  
+
   // Handle context invalidation
   if (error.message?.includes('Extension context invalidated')) {
     if (this.messageQueue.length < this.MAX_QUEUE_SIZE) {
@@ -374,12 +398,13 @@ try {
     this.attemptReconnect();
     return { success: false, error: 'Context invalidated' };
   }
-  
+
   return { success: false, error: error.message };
 }
 ```
 
 **Validation**:
+
 - [ ] Timeout set to 5 seconds
 - [ ] Timeout errors handled gracefully
 - [ ] Events queued on timeout
@@ -387,7 +412,9 @@ try {
 ---
 
 #### Step 2.3: Test Message Channel Reliability
+
 **Manual Test**:
+
 1. Load extension
 2. Visit Amazon.com
 3. Open DevTools Console
@@ -396,6 +423,7 @@ try {
 6. Check for "message channel closed" errors
 
 **Expected Results**:
+
 - [ ] No "message channel closed" errors
 - [ ] All messages get responses
 - [ ] Timeout handling works (if needed)
@@ -405,19 +433,23 @@ try {
 ## Issue 3: Storage Event Spam
 
 ### 🐛 Problem
+
 ```
 [Phantom Trail] storage-access reported (14+ times in rapid succession)
 ```
+
 - **Frequency**: 14+ events in < 1 second
 - **Impact**: Performance degradation, duplicate events
 - **Root Cause**: Amazon's code triggers many storage operations rapidly
 
 ### 🎯 Solution
+
 Sliding window deduplication + better throttling
 
 ### 📝 Implementation Steps
 
 #### Step 3.1: Add Sliding Window to Storage Detection
+
 **File**: `public/content-main-world.js`
 
 Replace the storage detection section with:
@@ -447,14 +479,14 @@ const storageAccessWindow = {
     const now = Date.now();
     const uniqueOps = this.getUniqueCount();
     const timeSinceLastReport = now - this.lastReport;
-    
+
     // Report if: 10+ unique operations AND cooldown passed
     return uniqueOps >= 10 && timeSinceLastReport >= this.reportCooldown;
   },
 
   markReported() {
     this.lastReport = Date.now();
-  }
+  },
 };
 
 // Intercept localStorage
@@ -496,6 +528,7 @@ function checkStorageAccess() {
 ```
 
 **Validation**:
+
 - [ ] Sliding window tracks events correctly
 - [ ] Unique operation count accurate
 - [ ] Cooldown prevents spam
@@ -503,6 +536,7 @@ function checkStorageAccess() {
 ---
 
 #### Step 3.2: Add Event Deduplication in Content Script
+
 **File**: `entrypoints/content.ts`
 
 Add after imports, before `main()` function:
@@ -562,7 +596,10 @@ async function processDetection(event: CustomEvent) {
 
     // Check for duplicate BEFORE sending
     if (isDuplicateEvent(trackingEvent)) {
-      console.log('[Phantom Trail] Skipping duplicate event:', getEventSignature(trackingEvent));
+      console.log(
+        '[Phantom Trail] Skipping duplicate event:',
+        getEventSignature(trackingEvent)
+      );
       return;
     }
 
@@ -576,6 +613,7 @@ async function processDetection(event: CustomEvent) {
 ```
 
 **Validation**:
+
 - [ ] Duplicate detection works
 - [ ] Signature map cleans up old entries
 - [ ] No duplicates within 10 seconds
@@ -583,7 +621,9 @@ async function processDetection(event: CustomEvent) {
 ---
 
 #### Step 3.3: Test Storage Event Throttling
+
 **Manual Test**:
+
 1. Load extension
 2. Visit Amazon.com (heavy storage user)
 3. Open DevTools Console
@@ -591,6 +631,7 @@ async function processDetection(event: CustomEvent) {
 5. Verify < 3 events per minute
 
 **Expected Results**:
+
 - [ ] Storage events reduced from 14+ to 1-2 per minute
 - [ ] No duplicate events
 - [ ] Console shows "Skipping duplicate event" messages
@@ -600,12 +641,14 @@ async function processDetection(event: CustomEvent) {
 ## 🧪 Final Validation
 
 ### Pre-Fix Baseline
+
 - ❌ 54+ "Extension context invalidated" errors
 - ❌ 4+ "message channel closed" errors
 - ❌ 14+ storage events in < 1 second
 - ❌ Extension stops working after reload
 
 ### Post-Fix Requirements
+
 - ✅ Zero "Extension context invalidated" errors
 - ✅ Zero "message channel closed" errors
 - ✅ < 3 storage events per minute
@@ -615,6 +658,7 @@ async function processDetection(event: CustomEvent) {
 ### Comprehensive Test Plan
 
 #### Test 1: Extension Reload Survival
+
 ```
 1. Load extension
 2. Visit Amazon.com
@@ -628,6 +672,7 @@ Expected: No errors, events continue
 ```
 
 #### Test 2: Message Channel Reliability
+
 ```
 1. Load extension
 2. Visit 5 different sites rapidly
@@ -638,6 +683,7 @@ Expected: No "message channel" errors
 ```
 
 #### Test 3: Storage Event Throttling
+
 ```
 1. Load extension
 2. Visit Amazon.com
@@ -648,6 +694,7 @@ Expected: < 6 events total (< 3/minute)
 ```
 
 #### Test 4: Real-World Soak Test
+
 ```
 1. Load extension
 2. Browse normally for 30 minutes:
@@ -667,6 +714,7 @@ Expected: Clean console, all features working
 ## 📋 Implementation Checklist
 
 ### Issue 1: Extension Context Invalidation
+
 - [x] Step 1.1: Add context health check
 - [x] Step 1.2: Add reconnection logic
 - [x] Step 1.3: Update sendTrackingEvent method
@@ -676,6 +724,7 @@ Expected: Clean console, all features working
 - [ ] Verify: Events queued and flushed on reconnect (manual testing required)
 
 ### Issue 2: Message Channel Timeout
+
 - [x] Step 2.1: Fix background message handler
 - [x] Step 2.2: Add timeout to content messaging
 - [ ] Step 2.3: Test message channel reliability (manual testing required)
@@ -683,6 +732,7 @@ Expected: Clean console, all features working
 - [ ] Verify: All messages get responses (manual testing required)
 
 ### Issue 3: Storage Event Spam
+
 - [x] Step 3.1: Add sliding window to storage detection
 - [x] Step 3.2: Add event deduplication in content script
 - [ ] Step 3.3: Test storage event throttling (manual testing required)
@@ -690,6 +740,7 @@ Expected: Clean console, all features working
 - [ ] Verify: No duplicate events (manual testing required)
 
 ### Final Validation
+
 - [ ] Test 1: Extension reload survival (manual testing required)
 - [ ] Test 2: Message channel reliability (manual testing required)
 - [ ] Test 3: Storage event throttling (manual testing required)
@@ -734,6 +785,7 @@ Expected: Clean console, all features working
 ## ✅ Completion Criteria
 
 This plan is complete when:
+
 1. All checklist items marked complete
 2. All 4 validation tests pass
 3. 30-minute soak test shows no errors

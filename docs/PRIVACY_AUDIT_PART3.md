@@ -3,6 +3,7 @@
 ## 5. AI Privacy Recommendations Analysis
 
 ### Current State
+
 - **OpenRouter API** integration (Claude Haiku primary, GPT-4o-mini fallback)
 - **Rate limiting**: 10 requests/minute
 - **Context-aware prompts**: Banking, shopping, social, general
@@ -12,6 +13,7 @@
 ### Privacy Risks
 
 #### AI PROMPT CONCERNS:
+
 1. **PII Leakage Risk**:
    - Tracking events contain full URLs (may include session tokens, user IDs)
    - Domain names sent to OpenRouter (reveals browsing history)
@@ -29,6 +31,7 @@
    - No explicit user consent for data sharing
 
 #### RECOMMENDATION QUALITY:
+
 1. **Generic Recommendations**:
    - "Consider using an ad blocker" (not specific)
    - "Review your privacy settings" (not actionable)
@@ -47,7 +50,9 @@
 ### Recommendations
 
 #### HIGH PRIORITY:
+
 **Implement PII Sanitization**:
+
 ```typescript
 private static sanitizeUrl(url: string): string {
   try {
@@ -79,12 +84,13 @@ private static sanitizeEvent(event: TrackingEvent): TrackingEvent {
 ```
 
 **Add User Consent**:
+
 ```typescript
 // Before first AI request
 static async requestAIConsent(): Promise<boolean> {
   const consent = await chrome.storage.local.get('aiConsentGiven');
   if (consent.aiConsentGiven) return true;
-  
+
   // Show consent dialog
   const userConsent = await showConsentDialog({
     title: 'AI Privacy Analysis',
@@ -93,16 +99,17 @@ static async requestAIConsent(): Promise<boolean> {
              'Your browsing history is NOT shared. Do you consent?',
     learnMore: 'https://phantom-trail.com/ai-privacy',
   });
-  
+
   if (userConsent) {
     await chrome.storage.local.set({ aiConsentGiven: true });
   }
-  
+
   return userConsent;
 }
 ```
 
 **Improve Recommendations**:
+
 ```typescript
 private static generateDetailedRecommendations(
   breakdown: PrivacyScore['breakdown'],
@@ -157,7 +164,9 @@ private static generateDetailedRecommendations(
 ```
 
 #### MEDIUM PRIORITY:
+
 **Add Recommendation Confidence**:
+
 ```typescript
 interface Recommendation {
   text: string;
@@ -169,6 +178,7 @@ interface Recommendation {
 ```
 
 **Context-Specific Guidance**:
+
 ```typescript
 // Banking context
 if (context === 'banking') {
@@ -190,6 +200,7 @@ if (context === 'shopping') {
 ```
 
 **Add Compliance Checks**:
+
 ```typescript
 static analyzeCompliance(events: TrackingEvent[]): {
   gdprViolations: string[];
@@ -203,11 +214,11 @@ static analyzeCompliance(events: TrackingEvent[]): {
   };
 
   // Check for tracking before consent
-  const hasConsentBanner = events.some(e => 
-    e.description.includes('consent') || 
+  const hasConsentBanner = events.some(e =>
+    e.description.includes('consent') ||
     e.description.includes('cookie banner')
   );
-  
+
   if (!hasConsentBanner && events.length > 0) {
     violations.gdprViolations.push(
       'Tracking detected before cookie consent (GDPR Article 7)'
@@ -218,11 +229,11 @@ static analyzeCompliance(events: TrackingEvent[]): {
   }
 
   // Check for opt-out mechanism
-  const hasOptOut = events.some(e => 
-    e.description.includes('opt-out') || 
+  const hasOptOut = events.some(e =>
+    e.description.includes('opt-out') ||
     e.description.includes('do not sell')
   );
-  
+
   if (!hasOptOut && events.length > 5) {
     violations.ccpaViolations.push(
       'No "Do Not Sell My Info" link found (CCPA §1798.135)'
@@ -234,17 +245,21 @@ static analyzeCompliance(events: TrackingEvent[]): {
 ```
 
 #### LOW PRIORITY:
+
 **AI Response Caching**:
+
 - Cache responses by domain + tracker signature (already implemented ✓)
 - Extend TTL to 7 days for stable sites
 - Invalidate cache on major tracking changes
 
 **Multi-Language Support**:
+
 - Detect user language from browser settings
 - Provide recommendations in user's language
 - Translate AI responses
 
 ### Compliance Considerations
+
 - **GDPR Article 5(1)(c)**: Data minimization - only send necessary data to AI
 - **GDPR Article 13**: Inform users about AI data processing
 - **GDPR Article 7**: Explicit consent for AI analysis
@@ -255,6 +270,7 @@ static analyzeCompliance(events: TrackingEvent[]): {
 ## 6. Data Privacy & Security Analysis
 
 ### Current State
+
 - **Local storage**: chrome.storage.local (settings, events, whitelist)
 - **Session storage**: chrome.storage.session (rate limiting, cache)
 - **API key storage**: chrome.storage.local (user-provided OpenRouter key)
@@ -264,6 +280,7 @@ static analyzeCompliance(events: TrackingEvent[]): {
 ### Privacy Risks
 
 #### DATA STORAGE CONCERNS:
+
 1. **API Key Security**:
    - Stored in chrome.storage.local (unencrypted)
    - Accessible to extension code (correct)
@@ -282,6 +299,7 @@ static analyzeCompliance(events: TrackingEvent[]): {
    - Export/import functionality (good for backup ✓)
 
 #### DATA EXPORT CONCERNS:
+
 1. **PII in Exports**:
    - CSV/JSON exports contain full URLs
    - May include session tokens, user IDs
@@ -300,7 +318,9 @@ static analyzeCompliance(events: TrackingEvent[]): {
 ### Recommendations
 
 #### HIGH PRIORITY:
+
 **Sanitize Stored URLs**:
+
 ```typescript
 static async saveEvent(event: TrackingEvent): Promise<void> {
   // Sanitize URL before storing
@@ -308,13 +328,13 @@ static async saveEvent(event: TrackingEvent): Promise<void> {
     ...event,
     url: this.sanitizeUrl(event.url),
   };
-  
+
   const events = await this.getRecentEvents(1000);
   events.push(sanitizedEvent);
-  
+
   // Keep only last 1000 events (storage quota management)
   const trimmed = events.slice(-1000);
-  
+
   await chrome.storage.local.set({
     [this.EVENTS_KEY]: trimmed,
   });
@@ -333,18 +353,19 @@ private static sanitizeUrl(url: string): string {
 ```
 
 **Add Data Retention Policy**:
+
 ```typescript
 // Auto-delete events older than 30 days
 static async cleanupOldEvents(): Promise<void> {
   const events = await this.getRecentEvents(10000);
   const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days
-  
+
   const recent = events.filter(e => e.timestamp > cutoff);
-  
+
   await chrome.storage.local.set({
     [this.EVENTS_KEY]: recent,
   });
-  
+
   console.log(`Cleaned up ${events.length - recent.length} old events`);
 }
 
@@ -355,10 +376,11 @@ chrome.runtime.onStartup.addListener(() => {
 ```
 
 **Sanitize Exports**:
+
 ```typescript
 static async exportData(format: 'csv' | 'json'): Promise<string> {
   const events = await this.getRecentEvents(1000);
-  
+
   // Sanitize events before export
   const sanitized = events.map(e => ({
     ...e,
@@ -370,32 +392,34 @@ static async exportData(format: 'csv' | 'json'): Promise<string> {
       // Don't export apiCalls, details
     } : undefined,
   }));
-  
+
   // Add privacy warning to export
   const warning = {
     notice: 'This export contains your tracking history. ' +
             'Do not share publicly. URLs have been sanitized.',
     exportedAt: new Date().toISOString(),
   };
-  
+
   if (format === 'json') {
     return JSON.stringify({ warning, events: sanitized }, null, 2);
   }
-  
+
   // CSV format with warning header
   let csv = '# PRIVACY WARNING: This file contains your tracking history\n';
   csv += '# Do not share publicly\n\n';
   csv += 'timestamp,domain,trackerType,riskLevel,description\n';
-  csv += sanitized.map(e => 
+  csv += sanitized.map(e =>
     `${e.timestamp},${e.domain},${e.trackerType},${e.riskLevel},"${e.description}"`
   ).join('\n');
-  
+
   return csv;
 }
 ```
 
 #### MEDIUM PRIORITY:
+
 **Encrypt API Key** (optional, adds complexity):
+
 ```typescript
 // Use Web Crypto API to encrypt API key
 static async saveApiKey(apiKey: string): Promise<void> {
@@ -405,14 +429,14 @@ static async saveApiKey(apiKey: string): Promise<void> {
     false,
     ['encrypt', 'decrypt']
   );
-  
+
   // Encrypt API key
   const encrypted = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv: new Uint8Array(12) },
     key,
     new TextEncoder().encode(apiKey)
   );
-  
+
   await chrome.storage.local.set({
     encryptedApiKey: Array.from(new Uint8Array(encrypted)),
   });
@@ -420,13 +444,14 @@ static async saveApiKey(apiKey: string): Promise<void> {
 ```
 
 **Add Storage Quota Monitoring**:
+
 ```typescript
 static async checkStorageQuota(): Promise<void> {
   const usage = await chrome.storage.local.getBytesInUse();
   const quota = chrome.storage.local.QUOTA_BYTES; // 10MB for local storage
-  
+
   const percentUsed = (usage / quota) * 100;
-  
+
   if (percentUsed > 80) {
     console.warn(`Storage ${percentUsed}% full, cleaning up old events`);
     await this.cleanupOldEvents();
@@ -435,6 +460,7 @@ static async checkStorageQuota(): Promise<void> {
 ```
 
 **Add Data Deletion**:
+
 ```typescript
 // GDPR Right to Erasure
 static async deleteAllData(): Promise<void> {
@@ -452,21 +478,24 @@ static async deleteEventsByDomain(domain: string): Promise<void> {
 ```
 
 #### LOW PRIORITY:
+
 **Add Data Portability**:
+
 - Export in standard formats (JSON-LD, CSV)
 - Include metadata (export date, version)
 - Provide import functionality (restore from backup)
 
 **Add Audit Log**:
+
 - Log all data access (for transparency)
 - Log all API calls (for debugging)
 - Allow users to review audit log
 
 ### Compliance Considerations
+
 - **GDPR Article 17**: Right to erasure (data deletion)
 - **GDPR Article 20**: Right to data portability (export)
 - **GDPR Article 32**: Security of processing (encryption)
 - **CCPA §1798.110**: Right to know what data is collected
 
 ---
-

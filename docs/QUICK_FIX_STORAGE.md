@@ -1,6 +1,7 @@
 # Quick Fix: Storage Corruption
 
 If you're seeing errors like:
+
 - `TypeError: a.filter is not a function`
 - `TypeError: a.push is not a function`
 - `Failed to add event`
@@ -26,14 +27,16 @@ If the automatic fix doesn't work:
 4. In the console that opens, paste this code and press Enter:
 
 ```javascript
-chrome.storage.local.set({
-  'phantom_trail_events': [],
-  'phantom_trail_daily_snapshots': [],
-  'phantom_trail_weekly_reports': []
-}).then(() => {
-  console.log('✓ Storage reset complete');
-  chrome.runtime.reload();
-});
+chrome.storage.local
+  .set({
+    phantom_trail_events: [],
+    phantom_trail_daily_snapshots: [],
+    phantom_trail_weekly_reports: [],
+  })
+  .then(() => {
+    console.log('✓ Storage reset complete');
+    chrome.runtime.reload();
+  });
 ```
 
 5. Close the console
@@ -42,11 +45,13 @@ chrome.storage.local.set({
 ## What This Does
 
 This resets your tracking data to a clean state. You'll lose:
+
 - Historical tracking events
 - Daily snapshots
 - Weekly reports
 
 But you'll keep:
+
 - Your settings (including API key)
 - Trusted sites list
 - Extension preferences
@@ -54,6 +59,7 @@ But you'll keep:
 ## Prevention
 
 This issue was caused by a bug in an earlier version. The latest version includes:
+
 - Automatic corruption detection
 - Self-healing storage
 - Better data validation

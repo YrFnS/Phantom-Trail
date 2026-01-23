@@ -76,7 +76,10 @@ export class InPageDetector {
   /**
    * Analyze mouse tracking patterns
    */
-  static analyzeMouseTracking(eventCount: number, duration: number): DetectionResult {
+  static analyzeMouseTracking(
+    eventCount: number,
+    duration: number
+  ): DetectionResult {
     const eventsPerSecond = (eventCount / duration) * 1000;
     const detected = eventsPerSecond >= this.MOUSE_TRACKING_THRESHOLD;
 
@@ -160,7 +163,8 @@ export class InPageDetector {
     return {
       detected: true,
       method: 'webrtc-leak',
-      description: 'WebRTC connection detected - may expose real IP address even through VPN',
+      description:
+        'WebRTC connection detected - may expose real IP address even through VPN',
       riskLevel: 'critical',
       details: 'WebRTC can leak your real IP address, bypassing VPN protection',
     };
@@ -169,7 +173,10 @@ export class InPageDetector {
   /**
    * Analyze font fingerprinting
    */
-  static analyzeFontFingerprint(fonts: string[], count: number): DetectionResult {
+  static analyzeFontFingerprint(
+    fonts: string[],
+    count: number
+  ): DetectionResult {
     const detected = count >= 20;
     return {
       detected,
@@ -226,7 +233,8 @@ export class InPageDetector {
     return {
       detected: true,
       method: 'battery-api',
-      description: 'Battery API accessed - can be used for device fingerprinting',
+      description:
+        'Battery API accessed - can be used for device fingerprinting',
       riskLevel: 'medium',
       details: 'Battery status can uniquely identify devices',
     };

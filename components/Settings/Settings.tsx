@@ -11,7 +11,15 @@ import { ExportScheduling } from './ExportScheduling';
 import { BadgeSettingsComponent } from './BadgeSettings';
 import { P2PSettingsComponent } from './P2PSettings';
 
-type SettingsTab = 'general' | 'appearance' | 'badge' | 'export' | 'notifications' | 'trusted-sites' | 'shortcuts' | 'p2p';
+type SettingsTab =
+  | 'general'
+  | 'appearance'
+  | 'badge'
+  | 'export'
+  | 'notifications'
+  | 'trusted-sites'
+  | 'shortcuts'
+  | 'p2p';
 
 interface SettingsProps {
   onClose: () => void;
@@ -37,7 +45,9 @@ export function Settings({ onClose }: SettingsProps) {
       const currentSettings = await SettingsStorage.getSettings();
       console.log('[Settings] Loaded settings:', {
         ...currentSettings,
-        openRouterApiKey: currentSettings.openRouterApiKey ? '***' + currentSettings.openRouterApiKey.slice(-4) : 'none'
+        openRouterApiKey: currentSettings.openRouterApiKey
+          ? '***' + currentSettings.openRouterApiKey.slice(-4)
+          : 'none',
       });
       setSettings(currentSettings);
       setApiKey(currentSettings.openRouterApiKey || '');
@@ -58,10 +68,13 @@ export function Settings({ onClose }: SettingsProps) {
       // Enhanced debugging
       console.log('[Settings] === SAVE OPERATION START ===');
       console.log('[Settings] API Key length:', trimmedKey.length);
-      console.log('[Settings] API Key prefix:', trimmedKey ? trimmedKey.slice(0, 15) + '...' : 'empty');
+      console.log(
+        '[Settings] API Key prefix:',
+        trimmedKey ? trimmedKey.slice(0, 15) + '...' : 'empty'
+      );
       console.log('[Settings] Current settings state:', {
         ...settings,
-        openRouterApiKey: settings.openRouterApiKey ? '***hidden***' : 'none'
+        openRouterApiKey: settings.openRouterApiKey ? '***hidden***' : 'none',
       });
 
       const newSettings = {
@@ -71,7 +84,9 @@ export function Settings({ onClose }: SettingsProps) {
 
       console.log('[Settings] New settings to save:', {
         ...newSettings,
-        openRouterApiKey: newSettings.openRouterApiKey ? '***' + newSettings.openRouterApiKey.slice(-4) : 'none'
+        openRouterApiKey: newSettings.openRouterApiKey
+          ? '***' + newSettings.openRouterApiKey.slice(-4)
+          : 'none',
       });
 
       await SettingsStorage.saveSettings(newSettings);
@@ -81,16 +96,21 @@ export function Settings({ onClose }: SettingsProps) {
       const verified = await SettingsStorage.getSettings();
       console.log('[Settings] Verified saved settings:', {
         ...verified,
-        openRouterApiKey: verified.openRouterApiKey ? '***' + verified.openRouterApiKey.slice(-4) : 'none'
+        openRouterApiKey: verified.openRouterApiKey
+          ? '***' + verified.openRouterApiKey.slice(-4)
+          : 'none',
       });
 
       // Also verify directly with chrome.storage.local
       try {
-        const directCheck = await chrome.storage.local.get('phantom_trail_settings');
+        const directCheck = await chrome.storage.local.get(
+          'phantom_trail_settings'
+        );
         console.log('[Settings] Direct chrome.storage check:', {
           hasSettings: !!directCheck.phantom_trail_settings,
           hasApiKey: !!directCheck.phantom_trail_settings?.openRouterApiKey,
-          apiKeyLength: directCheck.phantom_trail_settings?.openRouterApiKey?.length || 0
+          apiKeyLength:
+            directCheck.phantom_trail_settings?.openRouterApiKey?.length || 0,
         });
       } catch (e) {
         console.warn('[Settings] Direct storage check failed:', e);
@@ -98,7 +118,9 @@ export function Settings({ onClose }: SettingsProps) {
 
       // Check if key was actually saved when we expected it to be
       if (trimmedKey && !verified.openRouterApiKey) {
-        console.error('[Settings] API KEY SAVE FAILED - Key was provided but not found after save!');
+        console.error(
+          '[Settings] API KEY SAVE FAILED - Key was provided but not found after save!'
+        );
         setSaveError('API key was not saved. Please try again.');
         return;
       }
@@ -123,12 +145,10 @@ export function Settings({ onClose }: SettingsProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Settings</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-            >
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              Settings
+            </h2>
+            <Button variant="ghost" size="sm" onClick={onClose}>
               ✕
             </Button>
           </div>
@@ -137,73 +157,81 @@ export function Settings({ onClose }: SettingsProps) {
           <div className="flex gap-1 mt-4 border-b border-[var(--border-primary)] overflow-x-auto pb-1">
             <button
               onClick={() => setActiveTab('general')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'general'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'general'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
             >
               General
             </button>
             <button
               onClick={() => setActiveTab('appearance')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'appearance'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'appearance'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
             >
               Theme
             </button>
             <button
               onClick={() => setActiveTab('badge')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'badge'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'badge'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
             >
               Badge
             </button>
             <button
               onClick={() => setActiveTab('export')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'export'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'export'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
             >
               Export
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'notifications'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'notifications'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
             >
               Alerts
             </button>
             <button
               onClick={() => setActiveTab('trusted-sites')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'trusted-sites'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'trusted-sites'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
             >
               Sites
             </button>
             <button
               onClick={() => setActiveTab('shortcuts')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'shortcuts'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'shortcuts'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
             >
               Keys
             </button>
             <button
               onClick={() => setActiveTab('p2p')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'p2p'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
+              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'p2p'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
             >
               P2P
             </button>
@@ -220,7 +248,7 @@ export function Settings({ onClose }: SettingsProps) {
                 </label>
                 <div className="relative">
                   <input
-                    type="text"
+                    type="password"
                     value={apiKey}
                     onChange={e => setApiKey(e.target.value)}
                     placeholder="sk-or-v1-..."
@@ -337,30 +365,26 @@ export function Settings({ onClose }: SettingsProps) {
                 className="w-full"
                 size="md"
               >
-                {saving ? 'Saving...' : saveSuccess ? '✓ Saved!' : 'Save Settings'}
+                {saving
+                  ? 'Saving...'
+                  : saveSuccess
+                    ? '✓ Saved!'
+                    : 'Save Settings'}
               </Button>
             </div>
           )}
 
           {/* Appearance Tab */}
-          {activeTab === 'appearance' && (
-            <ThemeSettings />
-          )}
+          {activeTab === 'appearance' && <ThemeSettings />}
 
           {/* Badge Tab */}
-          {activeTab === 'badge' && (
-            <BadgeSettingsComponent />
-          )}
+          {activeTab === 'badge' && <BadgeSettingsComponent />}
 
           {/* Export Tab */}
-          {activeTab === 'export' && (
-            <ExportScheduling />
-          )}
+          {activeTab === 'export' && <ExportScheduling />}
 
           {/* Notifications Tab */}
-          {activeTab === 'notifications' && (
-            <NotificationSettings />
-          )}
+          {activeTab === 'notifications' && <NotificationSettings />}
 
           {/* Trusted Sites Tab */}
           {activeTab === 'trusted-sites' && <TrustedSitesSettings />}

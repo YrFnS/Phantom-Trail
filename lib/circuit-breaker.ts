@@ -1,7 +1,7 @@
 export enum CircuitState {
   CLOSED = 'closed',
   OPEN = 'open',
-  HALF_OPEN = 'half_open'
+  HALF_OPEN = 'half_open',
 }
 
 export interface CircuitBreakerConfig {
@@ -34,7 +34,7 @@ export class CircuitBreaker {
       recoveryTimeout: 60000, // 1 minute
       monitoringPeriod: 300000, // 5 minutes
       halfOpenMaxCalls: 3,
-      ...config
+      ...config,
     };
   }
 
@@ -50,7 +50,10 @@ export class CircuitBreaker {
       }
     }
 
-    if (this.state === CircuitState.HALF_OPEN && this.halfOpenCalls >= this.config.halfOpenMaxCalls) {
+    if (
+      this.state === CircuitState.HALF_OPEN &&
+      this.halfOpenCalls >= this.config.halfOpenMaxCalls
+    ) {
       throw new Error('Circuit breaker HALF_OPEN - max calls exceeded');
     }
 
@@ -67,7 +70,7 @@ export class CircuitBreaker {
   private onSuccess(): void {
     this.successCount++;
     this.failureCount = 0;
-    
+
     if (this.state === CircuitState.HALF_OPEN) {
       this.state = CircuitState.CLOSED;
     }
@@ -76,7 +79,7 @@ export class CircuitBreaker {
   private onFailure(): void {
     this.failureCount++;
     this.lastFailureTime = Date.now();
-    
+
     if (this.state === CircuitState.HALF_OPEN) {
       this.state = CircuitState.OPEN;
     } else if (this.failureCount >= this.config.failureThreshold) {
@@ -94,7 +97,7 @@ export class CircuitBreaker {
       failureCount: this.failureCount,
       successCount: this.successCount,
       lastFailureTime: this.lastFailureTime,
-      totalCalls: this.totalCalls
+      totalCalls: this.totalCalls,
     };
   }
 

@@ -7,6 +7,7 @@
 ## Phase 1: Critical Fixes (REQUIRED FOR RELEASE)
 
 ### 1. Expand Tracker Database ✅ COMPLETED
+
 **File**: `lib/tracker-db.ts`  
 **Effort**: 4-6 hours  
 **Status**: ✅ Done (2026-01-17)
@@ -23,6 +24,7 @@
 - [x] Verify all 62 trackers are detected correctly
 
 **Validation**:
+
 ```bash
 # Test tracker detection
 npm run test:trackers
@@ -31,40 +33,47 @@ npm run test:trackers
 ---
 
 ### 2. Add Missing Detection Methods ✅ COMPLETED
+
 **Files**: `lib/in-page-detector.ts`, `entrypoints/content.ts`, `public/content-main-world.js`  
 **Effort**: 6-8 hours  
 **Status**: ✅ Done (2026-01-17)
 
 #### WebRTC Leak Detection (CRITICAL)
+
 - [x] Add `analyzeWebRTC()` method to `InPageDetector`
 - [x] Inject WebRTC monitoring in main world script
 - [x] Monitor RTCPeerConnection creation
 - [x] Report critical risk for IP leak potential
 
 #### Font Fingerprinting Detection
+
 - [x] Add `analyzeFontFingerprint()` method
 - [x] Monitor font enumeration via offsetWidth/offsetHeight
 - [x] Detect 20+ font measurements
 - [x] Report high risk for font fingerprinting
 
 #### Audio Fingerprinting Detection
+
 - [x] Add `analyzeAudioFingerprint()` method
 - [x] Monitor AudioContext API usage
 - [x] Detect oscillator creation patterns
 - [x] Report high risk for audio fingerprinting
 
 #### WebGL Fingerprinting Detection
+
 - [x] Add `analyzeWebGLFingerprint()` method
 - [x] Monitor WebGL parameter queries
 - [x] Detect 5+ parameter reads
 - [x] Report high risk for GPU fingerprinting
 
 #### Battery API Detection
+
 - [x] Add `analyzeBatteryAPI()` method
 - [x] Monitor navigator.getBattery() calls
 - [x] Report medium risk for battery tracking
 
 #### Sensor API Detection
+
 - [x] Add `analyzeSensorAPI()` method
 - [x] Monitor devicemotion/deviceorientation events
 - [x] Report medium risk for sensor fingerprinting
@@ -72,29 +81,36 @@ npm run test:trackers
 ---
 
 ### 3. Sanitize Data Before AI Processing
+
 **File**: `lib/ai-engine.ts`  
 **Effort**: 3-4 hours
 
 #### URL Sanitization
+
 - [ ] Add `sanitizeUrl()` private method
+
 ### 3. Sanitize Data Before AI Processing ✅ COMPLETED
+
 **File**: `lib/ai-engine.ts`  
 **Effort**: 3-4 hours  
 **Status**: ✅ Done (2026-01-17)
 
 #### URL Sanitization
+
 - [x] Add `sanitizeUrl()` private method
 - [x] Remove query parameters from URLs
 - [x] Remove hash fragments from URLs
 - [x] Test with sensitive URLs (8/8 tests passed)
 
 #### Event Sanitization
+
 - [x] Add `sanitizeEvent()` private method
 - [x] Sanitize URLs in all events
 - [x] Limit API calls to 5 entries (prevent data leakage)
 - [x] Apply sanitization to all AI methods
 
 #### AI Method Updates
+
 - [x] Update `generateEventAnalysis()` to use sanitized events
 - [x] Update `generateNarrative()` to use sanitized events
 - [x] Update `buildChatPrompt()` to use sanitized events
@@ -107,17 +123,20 @@ npm run test:trackers
 ## Phase 2: Algorithm & Compliance (RECOMMENDED)
 
 ### 4. Refine Privacy Scoring Algorithm ✅ COMPLETED
+
 **File**: `lib/privacy-score.ts`  
 **Effort**: 2-3 hours  
 **Status**: ✅ Done (2026-01-17)
 
 #### Rebalance Risk Weights
+
 - [x] Update Critical: -25 → -30
 - [x] Update High: -15 → -18
 - [x] Update Medium: -8 → -10
 - [x] Update Low: -3 → -5
 
 #### Add New Penalties
+
 - [x] Add cross-site tracking detection (3+ companies)
 - [x] Add cross-site tracking penalty: -15
 - [x] Add persistent tracking detection (fingerprinting)
@@ -125,6 +144,7 @@ npm run test:trackers
 - [x] Add `extractCompany()` helper function
 
 #### Update Recommendations
+
 - [x] Add critical risk recommendations
 - [x] Add cross-site tracking warnings
 - [x] Add persistent fingerprinting warnings
@@ -135,11 +155,13 @@ npm run test:trackers
 ---
 
 ### 5. GDPR/CCPA Compliance ✅ COMPLETED
+
 **Files**: `docs/PRIVACY_POLICY.md`, `lib/storage-manager.ts`, `entrypoints/background.ts`  
 **Effort**: 3-4 hours  
 **Status**: ✅ Done (2026-01-17)
 
 #### Privacy Policy
+
 - [x] Write comprehensive privacy policy document
 - [x] Document data collection practices
 - [x] Document data retention (30 days)
@@ -148,12 +170,14 @@ npm run test:trackers
 - [x] Document data security measures
 
 #### Data Retention
+
 - [x] Update retention period: 7 days → 30 days
 - [x] Add `cleanupOldEvents()` method to StorageManager
 - [x] Implement automatic cleanup in background script
 - [x] Set up daily cleanup alarm (runs every 24 hours)
 
 #### Compliance Features
+
 - [x] GDPR Article 5 compliance (data minimization)
 - [x] GDPR Article 17 compliance (right to deletion)
 - [x] CCPA compliance (right to know, delete, opt-out)
@@ -166,6 +190,7 @@ npm run test:trackers
 ## Phase 2 Complete! 🎉
 
 All recommended improvements have been implemented:
+
 - ✅ Step 4: Privacy scoring algorithm refined
 - ✅ Step 5: GDPR/CCPA compliance achieved
 
@@ -174,11 +199,13 @@ All recommended improvements have been implemented:
 ## Summary
 
 ### Phase 1 (Critical Fixes)
+
 1. ✅ Tracker database expansion (15 → 62 trackers)
 2. ✅ Missing detection methods (6 new methods)
 3. ✅ Data sanitization (PII protection)
 
 ### Phase 2 (Algorithm & Compliance)
+
 4. ✅ Privacy scoring refinement (rebalanced weights, new penalties)
 5. ✅ GDPR/CCPA compliance (privacy policy, 30-day retention)
 
@@ -186,12 +213,13 @@ All recommended improvements have been implemented:
 **All Tests Passed**: 33/33 (100%)  
 **Code Quality**: All checks passed
 npm run test:scoring
-```
+
+````
 
 ---
 
 ### 5. Add GDPR/CCPA Compliance
-**Files**: `lib/storage-manager.ts`, `docs/PRIVACY_POLICY.md`, UI components  
+**Files**: `lib/storage-manager.ts`, `docs/PRIVACY_POLICY.md`, UI components
 **Effort**: 3-4 hours
 
 #### Data Retention Policy
@@ -230,13 +258,14 @@ npm run test:scoring
 ```bash
 # Test compliance features
 npm run test:compliance
-```
+````
 
 ---
 
 ## Phase 3: Testing & Validation (REQUIRED)
 
 ### Website Testing
+
 **Effort**: 5-8 hours
 
 - [ ] Test on top 10 news sites (CNN, BBC, NYTimes, etc.)
@@ -249,6 +278,7 @@ npm run test:compliance
 - [ ] Test on WebRTC leak test sites
 
 **Success Criteria**:
+
 - [ ] 90%+ tracker detection rate
 - [ ] No false positives on trusted sites
 - [ ] All critical trackers detected
@@ -257,6 +287,7 @@ npm run test:compliance
 ---
 
 ### Performance Testing
+
 **Effort**: 2-3 hours
 
 - [ ] Measure CPU usage (target: <5%)
@@ -267,6 +298,7 @@ npm run test:compliance
 - [ ] Test with long browsing sessions (1+ hour)
 
 **Success Criteria**:
+
 - [ ] CPU overhead <5%
 - [ ] Memory usage <100MB
 - [ ] No visible page load impact
@@ -275,6 +307,7 @@ npm run test:compliance
 ---
 
 ### User Testing
+
 **Effort**: 3-5 hours
 
 - [ ] Test with 3 non-technical users
@@ -284,6 +317,7 @@ npm run test:compliance
 - [ ] Collect feedback on confusing elements
 
 **Success Criteria**:
+
 - [ ] Users understand what trackers do
 - [ ] Users know what actions to take
 - [ ] Users trust the extension
@@ -294,6 +328,7 @@ npm run test:compliance
 ## Pre-Release Checklist
 
 ### Code Quality
+
 - [ ] All TypeScript errors resolved
 - [ ] All ESLint warnings resolved
 - [ ] Code formatted with Prettier
@@ -301,6 +336,7 @@ npm run test:compliance
 - [ ] All TODOs resolved or documented
 
 ### Documentation
+
 - [ ] README.md updated with new features
 - [ ] USER_GUIDE.md updated with new trackers
 - [ ] PRIVACY_POLICY.md published
@@ -308,6 +344,7 @@ npm run test:compliance
 - [ ] API documentation complete
 
 ### Chrome Web Store
+
 - [ ] Privacy policy published online
 - [ ] Store listing updated
 - [ ] Screenshots updated
@@ -315,6 +352,7 @@ npm run test:compliance
 - [ ] Data handling disclosed
 
 ### Legal Compliance
+
 - [ ] GDPR compliance verified
 - [ ] CCPA compliance verified
 - [ ] Privacy policy reviewed
@@ -326,12 +364,14 @@ npm run test:compliance
 ## Post-Release Monitoring
 
 ### Week 1
+
 - [ ] Monitor user feedback
 - [ ] Track error reports
 - [ ] Monitor performance metrics
 - [ ] Check detection accuracy
 
 ### Week 2-4
+
 - [ ] Analyze usage patterns
 - [ ] Identify missing trackers
 - [ ] Collect feature requests
@@ -370,7 +410,7 @@ npm run package
 
 **Phase 1 Progress**: ☐☐☐☐☐☐☐☐☐☐ 0/10 tasks  
 **Phase 2 Progress**: ☐☐☐☐☐ 0/5 tasks  
-**Phase 3 Progress**: ☐☐☐ 0/3 tasks  
+**Phase 3 Progress**: ☐☐☐ 0/3 tasks
 
 **Overall Progress**: 0% (0/18 tasks)
 
@@ -384,8 +424,7 @@ Use this space to track issues, blockers, or questions:
 
 ```
 [Date] [Issue/Note]
-- 
-- 
-- 
+-
+-
+-
 ```
-

@@ -28,18 +28,27 @@ const EventDisplay = React.memo(
     return (
       <div className="group relative p-2 rounded-lg bg-dark-800/50 border border-dark-600/50 hover:border-plasma/30 transition-all duration-200">
         <div className="flex items-start gap-2">
-          <Badge variant={event.riskLevel} className="text-[10px] px-1.5 py-0.5 shrink-0">
+          <Badge
+            variant={event.riskLevel}
+            className="text-[10px] px-1.5 py-0.5 shrink-0"
+          >
             {event.riskLevel}
           </Badge>
           <div className="flex-1 min-w-0">
-            <h3 className="text-xs font-medium text-[var(--text-primary)] truncate">{event.domain}</h3>
-            <p className="text-[10px] text-gray-400 line-clamp-1">{event.description}</p>
+            <h3 className="text-xs font-medium text-[var(--text-primary)] truncate">
+              {event.domain}
+            </h3>
+            <p className="text-[10px] text-gray-400 line-clamp-1">
+              {event.description}
+            </p>
           </div>
         </div>
 
         {displayAnalysis && !analysisLoading && (
           <div className="mt-1.5 pt-1.5 border-t border-dark-600/50">
-            <p className="text-[10px] text-gray-300 leading-relaxed">{displayAnalysis.narrative}</p>
+            <p className="text-[10px] text-gray-300 leading-relaxed">
+              {displayAnalysis.narrative}
+            </p>
           </div>
         )}
       </div>
@@ -78,7 +87,11 @@ const PatternAlerts = React.memo(function PatternAlerts({
         >
           <div className="flex items-start gap-1.5">
             <span className="text-sm">
-              {alert.severity === 'critical' ? '🚨' : alert.severity === 'warning' ? '⚠️' : 'ℹ️'}
+              {alert.severity === 'critical'
+                ? '🚨'
+                : alert.severity === 'warning'
+                  ? '⚠️'
+                  : 'ℹ️'}
             </span>
             <div className="flex-1 min-w-0">
               <p className="font-medium leading-tight">{alert.message}</p>
@@ -109,7 +122,9 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
       <div className={`space-y-2 ${className}`}>
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Live Activity</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+              Live Activity
+            </h2>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-3">
@@ -129,13 +144,21 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
       <div className={`space-y-2 ${className}`}>
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Live Activity</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+              Live Activity
+            </h2>
           </CardHeader>
           <CardContent>
             <div className="text-center py-6">
-              <svg className="w-12 h-12 mx-auto mb-2 text-gray-600 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="M21 21l-4.35-4.35"/>
+              <svg
+                className="w-12 h-12 mx-auto mb-2 text-gray-600 opacity-30"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
               </svg>
               <p className="text-sm text-gray-400 mb-1">
                 No tracking detected yet...
@@ -155,13 +178,20 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
       {/* Compact header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Live Feed</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            Live Feed
+          </h2>
           {hasEvents && (
-            <div className="w-1.5 h-1.5 bg-[var(--accent-primary)] rounded-full animate-pulse-dot" title="Live updates" />
+            <div
+              className="w-1.5 h-1.5 bg-[var(--accent-primary)] rounded-full animate-pulse-dot"
+              title="Live updates"
+            />
           )}
         </div>
         {hasEvents && (
-          <span className="text-[10px] text-gray-500">{events.length} events</span>
+          <span className="text-[10px] text-gray-500">
+            {events.length} events
+          </span>
         )}
       </div>
 
@@ -184,7 +214,9 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
 
           {analysis && (
             <div className="p-2 bg-[var(--bg-secondary)] rounded border-l-2 border-[var(--accent-primary)]/30">
-              <p className="text-xs text-gray-300 leading-relaxed">{analysis.narrative}</p>
+              <p className="text-xs text-gray-300 leading-relaxed">
+                {analysis.narrative}
+              </p>
             </div>
           )}
 
@@ -195,9 +227,9 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
           )}
 
           {/* Privacy Actions - Show recommendations based on detected events */}
-          <PrivacyActions 
-            events={events} 
-            currentDomain={events[0]?.domain || ''} 
+          <PrivacyActions
+            events={events}
+            currentDomain={events[0]?.domain || ''}
             className="mb-2"
           />
 
@@ -206,7 +238,11 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
               <EventDisplay
                 key={event.id}
                 event={event}
-                analysis={event.id === events[events.length - 1]?.id ? analysis || undefined : undefined}
+                analysis={
+                  event.id === events[events.length - 1]?.id
+                    ? analysis || undefined
+                    : undefined
+                }
               />
             ))}
           </div>

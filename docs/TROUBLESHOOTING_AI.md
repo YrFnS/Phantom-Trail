@@ -7,6 +7,7 @@
 **Cause**: The extension doesn't have an OpenRouter API key configured.
 
 **Solution**:
+
 1. Get an API key from [OpenRouter](https://openrouter.ai/)
 2. Open the extension popup
 3. Click the Settings icon (gear)
@@ -14,6 +15,7 @@
 5. Save settings
 
 **Note**: The extension will work without AI (basic tracker detection only), but you won't get:
+
 - AI-powered narratives
 - Risk assessments
 - Personalized recommendations
@@ -24,6 +26,7 @@
 ### Issue 2: Storage Corruption Errors
 
 **Symptoms**:
+
 - `TypeError: a.filter is not a function`
 - `TypeError: a.push is not a function`
 - `Failed to add event`
@@ -33,6 +36,7 @@
 
 **Solution 1 - Automatic (Recommended)**:
 The extension now automatically detects and repairs corrupted storage. Simply reload the extension:
+
 1. Go to `chrome://extensions`
 2. Find "Phantom Trail"
 3. Click the reload icon (circular arrow)
@@ -40,23 +44,28 @@ The extension now automatically detects and repairs corrupted storage. Simply re
 
 **Solution 2 - Manual Reset**:
 If automatic repair doesn't work:
+
 1. Go to `chrome://extensions`
 2. Find "Phantom Trail"
 3. Click "Inspect views: background page" (or "service worker")
 4. In the console, paste and run:
+
 ```javascript
-chrome.storage.local.set({
-  'phantom_trail_events': [],
-  'phantom_trail_daily_snapshots': [],
-  'phantom_trail_weekly_reports': []
-}).then(() => {
-  console.log('Storage reset complete');
-  chrome.runtime.reload();
-});
+chrome.storage.local
+  .set({
+    phantom_trail_events: [],
+    phantom_trail_daily_snapshots: [],
+    phantom_trail_weekly_reports: [],
+  })
+  .then(() => {
+    console.log('Storage reset complete');
+    chrome.runtime.reload();
+  });
 ```
 
 **Solution 3 - Complete Reset**:
 If you want to start fresh:
+
 1. Go to `chrome://extensions`
 2. Find "Phantom Trail"
 3. Click "Remove"
@@ -67,6 +76,7 @@ If you want to start fresh:
 ### Issue 3: Rate Limiting
 
 **Symptoms**:
+
 - "Rate limit exceeded"
 - "Please wait X seconds before asking again"
 - AI features temporarily unavailable
@@ -74,11 +84,13 @@ If you want to start fresh:
 **Cause**: Too many AI requests in a short time (OpenRouter API limits).
 
 **Solution**:
+
 - Wait for the cooldown period (usually 60 seconds)
 - The extension will automatically retry when the limit resets
 - Reduce frequency of AI analysis requests
 
 **Rate Limits**:
+
 - Max 10 requests per minute
 - Automatic backoff on rate limit detection
 - Cached responses reduce API calls
@@ -88,6 +100,7 @@ If you want to start fresh:
 ### Issue 4: Network/API Errors
 
 **Symptoms**:
+
 - "API request failed"
 - "Unable to analyze tracking data"
 - Timeout errors
@@ -95,6 +108,7 @@ If you want to start fresh:
 **Cause**: Network issues, OpenRouter API downtime, or invalid API key.
 
 **Solution**:
+
 1. Check your internet connection
 2. Verify your API key is valid at [OpenRouter](https://openrouter.ai/)
 3. Check [OpenRouter Status](https://status.openrouter.ai/)
@@ -102,6 +116,7 @@ If you want to start fresh:
 
 **Offline Mode**:
 When AI is unavailable, the extension provides:
+
 - Basic tracker detection
 - Risk level classification
 - Cached analysis (if available)
@@ -112,6 +127,7 @@ When AI is unavailable, the extension provides:
 ### Issue 5: Extension Not Detecting Trackers
 
 **Symptoms**:
+
 - No trackers shown on websites
 - Empty tracking events list
 - Network graph is empty
@@ -119,18 +135,22 @@ When AI is unavailable, the extension provides:
 **Possible Causes & Solutions**:
 
 **1. Extension Not Active**:
+
 - Check if extension icon is visible in toolbar
 - Reload the page after installing extension
 - Check `chrome://extensions` to ensure it's enabled
 
 **2. Website Uses No Trackers**:
+
 - Some sites genuinely have no third-party trackers
 - Try visiting a major site (e.g., news sites, shopping sites)
 
 **3. Storage Corruption**:
+
 - See "Issue 2: Storage Corruption Errors" above
 
 **4. Content Script Not Injected**:
+
 - Check browser console for errors
 - Reload the extension
 - Reload the webpage
@@ -140,6 +160,7 @@ When AI is unavailable, the extension provides:
 ## Debugging Steps
 
 ### Check Extension Status
+
 1. Go to `chrome://extensions`
 2. Enable "Developer mode" (top right)
 3. Find "Phantom Trail"
@@ -147,37 +168,43 @@ When AI is unavailable, the extension provides:
 5. Check console for errors
 
 ### Check Storage Data
+
 In the background page console:
+
 ```javascript
 // Check events storage
-chrome.storage.local.get('phantom_trail_events', (result) => {
+chrome.storage.local.get('phantom_trail_events', result => {
   console.log('Events:', result.phantom_trail_events);
   console.log('Is Array:', Array.isArray(result.phantom_trail_events));
 });
 
 // Check settings
-chrome.storage.local.get('phantom_trail_settings', (result) => {
+chrome.storage.local.get('phantom_trail_settings', result => {
   console.log('Settings:', result.phantom_trail_settings);
 });
 
 // Check all storage
-chrome.storage.local.get(null, (result) => {
+chrome.storage.local.get(null, result => {
   console.log('All storage:', result);
 });
 ```
 
 ### Check AI Status
+
 In the background page console:
+
 ```javascript
 // Check if AI is available
-chrome.storage.local.get('phantom_trail_settings', (result) => {
+chrome.storage.local.get('phantom_trail_settings', result => {
   const hasKey = !!result.phantom_trail_settings?.openRouterApiKey;
   console.log('Has API Key:', hasKey);
 });
 ```
 
 ### Force Storage Repair
+
 In the background page console:
+
 ```javascript
 // Run the storage repair script
 fetch(chrome.runtime.getURL('scripts/clear-storage.js'))
@@ -190,18 +217,21 @@ fetch(chrome.runtime.getURL('scripts/clear-storage.js'))
 ## Prevention Tips
 
 ### Avoid Storage Corruption
+
 - Don't manually edit Chrome storage
 - Don't run multiple instances of the extension
 - Keep the extension updated
 - Report bugs if corruption happens repeatedly
 
 ### Optimize AI Usage
+
 - Let the extension cache responses
 - Don't spam the chat interface
 - Use the quick analysis feature sparingly
 - Configure appropriate rate limits in settings
 
 ### Monitor Performance
+
 - Check extension memory usage in Task Manager
 - Clear old events periodically (automatic after 30 days)
 - Limit number of tracked sites if performance degrades
@@ -238,6 +268,7 @@ If issues persist:
 ## Advanced Troubleshooting
 
 ### Clear Specific Storage Keys
+
 ```javascript
 chrome.storage.local.remove(['phantom_trail_events'], () => {
   console.log('Events cleared');
@@ -245,8 +276,9 @@ chrome.storage.local.remove(['phantom_trail_events'], () => {
 ```
 
 ### Export Storage Before Reset
+
 ```javascript
-chrome.storage.local.get(null, (data) => {
+chrome.storage.local.get(null, data => {
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -258,6 +290,7 @@ chrome.storage.local.get(null, (data) => {
 ```
 
 ### Check Network Requests
+
 1. Open DevTools Network tab
 2. Filter by "openrouter.ai"
 3. Check request/response details
@@ -268,16 +301,19 @@ chrome.storage.local.get(null, (data) => {
 ## Known Issues
 
 ### Chrome Storage Quota
+
 - Chrome limits extension storage to ~10MB
 - Extension auto-cleans old events (30+ days)
 - If quota exceeded, oldest data is removed
 
 ### API Key Security
+
 - API keys stored in local storage (not synced)
 - Keys never sent to third parties
 - Consider using restricted API keys
 
 ### Performance Impact
+
 - Extension designed for <5% CPU overhead
 - Network monitoring is lightweight
 - AI analysis is on-demand only

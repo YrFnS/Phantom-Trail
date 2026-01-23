@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { TrustedSitesManager, TrustedSite, TrustLevel, TrustSuggestion } from '../../lib/trusted-sites-manager';
+import {
+  TrustedSitesManager,
+  TrustedSite,
+  TrustLevel,
+  TrustSuggestion,
+} from '../../lib/trusted-sites-manager';
 
 interface TrustedSitesProps {
   className?: string;
 }
 
-export const TrustedSites: React.FC<TrustedSitesProps> = ({ className = '' }) => {
+export const TrustedSites: React.FC<TrustedSitesProps> = ({
+  className = '',
+}) => {
   const [trustedSites, setTrustedSites] = useState<TrustedSite[]>([]);
   const [suggestions, setSuggestions] = useState<TrustSuggestion[]>([]);
   const [newDomain, setNewDomain] = useState('');
-  const [newTrustLevel, setNewTrustLevel] = useState<TrustLevel>(TrustLevel.PARTIAL_TRUST);
+  const [newTrustLevel, setNewTrustLevel] = useState<TrustLevel>(
+    TrustLevel.PARTIAL_TRUST
+  );
   const [newReason, setNewReason] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +30,7 @@ export const TrustedSites: React.FC<TrustedSitesProps> = ({ className = '' }) =>
     try {
       const [sites, suggestions] = await Promise.all([
         TrustedSitesManager.getTrustedSites(),
-        TrustedSitesManager.getTrustSuggestions()
+        TrustedSitesManager.getTrustSuggestions(),
       ]);
       setTrustedSites(sites);
       setSuggestions(suggestions);
@@ -83,7 +92,9 @@ export const TrustedSites: React.FC<TrustedSitesProps> = ({ className = '' }) =>
 
   const handleDismissSuggestion = async (suggestion: TrustSuggestion) => {
     try {
-      const updatedSuggestions = suggestions.filter(s => s.domain !== suggestion.domain);
+      const updatedSuggestions = suggestions.filter(
+        s => s.domain !== suggestion.domain
+      );
       setSuggestions(updatedSuggestions);
       // Note: In a full implementation, we'd update storage here
     } catch (error) {
@@ -134,10 +145,15 @@ export const TrustedSites: React.FC<TrustedSitesProps> = ({ className = '' }) =>
   return (
     <div className={`p-4 space-y-6 ${className}`}>
       <div>
-        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Trusted Sites</h2>
-        
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+          Trusted Sites
+        </h2>
+
         {/* Add New Site Form */}
-        <form onSubmit={handleAddSite} className="bg-[var(--bg-secondary)] p-4 rounded-lg mb-6">
+        <form
+          onSubmit={handleAddSite}
+          className="bg-[var(--bg-secondary)] p-4 rounded-lg mb-6"
+        >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
@@ -146,7 +162,7 @@ export const TrustedSites: React.FC<TrustedSitesProps> = ({ className = '' }) =>
               <input
                 type="text"
                 value={newDomain}
-                onChange={(e) => setNewDomain(e.target.value)}
+                onChange={e => setNewDomain(e.target.value)}
                 placeholder="example.com"
                 className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
               />
@@ -157,7 +173,7 @@ export const TrustedSites: React.FC<TrustedSitesProps> = ({ className = '' }) =>
               </label>
               <select
                 value={newTrustLevel}
-                onChange={(e) => setNewTrustLevel(e.target.value as TrustLevel)}
+                onChange={e => setNewTrustLevel(e.target.value as TrustLevel)}
                 className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
               >
                 <option value={TrustLevel.PARTIAL_TRUST}>Partial Trust</option>
@@ -172,7 +188,7 @@ export const TrustedSites: React.FC<TrustedSitesProps> = ({ className = '' }) =>
               <input
                 type="text"
                 value={newReason}
-                onChange={(e) => setNewReason(e.target.value)}
+                onChange={e => setNewReason(e.target.value)}
                 placeholder="Why do you trust this site?"
                 className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
               />
@@ -189,14 +205,23 @@ export const TrustedSites: React.FC<TrustedSitesProps> = ({ className = '' }) =>
         {/* Trust Suggestions */}
         {suggestions.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-md font-medium text-[var(--text-primary)] mb-3">Trust Suggestions</h3>
+            <h3 className="text-md font-medium text-[var(--text-primary)] mb-3">
+              Trust Suggestions
+            </h3>
             <div className="space-y-2">
               {suggestions.map((suggestion, index) => (
-                <div key={index} className="bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 rounded-lg p-3">
+                <div
+                  key={index}
+                  className="bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 rounded-lg p-3"
+                >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-[var(--text-primary)]">{suggestion.domain}</div>
-                      <div className="text-sm text-[var(--text-secondary)]">{suggestion.reason}</div>
+                      <div className="font-medium text-[var(--text-primary)]">
+                        {suggestion.domain}
+                      </div>
+                      <div className="text-sm text-[var(--text-secondary)]">
+                        {suggestion.reason}
+                      </div>
                       <div className="text-xs text-[var(--text-tertiary)]">
                         Confidence: {Math.round(suggestion.confidence * 100)}%
                       </div>
@@ -233,18 +258,27 @@ export const TrustedSites: React.FC<TrustedSitesProps> = ({ className = '' }) =>
             </div>
           ) : (
             <div className="space-y-2">
-              {trustedSites.map((site) => (
-                <div key={site.domain} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg p-4">
+              {trustedSites.map(site => (
+                <div
+                  key={site.domain}
+                  className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg p-4"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
-                        <div className="font-medium text-[var(--text-primary)]">🛡️ {site.domain}</div>
-                        <span className={`px-2 py-1 text-xs rounded-full ${getTrustLevelColor(site.trustLevel)}`}>
+                        <div className="font-medium text-[var(--text-primary)]">
+                          🛡️ {site.domain}
+                        </div>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${getTrustLevelColor(site.trustLevel)}`}
+                        >
                           {getTrustLevelLabel(site.trustLevel)}
                         </span>
                       </div>
                       {site.reason && (
-                        <div className="text-sm text-[var(--text-secondary)] mt-1">{site.reason}</div>
+                        <div className="text-sm text-[var(--text-secondary)] mt-1">
+                          {site.reason}
+                        </div>
                       )}
                       <div className="text-xs text-[var(--text-tertiary)] mt-1">
                         Added: {new Date(site.dateAdded).toLocaleDateString()}
@@ -253,12 +287,21 @@ export const TrustedSites: React.FC<TrustedSitesProps> = ({ className = '' }) =>
                     <div className="flex items-center space-x-2">
                       <select
                         value={site.trustLevel}
-                        onChange={(e) => handleUpdateTrustLevel(site.domain, e.target.value as TrustLevel)}
+                        onChange={e =>
+                          handleUpdateTrustLevel(
+                            site.domain,
+                            e.target.value as TrustLevel
+                          )
+                        }
                         className="text-sm bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded px-2 py-1 text-[var(--text-primary)]"
                       >
-                        <option value={TrustLevel.PARTIAL_TRUST}>Partial</option>
+                        <option value={TrustLevel.PARTIAL_TRUST}>
+                          Partial
+                        </option>
                         <option value={TrustLevel.FULL_TRUST}>Full</option>
-                        <option value={TrustLevel.CONDITIONAL}>Conditional</option>
+                        <option value={TrustLevel.CONDITIONAL}>
+                          Conditional
+                        </option>
                       </select>
                       <button
                         onClick={() => handleRemoveSite(site.domain)}

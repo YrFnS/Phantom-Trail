@@ -20,7 +20,7 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
       const currentTheme = await ThemeManager.getCurrentTheme();
       setTheme(currentTheme);
     };
-    
+
     loadTheme();
 
     if (typeof window !== 'undefined') {
@@ -42,29 +42,50 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
 
   const getIcon = () => {
     const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-4 h-4';
-    
+
     if (theme === Theme.AUTO) {
       return (
-        <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="4"/>
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34L4.93 4.93M19.07 19.07l-1.41-1.41"/>
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" opacity="0.5"/>
+        <svg
+          className={iconSize}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34L4.93 4.93M19.07 19.07l-1.41-1.41" />
+          <path
+            d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+            opacity="0.5"
+          />
         </svg>
       );
     }
-    
+
     if (theme === Theme.LIGHT) {
       return (
-        <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="4"/>
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34L4.93 4.93M19.07 19.07l-1.41-1.41"/>
+        <svg
+          className={iconSize}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34L4.93 4.93M19.07 19.07l-1.41-1.41" />
         </svg>
       );
     }
-    
+
     return (
-      <svg className={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      <svg
+        className={iconSize}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
       </svg>
     );
   };
@@ -80,7 +101,9 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
       aria-label={`Switch theme (current: ${theme})`}
     >
       {isLoading ? (
-        <div className={`animate-spin rounded-full border-b-2 border-current ${size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'}`} />
+        <div
+          className={`animate-spin rounded-full border-b-2 border-current ${size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'}`}
+        />
       ) : (
         getIcon()
       )}

@@ -12,26 +12,35 @@ export function AnalysisResult({ content }: AnalysisResultProps) {
   const formatContent = (text: string) => {
     const lines = text.split('\n');
     const elements: React.ReactNode[] = [];
-    
+
     lines.forEach((line, index) => {
       const key = `line-${index}`;
-      
+
       // Headers
       if (line.startsWith('# ')) {
         elements.push(
-          <h1 key={key} className="text-xl font-bold text-gray-900 dark:text-white mb-3 mt-4 first:mt-0">
+          <h1
+            key={key}
+            className="text-xl font-bold text-gray-900 dark:text-white mb-3 mt-4 first:mt-0"
+          >
             {line.substring(2)}
           </h1>
         );
       } else if (line.startsWith('## ')) {
         elements.push(
-          <h2 key={key} className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2 mt-3">
+          <h2
+            key={key}
+            className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2 mt-3"
+          >
             {line.substring(3)}
           </h2>
         );
       } else if (line.startsWith('### ')) {
         elements.push(
-          <h3 key={key} className="text-md font-medium text-gray-700 dark:text-gray-300 mb-2 mt-2">
+          <h3
+            key={key}
+            className="text-md font-medium text-gray-700 dark:text-gray-300 mb-2 mt-2"
+          >
             {line.substring(4)}
           </h3>
         );
@@ -39,11 +48,23 @@ export function AnalysisResult({ content }: AnalysisResultProps) {
       // Bold text
       else if (line.includes('**')) {
         const parts = line.split('**');
-        const formatted = parts.map((part, i) => 
-          i % 2 === 1 ? <strong key={i} className="font-semibold text-gray-900 dark:text-white">{part}</strong> : part
+        const formatted = parts.map((part, i) =>
+          i % 2 === 1 ? (
+            <strong
+              key={i}
+              className="font-semibold text-gray-900 dark:text-white"
+            >
+              {part}
+            </strong>
+          ) : (
+            part
+          )
         );
         elements.push(
-          <p key={key} className="text-sm text-gray-700 dark:text-gray-300 mb-1">
+          <p
+            key={key}
+            className="text-sm text-gray-700 dark:text-gray-300 mb-1"
+          >
             {formatted}
           </p>
         );
@@ -65,7 +86,9 @@ export function AnalysisResult({ content }: AnalysisResultProps) {
         if (match) {
           elements.push(
             <div key={key} className="flex items-start mb-1">
-              <span className="text-blue-500 mr-2 mt-1 font-medium">{match[1]}.</span>
+              <span className="text-blue-500 mr-2 mt-1 font-medium">
+                {match[1]}.
+              </span>
               <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">
                 {formatInlineText(match[2])}
               </span>
@@ -76,7 +99,10 @@ export function AnalysisResult({ content }: AnalysisResultProps) {
       // Regular paragraphs
       else if (line.trim()) {
         elements.push(
-          <p key={key} className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+          <p
+            key={key}
+            className="text-sm text-gray-700 dark:text-gray-300 mb-2"
+          >
             {formatInlineText(line)}
           </p>
         );
@@ -86,7 +112,7 @@ export function AnalysisResult({ content }: AnalysisResultProps) {
         elements.push(<div key={key} className="h-2" />);
       }
     });
-    
+
     return elements;
   };
 
@@ -95,11 +121,20 @@ export function AnalysisResult({ content }: AnalysisResultProps) {
     // Handle bold text
     if (text.includes('**')) {
       const parts = text.split('**');
-      return parts.map((part, i) => 
-        i % 2 === 1 ? <strong key={i} className="font-semibold text-gray-900 dark:text-white">{part}</strong> : part
+      return parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <strong
+            key={i}
+            className="font-semibold text-gray-900 dark:text-white"
+          >
+            {part}
+          </strong>
+        ) : (
+          part
+        )
       );
     }
-    
+
     // Highlight risk levels
     const riskColors = {
       'critical risk': 'text-red-600 dark:text-red-400 font-medium',
@@ -107,26 +142,33 @@ export function AnalysisResult({ content }: AnalysisResultProps) {
       'medium risk': 'text-yellow-600 dark:text-yellow-400 font-medium',
       'low risk': 'text-green-600 dark:text-green-400 font-medium',
     };
-    
+
     let formattedText: React.ReactNode = text;
     Object.entries(riskColors).forEach(([risk, className]) => {
-      if (typeof formattedText === 'string' && formattedText.toLowerCase().includes(risk)) {
+      if (
+        typeof formattedText === 'string' &&
+        formattedText.toLowerCase().includes(risk)
+      ) {
         const regex = new RegExp(`(${risk})`, 'gi');
         const parts = formattedText.split(regex);
-        formattedText = parts.map((part, i) => 
-          regex.test(part) ? <span key={i} className={className}>{part}</span> : part
+        formattedText = parts.map((part, i) =>
+          regex.test(part) ? (
+            <span key={i} className={className}>
+              {part}
+            </span>
+          ) : (
+            part
+          )
         );
       }
     });
-    
+
     return formattedText;
   };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-      <div className="space-y-1">
-        {formatContent(content)}
-      </div>
+      <div className="space-y-1">{formatContent(content)}</div>
     </div>
   );
 }

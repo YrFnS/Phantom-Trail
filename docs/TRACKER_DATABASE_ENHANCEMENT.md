@@ -12,23 +12,25 @@ Add these entries to the `KNOWN_TRACKERS` object in `lib/tracker-db.ts`:
 ```typescript
 const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
   // ... existing 15 trackers ...
-  
+
   // ============================================
   // FINGERPRINTING TRACKERS (CRITICAL RISK)
   // ============================================
-  
+
   'fingerprint.com': {
     domain: 'fingerprint.com',
     name: 'FingerprintJS',
     category: 'Fingerprinting',
-    description: 'Advanced browser fingerprinting - tracks across incognito mode and VPNs',
+    description:
+      'Advanced browser fingerprinting - tracks across incognito mode and VPNs',
     riskLevel: 'critical',
   },
   'fp.seon.io': {
     domain: 'fp.seon.io',
     name: 'SEON Fraud Prevention',
     category: 'Fingerprinting',
-    description: 'Device fingerprinting for fraud detection and user identification',
+    description:
+      'Device fingerprinting for fraud detection and user identification',
     riskLevel: 'critical',
   },
   'maxmind.com': {
@@ -52,16 +54,17 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Device fingerprinting and reputation analysis',
     riskLevel: 'high',
   },
-  
+
   // ============================================
   // SESSION RECORDING (CRITICAL RISK)
   // ============================================
-  
+
   'fullstory.com': {
     domain: 'fullstory.com',
     name: 'FullStory',
     category: 'Analytics',
-    description: 'Records every click, keystroke, and mouse movement - complete session replay',
+    description:
+      'Records every click, keystroke, and mouse movement - complete session replay',
     riskLevel: 'critical',
   },
   'logrocket.com': {
@@ -99,11 +102,11 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Session recording and eye-tracking heatmaps',
     riskLevel: 'high',
   },
-  
+
   // ============================================
   // SOCIAL MEDIA TRACKERS (HIGH/MEDIUM RISK)
   // ============================================
-  
+
   'linkedin.com': {
     domain: 'linkedin.com',
     name: 'LinkedIn Insight Tag',
@@ -146,11 +149,11 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Instagram advertising (owned by Meta/Facebook)',
     riskLevel: 'medium',
   },
-  
+
   // ============================================
   // ADVERTISING NETWORKS (HIGH RISK)
   // ============================================
-  
+
   'criteo.com': {
     domain: 'criteo.com',
     name: 'Criteo',
@@ -221,11 +224,11 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Demand-side advertising platform',
     riskLevel: 'high',
   },
-  
+
   // ============================================
   // ANALYTICS PLATFORMS (MEDIUM RISK)
   // ============================================
-  
+
   'amplitude.com': {
     domain: 'amplitude.com',
     name: 'Amplitude',
@@ -282,11 +285,11 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Infrastructure and application monitoring',
     riskLevel: 'low',
   },
-  
+
   // ============================================
   // AUDIENCE MEASUREMENT (MEDIUM RISK)
   // ============================================
-  
+
   'comscore.com': {
     domain: 'comscore.com',
     name: 'comScore',
@@ -308,11 +311,11 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Audience measurement and market research',
     riskLevel: 'medium',
   },
-  
+
   // ============================================
   // CDN ANALYTICS (LOW RISK)
   // ============================================
-  
+
   'cloudflare.com': {
     domain: 'cloudflare.com',
     name: 'Cloudflare Analytics',
@@ -334,11 +337,11 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
     description: 'Real user monitoring and CDN analytics',
     riskLevel: 'low',
   },
-  
+
   // ============================================
   // ADDITIONAL TRACKING SERVICES
   // ============================================
-  
+
   'optimizely.com': {
     domain: 'optimizely.com',
     name: 'Optimizely',
@@ -384,18 +387,21 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
 **Total Trackers After Addition**: 60+ trackers (up from 15)
 
 **By Risk Level**:
+
 - **Critical**: 6 trackers (fingerprinting, session recording)
 - **High**: 14 trackers (cross-site tracking, retargeting)
 - **Medium**: 21 trackers (behavioral analytics, advertising)
 - **Low**: 6 trackers (performance monitoring, CDN)
 
 **By Category**:
+
 - **Fingerprinting**: 5 trackers (NEW category)
 - **Analytics**: 20 trackers
 - **Advertising**: 12 trackers
 - **Social Media**: 6 trackers
 
 **Detection Coverage**:
+
 - Before: ~40% of top trackers
 - After: ~90% of top trackers ✓
 
@@ -406,26 +412,31 @@ const KNOWN_TRACKERS: Record<string, TrackerInfo> = {
 After adding trackers, test on these websites:
 
 ### Fingerprinting Detection
+
 - [ ] fingerprint.com (FingerprintJS demo)
 - [ ] seon.io (SEON demo)
 - [ ] Any banking site (ThreatMetrix)
 
 ### Session Recording Detection
+
 - [ ] fullstory.com (FullStory demo)
 - [ ] logrocket.com (LogRocket demo)
 - [ ] Any e-commerce site with Hotjar
 
 ### Social Media Tracking
+
 - [ ] linkedin.com (LinkedIn Insight Tag)
 - [ ] pinterest.com (Pinterest Tag)
 - [ ] Any site with social share buttons
 
 ### Advertising Networks
+
 - [ ] Any news site (Criteo, Taboola, Outbrain)
 - [ ] Any e-commerce site (Criteo retargeting)
 - [ ] Any content site (AppNexus, Rubicon)
 
 ### Analytics Platforms
+
 - [ ] Any SaaS product (Amplitude, Heap, Pendo)
 - [ ] Any startup website (Mixpanel, Segment)
 
@@ -464,4 +475,3 @@ testUrls.forEach(url => {
 2. **Test detection** on top 100 websites
 3. **Update documentation** (USER_GUIDE.md) with new tracker count
 4. **Update marketing** ("Detects 60+ trackers" instead of "25+ trackers")
-

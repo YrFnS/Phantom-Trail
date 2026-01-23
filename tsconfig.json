@@ -15,7 +15,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["@types/chrome", "@types/react", "@types/react-dom", "@types/jest"]
+    "types": [
+      "@types/chrome",
+      "@types/react",
+      "@types/react-dom",
+      "@types/jest"
+    ]
   },
   "include": [
     "entrypoints",

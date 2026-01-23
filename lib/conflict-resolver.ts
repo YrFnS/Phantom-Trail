@@ -28,46 +28,65 @@ export interface ConflictResolutionStrategy {
 
 export class ConflictResolver {
   private static strategies: Map<string, ConflictResolutionStrategy> = new Map([
-    ['newest-wins', {
-      name: 'Newest Wins',
-      description: 'Use the data with the most recent timestamp',
-      resolve: (localData: unknown, remoteData: unknown) => {
-        const local = localData as TimestampedData;
-        const remote = remoteData as TimestampedData;
-        const localTime = local.timestamp || local.lastModified || 0;
-        const remoteTime = remote.timestamp || remote.lastModified || 0;
-        return localTime > remoteTime ? localData : remoteData;
-      }
-    }],
-    ['local-wins', {
-      name: 'Local Wins',
-      description: 'Always prefer local data over remote data',
-      resolve: (localData: unknown) => localData
-    }],
-    ['remote-wins', {
-      name: 'Remote Wins',
-      description: 'Always prefer remote data over local data',
-      resolve: (_localData: unknown, remoteData: unknown) => remoteData
-    }],
-    ['merge', {
-      name: 'Smart Merge',
-      description: 'Intelligently combine local and remote data',
-      resolve: (localData: unknown, remoteData: unknown) => {
-        if (Array.isArray(localData) && Array.isArray(remoteData)) {
-          return ConflictResolver.mergeArrays(localData, remoteData);
-        }
-        if (typeof localData === 'object' && typeof remoteData === 'object' && 
-            localData !== null && remoteData !== null) {
-          return ConflictResolver.mergeObjects(localData as MergeableObject, remoteData as MergeableObject);
-        }
-        // For primitive values, use newest wins
-        const local = localData as TimestampedData;
-        const remote = remoteData as TimestampedData;
-        const localTime = local.timestamp || local.lastModified || 0;
-        const remoteTime = remote.timestamp || remote.lastModified || 0;
-        return localTime > remoteTime ? localData : remoteData;
-      }
-    }]
+    [
+      'newest-wins',
+      {
+        name: 'Newest Wins',
+        description: 'Use the data with the most recent timestamp',
+        resolve: (localData: unknown, remoteData: unknown) => {
+          const local = localData as TimestampedData;
+          const remote = remoteData as TimestampedData;
+          const localTime = local.timestamp || local.lastModified || 0;
+          const remoteTime = remote.timestamp || remote.lastModified || 0;
+          return localTime > remoteTime ? localData : remoteData;
+        },
+      },
+    ],
+    [
+      'local-wins',
+      {
+        name: 'Local Wins',
+        description: 'Always prefer local data over remote data',
+        resolve: (localData: unknown) => localData,
+      },
+    ],
+    [
+      'remote-wins',
+      {
+        name: 'Remote Wins',
+        description: 'Always prefer remote data over local data',
+        resolve: (_localData: unknown, remoteData: unknown) => remoteData,
+      },
+    ],
+    [
+      'merge',
+      {
+        name: 'Smart Merge',
+        description: 'Intelligently combine local and remote data',
+        resolve: (localData: unknown, remoteData: unknown) => {
+          if (Array.isArray(localData) && Array.isArray(remoteData)) {
+            return ConflictResolver.mergeArrays(localData, remoteData);
+          }
+          if (
+            typeof localData === 'object' &&
+            typeof remoteData === 'object' &&
+            localData !== null &&
+            remoteData !== null
+          ) {
+            return ConflictResolver.mergeObjects(
+              localData as MergeableObject,
+              remoteData as MergeableObject
+            );
+          }
+          // For primitive values, use newest wins
+          const local = localData as TimestampedData;
+          const remote = remoteData as TimestampedData;
+          const localTime = local.timestamp || local.lastModified || 0;
+          const remoteTime = remote.timestamp || remote.lastModified || 0;
+          return localTime > remoteTime ? localData : remoteData;
+        },
+      },
+    ],
   ]);
 
   static getAvailableStrategies(): ConflictResolutionStrategy[] {
@@ -102,16 +121,20 @@ export class ConflictResolver {
 
   private static mergeArrays(local: unknown[], remote: unknown[]): unknown[] {
     // For arrays of objects with unique identifiers
-    if (local.length > 0 && remote.length > 0 && 
-        typeof local[0] === 'object' && typeof remote[0] === 'object' &&
-        local[0] !== null && remote[0] !== null) {
-      
+    if (
+      local.length > 0 &&
+      remote.length > 0 &&
+      typeof local[0] === 'object' &&
+      typeof remote[0] === 'object' &&
+      local[0] !== null &&
+      remote[0] !== null
+    ) {
       // Try to find a unique identifier field
       const idField = this.findIdField(local[0] as IdentifiableObject);
       if (idField) {
         return this.mergeArraysByField(
-          local as IdentifiableObject[], 
-          remote as IdentifiableObject[], 
+          local as IdentifiableObject[],
+          remote as IdentifiableObject[],
           idField
         );
       }
@@ -122,21 +145,37 @@ export class ConflictResolver {
     return Array.from(new Set(combined));
   }
 
-  private static mergeObjects(local: MergeableObject, remote: MergeableObject): MergeableObject {
+  private static mergeObjects(
+    local: MergeableObject,
+    remote: MergeableObject
+  ): MergeableObject {
     const merged = { ...remote };
 
     for (const [key, value] of Object.entries(local)) {
       if (!(key in remote)) {
         // Key only exists locally
         merged[key] = value;
-      } else if (typeof value === 'object' && typeof remote[key] === 'object' && 
-                 value !== null && remote[key] !== null) {
+      } else if (
+        typeof value === 'object' &&
+        typeof remote[key] === 'object' &&
+        value !== null &&
+        remote[key] !== null
+      ) {
         // Both are objects, merge recursively
-        merged[key] = this.mergeObjects(value as MergeableObject, remote[key] as MergeableObject);
+        merged[key] = this.mergeObjects(
+          value as MergeableObject,
+          remote[key] as MergeableObject
+        );
       } else {
         // Conflict on primitive value, use local (could be configurable)
-        const localTime = (value as TimestampedData).timestamp || (value as TimestampedData).lastModified || 0;
-        const remoteTime = (remote[key] as TimestampedData).timestamp || (remote[key] as TimestampedData).lastModified || 0;
+        const localTime =
+          (value as TimestampedData).timestamp ||
+          (value as TimestampedData).lastModified ||
+          0;
+        const remoteTime =
+          (remote[key] as TimestampedData).timestamp ||
+          (remote[key] as TimestampedData).lastModified ||
+          0;
         merged[key] = localTime > remoteTime ? value : remote[key];
       }
     }
@@ -146,7 +185,7 @@ export class ConflictResolver {
 
   private static findIdField(obj: IdentifiableObject): string | null {
     const commonIdFields = ['id', 'domain', 'name', 'key', 'identifier'];
-    
+
     for (const field of commonIdFields) {
       if (field in obj) {
         return field;
@@ -156,7 +195,11 @@ export class ConflictResolver {
     return null;
   }
 
-  private static mergeArraysByField(local: IdentifiableObject[], remote: IdentifiableObject[], idField: string): IdentifiableObject[] {
+  private static mergeArraysByField(
+    local: IdentifiableObject[],
+    remote: IdentifiableObject[],
+    idField: string
+  ): IdentifiableObject[] {
     const merged = [...remote];
     const remoteIds = new Set(remote.map(item => item[idField]));
 
@@ -169,7 +212,10 @@ export class ConflictResolver {
         // Item exists in both, merge the objects
         const remoteIndex = merged.findIndex(item => item[idField] === id);
         if (remoteIndex !== -1) {
-          merged[remoteIndex] = this.mergeObjects(localItem, merged[remoteIndex]);
+          merged[remoteIndex] = this.mergeObjects(
+            localItem,
+            merged[remoteIndex]
+          );
         }
       }
     }
@@ -177,7 +223,10 @@ export class ConflictResolver {
     return merged;
   }
 
-  static detectConflicts(localData: SyncData, remoteData: SyncData): DataConflict[] {
+  static detectConflicts(
+    localData: SyncData,
+    remoteData: SyncData
+  ): DataConflict[] {
     const conflicts: DataConflict[] = [];
 
     // Settings conflicts
@@ -186,7 +235,7 @@ export class ConflictResolver {
         type: 'settings',
         localData: localData.settings,
         remoteData: remoteData.settings,
-        field: 'settings'
+        field: 'settings',
       });
     }
 
@@ -196,7 +245,7 @@ export class ConflictResolver {
         type: 'trusted-sites',
         localData: localData.trustedSites,
         remoteData: remoteData.trustedSites,
-        field: 'trustedSites'
+        field: 'trustedSites',
       });
     }
 
@@ -206,17 +255,19 @@ export class ConflictResolver {
         type: 'goals',
         localData: localData.privacyGoals,
         remoteData: remoteData.privacyGoals,
-        field: 'privacyGoals'
+        field: 'privacyGoals',
       });
     }
 
     // Export schedules conflicts
-    if (this.hasDataChanged(localData.exportSchedules, remoteData.exportSchedules)) {
+    if (
+      this.hasDataChanged(localData.exportSchedules, remoteData.exportSchedules)
+    ) {
       conflicts.push({
         type: 'schedules',
         localData: localData.exportSchedules,
         remoteData: remoteData.exportSchedules,
-        field: 'exportSchedules'
+        field: 'exportSchedules',
       });
     }
 
@@ -236,10 +287,12 @@ export class ConflictResolver {
       return 'No conflicts detected';
     }
 
-    const summary = conflicts.map(conflict => {
-      const type = conflict.type.replace('-', ' ');
-      return `${type} data differs between devices`;
-    }).join(', ');
+    const summary = conflicts
+      .map(conflict => {
+        const type = conflict.type.replace('-', ' ');
+        return `${type} data differs between devices`;
+      })
+      .join(', ');
 
     return `${conflicts.length} conflict${conflicts.length > 1 ? 's' : ''} detected: ${summary}`;
   }

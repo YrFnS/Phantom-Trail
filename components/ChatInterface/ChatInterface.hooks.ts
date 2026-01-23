@@ -29,7 +29,9 @@ export function useChat(): ChatHookReturn {
       setError(null);
 
       try {
-        const response = await AIAnalysisPrompts.processQuery(messageContent.trim());
+        const response = await AIAnalysisPrompts.processQuery(
+          messageContent.trim()
+        );
 
         if (response) {
           const assistantMessage: ChatMessage = {
@@ -47,19 +49,23 @@ export function useChat(): ChatHookReturn {
         }
       } catch (err) {
         console.error('Chat message failed:', err);
-        
+
         // Check if it's a rate limit error
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        if (errorMessage.includes('rate limit') || errorMessage.includes('Rate limit')) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Unknown error';
+        if (
+          errorMessage.includes('rate limit') ||
+          errorMessage.includes('Rate limit')
+        ) {
           const rateLimitMessage: ChatMessage = {
             id: `assistant-${Date.now()}`,
             type: 'assistant',
-            content: errorMessage.includes('wait') 
-              ? errorMessage 
-              : 'I\'m currently rate limited by the AI service. Please wait a moment before asking again.',
+            content: errorMessage.includes('wait')
+              ? errorMessage
+              : "I'm currently rate limited by the AI service. Please wait a moment before asking again.",
             timestamp: Date.now(),
           };
-          
+
           setMessages(prev => [...prev, rateLimitMessage]);
         } else {
           setError(

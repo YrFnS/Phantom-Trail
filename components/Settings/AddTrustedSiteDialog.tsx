@@ -25,15 +25,15 @@ export function AddTrustedSiteDialog({
   const [domain, setDomain] = useState(currentDomain);
   const [reason, setReason] = useState('');
   const [temporary, setTemporary] = useState(false);
-  const [selectedMethods, setSelectedMethods] = useState<InPageTrackingMethod[]>([]);
+  const [selectedMethods, setSelectedMethods] = useState<
+    InPageTrackingMethod[]
+  >([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleMethodToggle = (method: InPageTrackingMethod) => {
-    setSelectedMethods((prev) =>
-      prev.includes(method)
-        ? prev.filter((m) => m !== method)
-        : [...prev, method]
+    setSelectedMethods(prev =>
+      prev.includes(method) ? prev.filter(m => m !== method) : [...prev, method]
     );
   };
 
@@ -59,7 +59,8 @@ export function AddTrustedSiteDialog({
         domain: domain.trim().toLowerCase(),
         addedAt: Date.now(),
         reason: reason.trim() || undefined,
-        allowedMethods: selectedMethods.length > 0 ? selectedMethods : undefined,
+        allowedMethods:
+          selectedMethods.length > 0 ? selectedMethods : undefined,
         temporary,
       };
 
@@ -98,7 +99,7 @@ export function AddTrustedSiteDialog({
               <input
                 type="text"
                 value={domain}
-                onChange={(e) => setDomain(e.target.value)}
+                onChange={e => setDomain(e.target.value)}
                 placeholder="example.com"
                 className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
                 autoFocus
@@ -116,7 +117,7 @@ export function AddTrustedSiteDialog({
               <input
                 type="text"
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
+                onChange={e => setReason(e.target.value)}
                 placeholder="Why is this site trusted?"
                 className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
               />
@@ -131,7 +132,7 @@ export function AddTrustedSiteDialog({
                 Leave empty to allow all methods
               </p>
               <div className="space-y-1 max-h-32 overflow-y-auto">
-                {TRACKING_METHODS.map((method) => (
+                {TRACKING_METHODS.map(method => (
                   <label
                     key={method.value}
                     className="flex items-center p-2 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer"
@@ -142,7 +143,9 @@ export function AddTrustedSiteDialog({
                       onChange={() => handleMethodToggle(method.value)}
                       className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] mr-2"
                     />
-                    <span className="text-sm text-[var(--text-primary)]">{method.label}</span>
+                    <span className="text-sm text-[var(--text-primary)]">
+                      {method.label}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -154,7 +157,7 @@ export function AddTrustedSiteDialog({
                 <input
                   type="checkbox"
                   checked={temporary}
-                  onChange={(e) => setTemporary(e.target.checked)}
+                  onChange={e => setTemporary(e.target.checked)}
                   className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] mr-2"
                 />
                 <div>
@@ -186,11 +189,7 @@ export function AddTrustedSiteDialog({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={saving}
-              >
+              <Button type="submit" className="flex-1" disabled={saving}>
                 {saving ? 'Adding...' : 'Add Site'}
               </Button>
             </div>

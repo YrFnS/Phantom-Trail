@@ -20,8 +20,14 @@ export class AICache {
    * Generate cache key from events
    */
   private static generateCacheKey(events: TrackingEvent[]): string {
-    const domains = events.map(e => e.domain).sort().join(',');
-    const trackerTypes = events.map(e => e.trackerType).sort().join(',');
+    const domains = events
+      .map(e => e.domain)
+      .sort()
+      .join(',');
+    const trackerTypes = events
+      .map(e => e.trackerType)
+      .sort()
+      .join(',');
     return `${domains}:${trackerTypes}`;
   }
 
@@ -49,7 +55,10 @@ export class AICache {
   /**
    * Store AI analysis in cache
    */
-  static async store(events: TrackingEvent[], analysis: AIAnalysis): Promise<void> {
+  static async store(
+    events: TrackingEvent[],
+    analysis: AIAnalysis
+  ): Promise<void> {
     try {
       const cacheKey = this.generateCacheKey(events);
       const result = await chrome.storage.session.get(this.CACHE_KEY);
@@ -63,7 +72,9 @@ export class AICache {
       // Clean old entries (keep only last 50)
       const entries = Object.entries(cache);
       if (entries.length > 50) {
-        const sorted = entries.sort(([,a], [,b]) => b.timestamp - a.timestamp);
+        const sorted = entries.sort(
+          ([, a], [, b]) => b.timestamp - a.timestamp
+        );
         const cleaned = Object.fromEntries(sorted.slice(0, 50));
         await chrome.storage.session.set({ [this.CACHE_KEY]: cleaned });
       } else {

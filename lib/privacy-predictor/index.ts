@@ -11,12 +11,18 @@ export class PrivacyPredictor {
     return PredictionEngine.predictPrivacyScore(url);
   }
 
-  static async analyzeLink(url: string, context: import('./types').PageContext) {
+  static async analyzeLink(
+    url: string,
+    context: import('./types').PageContext
+  ) {
     const { PredictionEngine } = await import('./prediction-engine');
     return PredictionEngine.analyzeLinkHover(url, context);
   }
 
-  static async analyzeLinkHover(url: string, context: import('./types').PageContext) {
+  static async analyzeLinkHover(
+    url: string,
+    context: import('./types').PageContext
+  ) {
     const { PredictionEngine } = await import('./prediction-engine');
     return PredictionEngine.analyzeLinkHover(url, context);
   }

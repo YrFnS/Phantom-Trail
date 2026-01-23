@@ -43,9 +43,11 @@ export class ContentMessaging {
       const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
       await new Promise(resolve => setTimeout(resolve, delay));
       attempt++;
-      
+
       if (this.isContextValid()) {
-        console.log(`[Phantom Trail] Context recovered after ${attempt} attempts`);
+        console.log(
+          `[Phantom Trail] Context recovered after ${attempt} attempts`
+        );
         break;
       }
     }
@@ -91,12 +93,14 @@ export class ContentMessaging {
       if (!this.isContextValid()) {
         console.warn('[Phantom Trail] Context invalid, attempting recovery');
         await this.attemptReconnect();
-        
+
         if (!this.isContextValid()) {
           // Queue event if context still invalid
           if (this.messageQueue.length < this.MAX_QUEUE_SIZE) {
             this.messageQueue.push(event);
-            console.log(`[Phantom Trail] Event queued (${this.messageQueue.length}/${this.MAX_QUEUE_SIZE})`);
+            console.log(
+              `[Phantom Trail] Event queued (${this.messageQueue.length}/${this.MAX_QUEUE_SIZE})`
+            );
           }
           return { success: false, error: 'Context recovery failed' };
         }
@@ -118,15 +122,17 @@ export class ContentMessaging {
         ]);
 
         const result = (response as BackgroundResponse) || { success: true };
-        
+
         // Success - flush any queued messages
         if (result.success && this.messageQueue.length > 0) {
-          console.log(`[Phantom Trail] Flushing ${this.messageQueue.length} queued events`);
+          console.log(
+            `[Phantom Trail] Flushing ${this.messageQueue.length} queued events`
+          );
           const queue = [...this.messageQueue];
           this.messageQueue = [];
-          
+
           // Send queued messages in background
-          queue.forEach(async (queuedEvent) => {
+          queue.forEach(async queuedEvent => {
             try {
               const queuedMessage: ContentMessage = {
                 type: 'tracking-event',
@@ -135,7 +141,10 @@ export class ContentMessaging {
               };
               await chrome.runtime.sendMessage(queuedMessage);
             } catch (error) {
-              console.warn('[Phantom Trail] Failed to send queued event:', error);
+              console.warn(
+                '[Phantom Trail] Failed to send queued event:',
+                error
+              );
             }
           });
         }
@@ -144,11 +153,16 @@ export class ContentMessaging {
       } catch (error) {
         lastError = error as Error;
         const errorMessage = String(error);
-        console.warn(`[Phantom Trail] Send attempt ${attempt + 1} failed:`, errorMessage);
+        console.warn(
+          `[Phantom Trail] Send attempt ${attempt + 1} failed:`,
+          errorMessage
+        );
 
         // Handle specific error types
-        if (errorMessage.includes('Extension context invalidated') || 
-            errorMessage.includes('Could not establish connection')) {
+        if (
+          errorMessage.includes('Extension context invalidated') ||
+          errorMessage.includes('Could not establish connection')
+        ) {
           // Queue event and try recovery
           if (this.messageQueue.length < this.MAX_QUEUE_SIZE) {
             this.messageQueue.push(event);

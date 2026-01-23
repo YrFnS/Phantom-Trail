@@ -133,7 +133,7 @@ export interface DailySnapshot {
     byRisk: Record<RiskLevel, number>;
     byType: Record<TrackerType, number>;
   };
-  topDomains: Array<{domain: string; count: number}>;
+  topDomains: Array<{ domain: string; count: number }>;
 }
 
 export interface WeeklyReport {

@@ -11,7 +11,11 @@ export interface PrivacyPrediction {
 }
 
 export interface RiskFactor {
-  type: 'domain-reputation' | 'category-risk' | 'tracker-patterns' | 'user-history';
+  type:
+    | 'domain-reputation'
+    | 'category-risk'
+    | 'tracker-patterns'
+    | 'user-history';
   impact: number; // -50 to +50 points
   description: string;
   confidence: number;

@@ -4,7 +4,8 @@ import { ReportsStorage } from './storage/reports-storage';
  * Data migration and cleanup utilities
  */
 export class DataMigration {
-  private static readonly MIGRATION_VERSION_KEY = 'phantom_trail_migration_version';
+  private static readonly MIGRATION_VERSION_KEY =
+    'phantom_trail_migration_version';
   private static readonly CURRENT_VERSION = '1.0.0';
 
   /**
@@ -13,18 +14,20 @@ export class DataMigration {
   static async runMigrations(): Promise<void> {
     try {
       const currentVersion = await this.getCurrentMigrationVersion();
-      
+
       if (currentVersion !== this.CURRENT_VERSION) {
-        console.log(`Running data migration from ${currentVersion} to ${this.CURRENT_VERSION}`);
-        
+        console.log(
+          `Running data migration from ${currentVersion} to ${this.CURRENT_VERSION}`
+        );
+
         // Run the reports data cleanup
         await ReportsStorage.migrateAndCleanData();
-        
+
         // Update migration version
         await chrome.storage.local.set({
-          [this.MIGRATION_VERSION_KEY]: this.CURRENT_VERSION
+          [this.MIGRATION_VERSION_KEY]: this.CURRENT_VERSION,
         });
-        
+
         console.log('Data migration completed successfully');
       }
     } catch (error) {
@@ -52,14 +55,14 @@ export class DataMigration {
   static async forceCleanAllData(): Promise<void> {
     try {
       console.log('Force cleaning all data...');
-      
+
       await ReportsStorage.migrateAndCleanData();
-      
+
       // Reset migration version to force re-migration
       await chrome.storage.local.set({
-        [this.MIGRATION_VERSION_KEY]: this.CURRENT_VERSION
+        [this.MIGRATION_VERSION_KEY]: this.CURRENT_VERSION,
       });
-      
+
       console.log('Force data cleanup completed');
     } catch (error) {
       console.error('Force data cleanup failed:', error);

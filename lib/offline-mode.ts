@@ -30,9 +30,9 @@ export class OfflineMode {
       cacheMaxAge: 24 * 60 * 60 * 1000, // 24 hours
       maxCachedAnalyses: 100,
       enableRuleBasedAnalysis: true,
-      ...config
+      ...config,
     };
-    
+
     this.loadCachedAnalyses();
   }
 
@@ -66,17 +66,20 @@ export class OfflineMode {
     return null;
   }
 
-  async cacheAnalysis(events: TrackingEvent[], analysis: AIAnalysis): Promise<void> {
+  async cacheAnalysis(
+    events: TrackingEvent[],
+    analysis: AIAnalysis
+  ): Promise<void> {
     const cacheKey = this.generateCacheKey(events);
     const cachedAnalysis: CachedAnalysis = {
       ...analysis,
       cacheKey,
       timestamp: Date.now(),
-      events: events.slice() // Create a copy
+      events: events.slice(), // Create a copy
     };
 
     this.cachedAnalyses.set(cacheKey, cachedAnalysis);
-    
+
     // Limit cache size
     if (this.cachedAnalyses.size > this.config.maxCachedAnalyses) {
       this.evictOldestCache();
@@ -85,10 +88,12 @@ export class OfflineMode {
     await this.saveCachedAnalyses();
   }
 
-  private async findSimilarAnalysis(events: TrackingEvent[]): Promise<CachedAnalysis | null> {
+  private async findSimilarAnalysis(
+    events: TrackingEvent[]
+  ): Promise<CachedAnalysis | null> {
     const currentDomains = new Set(events.map(e => e.domain));
     const currentRiskLevels = events.map(e => e.riskLevel);
-    
+
     let bestMatch: CachedAnalysis | null = null;
     let bestScore = 0;
 
@@ -99,9 +104,15 @@ export class OfflineMode {
       }
 
       const cachedDomains = new Set(cached.events.map(e => e.domain));
-      const similarity = this.calculateSimilarity(currentDomains, cachedDomains, currentRiskLevels, cached.events.map(e => e.riskLevel));
-      
-      if (similarity > bestScore && similarity > 0.6) { // 60% similarity threshold
+      const similarity = this.calculateSimilarity(
+        currentDomains,
+        cachedDomains,
+        currentRiskLevels,
+        cached.events.map(e => e.riskLevel)
+      );
+
+      if (similarity > bestScore && similarity > 0.6) {
+        // 60% similarity threshold
         bestScore = similarity;
         bestMatch = cached;
       }
@@ -130,14 +141,27 @@ export class OfflineMode {
 
   private calculateRiskSimilarity(risks1: string[], risks2: string[]): number {
     const riskWeights = { low: 1, medium: 2, high: 3, critical: 4 };
-    
-    const avg1 = risks1.reduce((sum, risk) => sum + (riskWeights[risk as keyof typeof riskWeights] || 0), 0) / risks1.length;
-    const avg2 = risks2.reduce((sum, risk) => sum + (riskWeights[risk as keyof typeof riskWeights] || 0), 0) / risks2.length;
-    
+
+    const avg1 =
+      risks1.reduce(
+        (sum, risk) =>
+          sum + (riskWeights[risk as keyof typeof riskWeights] || 0),
+        0
+      ) / risks1.length;
+    const avg2 =
+      risks2.reduce(
+        (sum, risk) =>
+          sum + (riskWeights[risk as keyof typeof riskWeights] || 0),
+        0
+      ) / risks2.length;
+
     return 1 - Math.abs(avg1 - avg2) / 4; // Normalize to 0-1
   }
 
-  private adaptCachedAnalysis(cached: CachedAnalysis, currentEvents: TrackingEvent[]): AIAnalysis {
+  private adaptCachedAnalysis(
+    cached: CachedAnalysis,
+    currentEvents: TrackingEvent[]
+  ): AIAnalysis {
     // Adapt the cached analysis to current events
     const adaptedNarrative = cached.narrative.replace(
       /\d+ trackers?/g,
@@ -148,14 +172,16 @@ export class OfflineMode {
       narrative: `${adaptedNarrative} (from cache)`,
       riskAssessment: cached.riskAssessment,
       recommendations: cached.recommendations,
-      confidence: cached.confidence * 0.8 // Reduce confidence for cached results
+      confidence: cached.confidence * 0.8, // Reduce confidence for cached results
     };
   }
 
   private generateRuleBasedAnalysis(events: TrackingEvent[]): AIAnalysis {
-    const highRiskEvents = events.filter(e => e.riskLevel === 'critical' || e.riskLevel === 'high');
+    const highRiskEvents = events.filter(
+      e => e.riskLevel === 'critical' || e.riskLevel === 'high'
+    );
     const mediumRiskEvents = events.filter(e => e.riskLevel === 'medium');
-    
+
     let narrative = 'Privacy analysis (offline mode): ';
     let riskAssessment: 'low' | 'medium' | 'high' | 'critical' = 'low';
     const recommendations: string[] = [];
@@ -167,10 +193,14 @@ export class OfflineMode {
       narrative += `${mediumRiskEvents.length} medium-risk tracker${mediumRiskEvents.length === 1 ? '' : 's'} detected.`;
       riskAssessment = 'medium';
       recommendations.push('Consider reviewing privacy settings for this site');
-    } else if (highRiskEvents.filter(e => e.riskLevel === 'critical').length > 0) {
+    } else if (
+      highRiskEvents.filter(e => e.riskLevel === 'critical').length > 0
+    ) {
       narrative += `${highRiskEvents.length} high-risk tracker${highRiskEvents.length === 1 ? '' : 's'} detected, including critical threats.`;
       riskAssessment = 'critical';
-      recommendations.push('Immediate action recommended - consider leaving this site');
+      recommendations.push(
+        'Immediate action recommended - consider leaving this site'
+      );
       recommendations.push('Use a VPN and ad blocker for protection');
     } else {
       narrative += `${highRiskEvents.length} high-risk tracker${highRiskEvents.length === 1 ? '' : 's'} detected.`;
@@ -182,14 +212,19 @@ export class OfflineMode {
     // Add domain-specific recommendations
     const uniqueDomains = new Set(events.map(e => e.domain));
     if (uniqueDomains.size > 5) {
-      recommendations.push('Multiple tracking domains detected - consider stricter privacy settings');
+      recommendations.push(
+        'Multiple tracking domains detected - consider stricter privacy settings'
+      );
     }
 
     return {
       narrative,
       riskAssessment,
-      recommendations: recommendations.length > 0 ? recommendations : ['Continue browsing normally'],
-      confidence: 0.7 // Lower confidence for rule-based analysis
+      recommendations:
+        recommendations.length > 0
+          ? recommendations
+          : ['Continue browsing normally'],
+      confidence: 0.7, // Lower confidence for rule-based analysis
     };
   }
 
@@ -234,7 +269,7 @@ export class OfflineMode {
       if (chrome?.storage?.local) {
         const cacheArray = Array.from(this.cachedAnalyses.entries());
         await chrome.storage.local.set({
-          offlineAnalysisCache: JSON.stringify(cacheArray)
+          offlineAnalysisCache: JSON.stringify(cacheArray),
         });
       }
     } catch (error) {
@@ -258,8 +293,14 @@ export class OfflineMode {
     return {
       totalCached: this.cachedAnalyses.size,
       validCached: validCaches.length,
-      oldestCache: validCaches.length > 0 ? Math.min(...validCaches.map(c => c.timestamp)) : null,
-      newestCache: validCaches.length > 0 ? Math.max(...validCaches.map(c => c.timestamp)) : null
+      oldestCache:
+        validCaches.length > 0
+          ? Math.min(...validCaches.map(c => c.timestamp))
+          : null,
+      newestCache:
+        validCaches.length > 0
+          ? Math.max(...validCaches.map(c => c.timestamp))
+          : null,
     };
   }
 }

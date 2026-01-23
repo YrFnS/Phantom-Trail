@@ -7,18 +7,21 @@ The real-time notifications feature proactively alerts users to critical privacy
 ## Features Implemented
 
 ### ✅ Core Notification System
+
 - **NotificationManager** class for centralized notification handling
 - Browser notification permissions added to manifest
 - Integration with existing tracking detection in background script
 - Automatic notifications for critical and high-risk tracking events
 
 ### ✅ User Preferences
+
 - **NotificationSettings** component in Settings UI
 - Configurable notification types (critical only, daily summary)
 - Quiet hours functionality (default: 22:00 - 08:00)
 - Enable/disable toggle for all notifications
 
 ### ✅ Smart Notifications
+
 - **Throttling**: Maximum 3 notifications per hour
 - **Domain-based throttling**: 20-minute cooldown per domain
 - **Daily summary**: Automatic privacy score notifications
@@ -27,22 +30,26 @@ The real-time notifications feature proactively alerts users to critical privacy
 ## Notification Types
 
 ### Privacy Alerts
+
 - **Critical**: 🚨 Device fingerprinting, form monitoring
 - **High Risk**: ⚠️ Cross-site tracking, excessive data collection
 
 ### Daily Summary
+
 - 📊 Privacy score and tracker count summary
 - Sent once daily (configurable)
 
 ## Usage
 
 ### For Users
+
 1. Install extension (notifications enabled by default)
 2. Configure preferences in Settings → Notifications tab
 3. Receive real-time alerts while browsing
 4. Click notifications to view details in extension popup
 
 ### For Developers
+
 ```typescript
 import { NotificationManager } from './lib/notification-manager';
 
@@ -59,6 +66,7 @@ await NotificationManager.updateSettings(newSettings);
 ## Testing
 
 ### Manual Testing
+
 1. Load extension in Chrome with Developer Mode
 2. Visit fingerprinting test sites (e.g., browserleaks.com/canvas)
 3. Verify notifications appear for critical events
@@ -66,6 +74,7 @@ await NotificationManager.updateSettings(newSettings);
 5. Verify quiet hours functionality
 
 ### Browser Console Testing
+
 ```javascript
 // Load test script in browser console
 // Run: window.testNotifications.runAllTests()
@@ -74,6 +83,7 @@ await NotificationManager.updateSettings(newSettings);
 ## Implementation Details
 
 ### Files Added/Modified
+
 - `lib/notification-manager.ts` - Core notification logic
 - `components/Settings/NotificationSettings.tsx` - User preferences UI
 - `components/Settings/Settings.tsx` - Integrated notification settings tab
@@ -82,11 +92,13 @@ await NotificationManager.updateSettings(newSettings);
 - `lib/types.ts` - Added NotificationSettings interface
 
 ### Performance Impact
+
 - Minimal CPU overhead (notifications are throttled)
 - No impact on page load times
 - Efficient storage of notification preferences
 
 ### Privacy & Security
+
 - All notification logic runs locally
 - No external API calls for notifications
 - User has full control over notification frequency and types

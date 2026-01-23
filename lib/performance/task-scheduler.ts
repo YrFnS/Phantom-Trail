@@ -15,7 +15,7 @@ export class TaskScheduler {
   async scheduleTask(task: Task): Promise<void> {
     this.queue.push(task);
     this.sortQueue();
-    
+
     if (!this.isProcessing) {
       this.processQueue();
     }
@@ -23,39 +23,40 @@ export class TaskScheduler {
 
   private sortQueue(): void {
     const priorityOrder = { high: 3, medium: 2, low: 1 };
-    this.queue.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]);
+    this.queue.sort(
+      (a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]
+    );
   }
 
   private async processQueue(): Promise<void> {
     if (this.isProcessing || this.queue.length === 0) return;
-    
+
     this.isProcessing = true;
-    
+
     while (this.queue.length > 0) {
       const task = this.queue.shift()!;
-      
+
       try {
         // Yield control to prevent blocking
         await this.yieldControl();
-        
+
         // Execute task with timeout
         const timeoutMs = task.timeout || 5000;
-        const timeoutPromise = new Promise<never>((_, reject) => 
+        const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Task timeout')), timeoutMs)
         );
-        
+
         await Promise.race([task.execute(), timeoutPromise]);
-        
       } catch (error) {
         console.error(`Task ${task.id} failed:`, error);
       }
-      
+
       // Run when browser is idle
       this.runWhenIdle(async () => {
         // Continue processing next task
       });
     }
-    
+
     this.isProcessing = false;
   }
 
@@ -85,7 +86,7 @@ export class TaskScheduler {
         high: this.queue.filter(t => t.priority === 'high').length,
         medium: this.queue.filter(t => t.priority === 'medium').length,
         low: this.queue.filter(t => t.priority === 'low').length,
-      }
+      },
     };
   }
 }

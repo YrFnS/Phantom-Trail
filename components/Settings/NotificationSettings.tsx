@@ -6,13 +6,15 @@ interface NotificationSettingsProps {
   className?: string;
 }
 
-export function NotificationSettings({ className = '' }: NotificationSettingsProps) {
+export function NotificationSettings({
+  className = '',
+}: NotificationSettingsProps) {
   const [settings, setSettings] = useState<NotificationSettingsType>({
     enabled: true,
     criticalOnly: false,
     dailySummary: true,
     weeklyReport: false,
-    quietHours: { start: '22:00', end: '08:00' }
+    quietHours: { start: '22:00', end: '08:00' },
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,7 +37,7 @@ export function NotificationSettings({ className = '' }: NotificationSettingsPro
   };
 
   const handleSettingChange = async <K extends keyof NotificationSettingsType>(
-    key: K, 
+    key: K,
     value: NotificationSettingsType[K]
   ) => {
     try {
@@ -52,7 +54,10 @@ export function NotificationSettings({ className = '' }: NotificationSettingsPro
     }
   };
 
-  const handleQuietHoursChange = async (type: 'start' | 'end', value: string) => {
+  const handleQuietHoursChange = async (
+    type: 'start' | 'end',
+    value: string
+  ) => {
     const newQuietHours = { ...settings.quietHours, [type]: value };
     await handleSettingChange('quietHours', newQuietHours);
   };
@@ -74,7 +79,7 @@ export function NotificationSettings({ className = '' }: NotificationSettingsPro
         <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
           Notification Settings
         </h3>
-        
+
         {/* Enable/Disable Notifications */}
         <div className="flex items-center justify-between py-3">
           <div>
@@ -89,7 +94,7 @@ export function NotificationSettings({ className = '' }: NotificationSettingsPro
             <input
               type="checkbox"
               checked={settings.enabled}
-              onChange={(e) => handleSettingChange('enabled', e.target.checked)}
+              onChange={e => handleSettingChange('enabled', e.target.checked)}
               disabled={saving}
               className="sr-only peer"
             />
@@ -113,7 +118,9 @@ export function NotificationSettings({ className = '' }: NotificationSettingsPro
                 <input
                   type="checkbox"
                   checked={settings.criticalOnly}
-                  onChange={(e) => handleSettingChange('criticalOnly', e.target.checked)}
+                  onChange={e =>
+                    handleSettingChange('criticalOnly', e.target.checked)
+                  }
                   disabled={saving}
                   className="sr-only peer"
                 />
@@ -135,7 +142,9 @@ export function NotificationSettings({ className = '' }: NotificationSettingsPro
                 <input
                   type="checkbox"
                   checked={settings.dailySummary}
-                  onChange={(e) => handleSettingChange('dailySummary', e.target.checked)}
+                  onChange={e =>
+                    handleSettingChange('dailySummary', e.target.checked)
+                  }
                   disabled={saving}
                   className="sr-only peer"
                 />
@@ -153,21 +162,29 @@ export function NotificationSettings({ className = '' }: NotificationSettingsPro
               </p>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <label className="text-xs text-[var(--text-secondary)]">From:</label>
+                  <label className="text-xs text-[var(--text-secondary)]">
+                    From:
+                  </label>
                   <input
                     type="time"
                     value={settings.quietHours.start}
-                    onChange={(e) => handleQuietHoursChange('start', e.target.value)}
+                    onChange={e =>
+                      handleQuietHoursChange('start', e.target.value)
+                    }
                     disabled={saving}
                     className="px-2 py-1 text-xs border border-[var(--border-primary)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                   />
                 </div>
                 <div className="flex items-center space-x-2">
-                  <label className="text-xs text-[var(--text-secondary)]">To:</label>
+                  <label className="text-xs text-[var(--text-secondary)]">
+                    To:
+                  </label>
                   <input
                     type="time"
                     value={settings.quietHours.end}
-                    onChange={(e) => handleQuietHoursChange('end', e.target.value)}
+                    onChange={e =>
+                      handleQuietHoursChange('end', e.target.value)
+                    }
                     disabled={saving}
                     className="px-2 py-1 text-xs border border-[var(--border-primary)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                   />

@@ -13,7 +13,13 @@ export interface TrackerPattern {
 export interface AnalysisResult {
   type: 'pattern' | 'risk' | 'tracker' | 'website' | 'timeline';
   summary: string;
-  data: PatternData | RiskData | TrackerData | WebsiteData | TimelineData | null;
+  data:
+    | PatternData
+    | RiskData
+    | TrackerData
+    | WebsiteData
+    | TimelineData
+    | null;
   recommendations: string[];
 }
 

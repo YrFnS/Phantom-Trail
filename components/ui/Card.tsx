@@ -28,13 +28,13 @@ interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function CardHeader({ className, children, ...props }: CardHeaderProps) {
   return (
-    <div 
+    <div
       className={cn(
         'p-6 pb-4 border-b border-[var(--border-primary)]/50',
         'bg-gradient-to-r from-[var(--bg-secondary)]/50 to-transparent',
         'rounded-t-xl',
         className
-      )} 
+      )}
       {...props}
     >
       {children}

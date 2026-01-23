@@ -37,7 +37,8 @@ export class AIClient {
     if (!rateLimitStatus.canMakeRequest) {
       const error = new Error('Rate limit exceeded') as APIError;
       error.isRateLimit = true;
-      error.retryAfter = rateLimitStatus.retryAfter || (rateLimitStatus.resetTime - Date.now());
+      error.retryAfter =
+        rateLimitStatus.retryAfter || rateLimitStatus.resetTime - Date.now();
       throw error;
     }
 
@@ -68,12 +69,15 @@ export class AIClient {
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.REQUEST_TIMEOUT);
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          this.REQUEST_TIMEOUT
+        );
 
         const response = await fetch(`${this.API_BASE}/chat/completions`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${apiKey}`,
+            Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://phantom-trail.extension',
             'X-Title': 'Phantom Trail Extension',
@@ -85,7 +89,9 @@ export class AIClient {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          const error = new Error(`API request failed: ${response.status}`) as APIError;
+          const error = new Error(
+            `API request failed: ${response.status}`
+          ) as APIError;
           error.status = response.status;
 
           if (response.status === 429) {
@@ -126,7 +132,10 @@ export class AIClient {
         lastError = error as APIError;
 
         // Don't retry on rate limits or client errors
-        if (lastError.isRateLimit || (lastError.status && lastError.status < 500)) {
+        if (
+          lastError.isRateLimit ||
+          (lastError.status && lastError.status < 500)
+        ) {
           break;
         }
 
@@ -202,8 +211,14 @@ Provide analysis in the specified JSON format.`;
 
     events.forEach(event => {
       domainCounts.set(event.domain, (domainCounts.get(event.domain) || 0) + 1);
-      typeCounts.set(event.trackerType, (typeCounts.get(event.trackerType) || 0) + 1);
-      riskCounts.set(event.riskLevel, (riskCounts.get(event.riskLevel) || 0) + 1);
+      typeCounts.set(
+        event.trackerType,
+        (typeCounts.get(event.trackerType) || 0) + 1
+      );
+      riskCounts.set(
+        event.riskLevel,
+        (riskCounts.get(event.riskLevel) || 0) + 1
+      );
     });
 
     const topDomains = Array.from(domainCounts.entries())
@@ -252,7 +267,10 @@ Risk levels: ${riskSummary}`;
       return {
         narrative: 'Unable to analyze tracking data at this time.',
         riskAssessment: 'medium',
-        recommendations: ['Review privacy settings', 'Consider using ad blockers'],
+        recommendations: [
+          'Review privacy settings',
+          'Consider using ad blockers',
+        ],
         confidence: 0.1,
       };
     }

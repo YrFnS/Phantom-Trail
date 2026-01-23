@@ -25,9 +25,9 @@ export function useAIAnalysis(events: TrackingEvent[]) {
       // Check cache first
       const recentEvents = events.slice(-5); // Last 5 events
       if (recentEvents.length === 0) return;
-      
+
       const cached = await AnalysisCache.getCachedAnalysis(recentEvents[0]);
-      
+
       if (cached) {
         setAnalysis(cached);
         setLoading(false);
@@ -36,7 +36,7 @@ export function useAIAnalysis(events: TrackingEvent[]) {
 
       // Generate new analysis
       const aiAnalysis = await AIEngine.analyzeEvents(recentEvents);
-      
+
       if (aiAnalysis && recentEvents[0]) {
         // Create EventAnalysis from AIAnalysis
         const eventAnalysis: EventAnalysis = {
@@ -44,7 +44,7 @@ export function useAIAnalysis(events: TrackingEvent[]) {
           eventId: recentEvents[0].id,
           timestamp: Date.now(),
         };
-        
+
         // Cache the result
         await AnalysisCache.setCachedAnalysis(recentEvents[0], eventAnalysis);
         setAnalysis(aiAnalysis);

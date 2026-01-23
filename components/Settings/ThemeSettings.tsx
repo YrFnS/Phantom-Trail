@@ -52,14 +52,27 @@ export function ThemeSettings() {
               className="mr-3 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
             />
             <div className="flex items-center">
-              <svg className="w-4 h-4 mr-2 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="4"/>
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34L4.93 4.93M19.07 19.07l-1.41-1.41"/>
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" opacity="0.5"/>
+              <svg
+                className="w-4 h-4 mr-2 text-[var(--text-secondary)]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34L4.93 4.93M19.07 19.07l-1.41-1.41" />
+                <path
+                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                  opacity="0.5"
+                />
               </svg>
               <div>
-                <div className="text-sm font-medium text-[var(--text-primary)]">Auto</div>
-                <div className="text-xs text-[var(--text-secondary)]">Follow system preference</div>
+                <div className="text-sm font-medium text-[var(--text-primary)]">
+                  Auto
+                </div>
+                <div className="text-xs text-[var(--text-secondary)]">
+                  Follow system preference
+                </div>
               </div>
             </div>
           </label>
@@ -75,13 +88,23 @@ export function ThemeSettings() {
               className="mr-3 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
             />
             <div className="flex items-center">
-              <svg className="w-4 h-4 mr-2 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="4"/>
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34L4.93 4.93M19.07 19.07l-1.41-1.41"/>
+              <svg
+                className="w-4 h-4 mr-2 text-[var(--text-secondary)]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34L4.93 4.93M19.07 19.07l-1.41-1.41" />
               </svg>
               <div>
-                <div className="text-sm font-medium text-[var(--text-primary)]">Light</div>
-                <div className="text-xs text-[var(--text-secondary)]">Bright theme for daytime use</div>
+                <div className="text-sm font-medium text-[var(--text-primary)]">
+                  Light
+                </div>
+                <div className="text-xs text-[var(--text-secondary)]">
+                  Bright theme for daytime use
+                </div>
               </div>
             </div>
           </label>
@@ -97,12 +120,22 @@ export function ThemeSettings() {
               className="mr-3 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
             />
             <div className="flex items-center">
-              <svg className="w-4 h-4 mr-2 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              <svg
+                className="w-4 h-4 mr-2 text-[var(--text-secondary)]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
               <div>
-                <div className="text-sm font-medium text-[var(--text-primary)]">Dark</div>
-                <div className="text-xs text-[var(--text-secondary)]">Easy on eyes for low-light environments</div>
+                <div className="text-sm font-medium text-[var(--text-primary)]">
+                  Dark
+                </div>
+                <div className="text-xs text-[var(--text-secondary)]">
+                  Easy on eyes for low-light environments
+                </div>
               </div>
             </div>
           </label>
@@ -112,7 +145,9 @@ export function ThemeSettings() {
       {isLoading && (
         <div className="flex items-center justify-center py-2">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[var(--accent-primary)]"></div>
-          <span className="ml-2 text-sm text-[var(--text-secondary)]">Applying theme...</span>
+          <span className="ml-2 text-sm text-[var(--text-secondary)]">
+            Applying theme...
+          </span>
         </div>
       )}
     </div>

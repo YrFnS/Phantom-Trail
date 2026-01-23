@@ -1,9 +1,17 @@
-import type { PrivacyScoreProps, PrivacyScoreBadgeProps } from './PrivacyScore.types';
+import type {
+  PrivacyScoreProps,
+  PrivacyScoreBadgeProps,
+} from './PrivacyScore.types';
 
 /**
  * Privacy Score Badge Component
  */
-export function PrivacyScoreBadge({ score, grade, color, size = 'md' }: PrivacyScoreBadgeProps) {
+export function PrivacyScoreBadge({
+  score,
+  grade,
+  color,
+  size = 'md',
+}: PrivacyScoreBadgeProps) {
   const sizeClasses = {
     sm: 'text-xs px-2 py-1',
     md: 'text-sm px-3 py-1.5',
@@ -18,7 +26,9 @@ export function PrivacyScoreBadge({ score, grade, color, size = 'md' }: PrivacyS
   };
 
   return (
-    <div className={`inline-flex items-center rounded-full border font-medium ${sizeClasses[size]} ${colorClasses[color]}`}>
+    <div
+      className={`inline-flex items-center rounded-full border font-medium ${sizeClasses[size]} ${colorClasses[color]}`}
+    >
       <span className="font-bold">{grade}</span>
       <span className="ml-1">{score}/100</span>
     </div>
@@ -28,7 +38,12 @@ export function PrivacyScoreBadge({ score, grade, color, size = 'md' }: PrivacyS
 /**
  * Privacy Score Component with breakdown
  */
-export function PrivacyScore({ score, trend, showBreakdown = false, className = '' }: PrivacyScoreProps) {
+export function PrivacyScore({
+  score,
+  trend,
+  showBreakdown = false,
+  className = '',
+}: PrivacyScoreProps) {
   const trendIcons = {
     improving: '↗️',
     declining: '↘️',
@@ -64,10 +79,13 @@ export function PrivacyScore({ score, trend, showBreakdown = false, className = 
       {/* Breakdown Summary */}
       <div className="text-sm text-gray-400">
         {score.breakdown.totalTrackers === 0 ? (
-          <span className="text-green-400 font-medium">No trackers detected</span>
+          <span className="text-green-400 font-medium">
+            No trackers detected
+          </span>
         ) : (
           <span>
-            {score.breakdown.totalTrackers} tracker{score.breakdown.totalTrackers !== 1 ? 's' : ''} detected
+            {score.breakdown.totalTrackers} tracker
+            {score.breakdown.totalTrackers !== 1 ? 's' : ''} detected
             {score.breakdown.highRisk > 0 && (
               <span className="text-red-400 font-medium ml-1">
                 ({score.breakdown.highRisk} high-risk)
@@ -92,7 +110,9 @@ export function PrivacyScore({ score, trend, showBreakdown = false, className = 
             </div>
             <div className="text-center">
               <div className="text-orange-400 font-bold">
-                {score.breakdown.mediumRisk > 0 ? score.breakdown.mediumRisk : '—'}
+                {score.breakdown.mediumRisk > 0
+                  ? score.breakdown.mediumRisk
+                  : '—'}
               </div>
               <div className="text-xs text-gray-500">Medium Risk</div>
             </div>
@@ -130,7 +150,10 @@ export function PrivacyScore({ score, trend, showBreakdown = false, className = 
           </div>
           <ul className="space-y-1">
             {score.recommendations.map((recommendation, index) => (
-              <li key={index} className="text-xs text-gray-400 flex items-start">
+              <li
+                key={index}
+                className="text-xs text-gray-400 flex items-start"
+              >
                 <span className="mr-2 text-accent-teal">•</span>
                 <span>{recommendation}</span>
               </li>

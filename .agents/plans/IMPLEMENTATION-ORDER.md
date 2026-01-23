@@ -11,18 +11,21 @@
 Execute phases sequentially. Each phase is independently testable and deliverable.
 
 ### Phase 1: Canvas Fingerprinting Detection ⭐ START HERE
+
 **File:** `.agents/plans/phase-1-canvas-fingerprinting-detection.md`
 **Time:** 2-3 hours
 **Complexity:** Low-Medium
 **Priority:** CRITICAL - Establishes foundation for all other phases
 
 **Why First:**
+
 - Creates entire content script infrastructure
 - Most common fingerprinting method (~30% of all tracking)
 - Clear detection signals with low false positive rate
 - Validates architecture end-to-end (content → background → UI)
 
 **Deliverable:**
+
 - Working content script injection system
 - Canvas fingerprinting detection on browserleaks.com
 - Events appearing in Live Feed with AI analysis
@@ -35,18 +38,21 @@ Execute phases sequentially. Each phase is independently testable and deliverabl
 ---
 
 ### Phase 2: Storage Access Detection
+
 **File:** `.agents/plans/phase-2-storage-access-detection.md`
 **Time:** 1-2 hours
 **Complexity:** Low
 **Priority:** HIGH - Common tracking method, builds on Phase 1
 
 **Why Second:**
+
 - Reuses Phase 1 infrastructure (minimal new code)
 - Common tracking method (~25% of tracking)
 - Similar pattern to canvas (frequency-based detection)
 - Validates extensibility of architecture
 
 **Deliverable:**
+
 - localStorage/sessionStorage monitoring
 - Cookie access detection
 - Storage tracking events in Live Feed
@@ -58,18 +64,21 @@ Execute phases sequentially. Each phase is independently testable and deliverabl
 ---
 
 ### Phase 3: Mouse Tracking Detection
+
 **File:** `.agents/plans/phase-3-mouse-tracking-detection.md`
 **Time:** 1-2 hours
 **Complexity:** Medium
 **Priority:** MEDIUM - Performance sensitive, needs careful tuning
 
 **Why Third:**
+
 - More complex due to high event frequency
 - Tests performance optimization strategies
 - Common on e-commerce sites
 - Validates throttling mechanisms
 
 **Deliverable:**
+
 - Mouse movement tracking detection
 - Scroll behavior monitoring
 - Behavioral analytics detection
@@ -81,18 +90,21 @@ Execute phases sequentially. Each phase is independently testable and deliverabl
 ---
 
 ### Phase 4: Form Monitoring Detection
+
 **File:** `.agents/plans/phase-4-form-monitoring-detection.md`
 **Time:** 1-2 hours
 **Complexity:** Medium
 **Priority:** HIGH - Critical security feature (password monitoring)
 
 **Why Fourth:**
+
 - Critical security concern (keylogging detection)
 - High user impact (immediate actionable warning)
 - Tests risk escalation (critical vs high vs medium)
 - Validates security-focused AI prompts
 
 **Deliverable:**
+
 - Form field monitoring detection
 - Password field keylogging alerts (critical risk)
 - Security-focused AI warnings
@@ -104,18 +116,21 @@ Execute phases sequentially. Each phase is independently testable and deliverabl
 ---
 
 ### Phase 5: Device API Detection
+
 **File:** `.agents/plans/phase-5-device-api-detection.md`
 **Time:** 1-2 hours
 **Complexity:** Medium-High
 **Priority:** MEDIUM - Completes coverage, most complex
 
 **Why Last:**
+
 - Most complex (many APIs to monitor)
 - Lower frequency than other methods
 - Completes comprehensive tracking coverage
 - Validates system scalability (5 detection methods)
 
 **Deliverable:**
+
 - Device fingerprinting detection
 - Hardware API monitoring (battery, geolocation, screen, etc.)
 - Complete in-page tracking coverage
@@ -129,6 +144,7 @@ Execute phases sequentially. Each phase is independently testable and deliverabl
 ## Quick Start Guide
 
 ### Step 1: Execute Phase 1
+
 ```bash
 # Read the plan
 cat .agents/plans/phase-1-canvas-fingerprinting-detection.md
@@ -143,6 +159,7 @@ pnpm build
 ```
 
 ### Step 2: Validate Phase 1 Success
+
 - [ ] Canvas fingerprinting detected on test site
 - [ ] Event appears in Live Feed
 - [ ] AI analysis includes canvas context
@@ -150,9 +167,11 @@ pnpm build
 - [ ] CPU <2%
 
 ### Step 3: Proceed to Phase 2
+
 Only after Phase 1 is 100% working.
 
 ### Step 4: Repeat for Phases 2-5
+
 Each phase builds incrementally on previous work.
 
 ---
@@ -162,26 +181,31 @@ Each phase builds incrementally on previous work.
 You can stop after any phase and still have a working feature:
 
 **After Phase 1:**
+
 - Canvas fingerprinting detection (30% coverage)
 - Foundation for future enhancements
 - Shippable feature
 
 **After Phase 2:**
+
 - Canvas + Storage detection (55% coverage)
 - Most common tracking methods covered
 - Strong value proposition
 
 **After Phase 3:**
+
 - Canvas + Storage + Mouse (70% coverage)
 - Behavioral analytics detection
 - E-commerce tracking visible
 
 **After Phase 4:**
+
 - Canvas + Storage + Mouse + Forms (85% coverage)
 - Critical security feature (password monitoring)
 - Comprehensive privacy protection
 
 **After Phase 5:**
+
 - Complete in-page tracking detection (90% coverage)
 - All major tracking methods covered
 - Industry-leading detection capabilities
@@ -191,17 +215,21 @@ You can stop after any phase and still have a working feature:
 ## Risk Mitigation Strategy
 
 ### Phase 1 Risks
+
 - **Architecture issues** → Caught early, easy to fix
 - **Performance problems** → Isolated to canvas detection
 - **WXT integration issues** → Resolved before other phases
 
 ### Phase 2-5 Risks
+
 - **Minimal** - Architecture proven in Phase 1
 - **Isolated** - Each phase independent
 - **Reversible** - Can rollback individual phases
 
 ### Rollback Strategy
+
 Each phase is a separate commit. If issues arise:
+
 ```bash
 git revert <phase-commit-hash>
 pnpm build
@@ -213,18 +241,21 @@ pnpm build
 ## Success Metrics
 
 ### Phase 1 Success
+
 - Canvas detection working on 3+ test sites
 - Zero console errors
 - CPU overhead <2%
 - AI analysis quality score >85%
 
 ### Phase 2-5 Success
+
 - Each detection method working on test sites
 - No performance degradation (<5% CPU total)
 - No false positives on normal browsing
 - AI analysis contextually accurate
 
 ### Overall Success
+
 - All 5 detection methods functional
 - 90%+ tracking coverage
 - <5% CPU overhead
@@ -236,6 +267,7 @@ pnpm build
 ## Time Estimates
 
 ### Conservative (Beginner)
+
 - Phase 1: 3 hours
 - Phase 2: 2 hours
 - Phase 3: 2 hours
@@ -244,6 +276,7 @@ pnpm build
 - **Total: 11 hours**
 
 ### Realistic (Intermediate)
+
 - Phase 1: 2.5 hours
 - Phase 2: 1.5 hours
 - Phase 3: 1.5 hours
@@ -252,6 +285,7 @@ pnpm build
 - **Total: 8.5 hours**
 
 ### Optimistic (Expert)
+
 - Phase 1: 2 hours
 - Phase 2: 1 hour
 - Phase 3: 1 hour
@@ -279,20 +313,25 @@ Each developer works on separate detection method in `in-page-detector.ts` and `
 ## Testing Strategy
 
 ### Per-Phase Testing
+
 - Unit validation after each task
 - Integration test at phase completion
 - Performance profiling
 - Manual testing on target sites
 
 ### Cross-Phase Testing
+
 After each phase, test all previous phases still work:
+
 - Phase 2: Test canvas + storage
 - Phase 3: Test canvas + storage + mouse
 - Phase 4: Test all four methods
 - Phase 5: Test all five methods
 
 ### Final System Testing
+
 After Phase 5:
+
 - Comprehensive test on https://coveryourtracks.eff.org/
 - Performance benchmarking
 - False positive analysis
@@ -303,12 +342,14 @@ After Phase 5:
 ## Documentation Updates
 
 After each phase:
+
 - Update DEVLOG.md with implementation notes
 - Document any threshold adjustments
 - Note false positive patterns
 - Record performance metrics
 
 After Phase 5:
+
 - Update README.md with complete feature description
 - Add detection method documentation
 - Create user guide for interpreting events
@@ -319,16 +360,19 @@ After Phase 5:
 ## Next Steps After Completion
 
 ### Immediate (Week 1)
+
 - User testing and feedback collection
 - Threshold tuning based on real-world data
 - False positive analysis and fixes
 
 ### Short-term (Month 1)
+
 - Browser notifications for critical events
 - Whitelist for trusted sites
 - Export tracking reports
 
 ### Long-term (Quarter 1)
+
 - WebGL fingerprinting detection
 - AudioContext fingerprinting
 - Font enumeration detection

@@ -6,18 +6,18 @@ import { BaseStorage } from './base-storage';
 export class SyncStorage {
   private static readonly NON_SYNCABLE_KEYS = [
     'phantom_trail_events',
-    'phantom_trail_daily_snapshots', 
+    'phantom_trail_daily_snapshots',
     'phantom_trail_weekly_reports',
     'ai_cache',
     'session_data',
-    'temp_data'
+    'temp_data',
   ];
 
   /**
    * Check if a key should be synced across devices
    */
   static isSyncableKey(key: string): boolean {
-    return !this.NON_SYNCABLE_KEYS.some(nonSyncKey => 
+    return !this.NON_SYNCABLE_KEYS.some(nonSyncKey =>
       key.startsWith(nonSyncKey)
     );
   }
@@ -36,13 +36,13 @@ export class SyncStorage {
     try {
       const allData = await BaseStorage.getAllData();
       const syncableData: Record<string, unknown> = {};
-      
+
       for (const [key, value] of Object.entries(allData)) {
         if (this.isSyncableKey(key)) {
           syncableData[key] = value;
         }
       }
-      
+
       return syncableData;
     } catch (error) {
       console.error('Failed to get syncable data:', error);
@@ -56,13 +56,13 @@ export class SyncStorage {
   static async setSyncableData(data: Record<string, unknown>): Promise<void> {
     try {
       const syncableData: Record<string, unknown> = {};
-      
+
       for (const [key, value] of Object.entries(data)) {
         if (this.isSyncableKey(key)) {
           syncableData[key] = value;
         }
       }
-      
+
       if (Object.keys(syncableData).length > 0) {
         await BaseStorage.setMultiple(syncableData);
       }

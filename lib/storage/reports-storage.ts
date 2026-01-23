@@ -12,7 +12,7 @@ export class ReportsStorage {
    */
   private static isValidWeeklyReport(data: unknown): data is WeeklyReport {
     if (!data || typeof data !== 'object') return false;
-    
+
     const report = data as Record<string, unknown>;
     return (
       typeof report.weekStart === 'string' &&
@@ -29,7 +29,7 @@ export class ReportsStorage {
    */
   private static isValidDailySnapshot(data: unknown): data is DailySnapshot {
     if (!data || typeof data !== 'object') return false;
-    
+
     const snapshot = data as Record<string, unknown>;
     return (
       typeof snapshot.date === 'string' &&
@@ -49,11 +49,11 @@ export class ReportsStorage {
     dataType: string
   ): T[] {
     if (!rawData) return [];
-    
+
     if (!Array.isArray(rawData)) {
       console.warn(`${dataType} data is not an array, resetting:`, {
         type: typeof rawData,
-        value: rawData
+        value: rawData,
       });
       return [];
     }
@@ -70,7 +70,10 @@ export class ReportsStorage {
     }
 
     if (invalidItems.length > 0) {
-      console.warn(`Found ${invalidItems.length} invalid ${dataType} items, removing:`, invalidItems);
+      console.warn(
+        `Found ${invalidItems.length} invalid ${dataType} items, removing:`,
+        invalidItems
+      );
     }
 
     return validItems;
@@ -81,32 +84,35 @@ export class ReportsStorage {
    */
   static async storeDailySnapshot(snapshot: DailySnapshot): Promise<void> {
     try {
-      const result = await chrome.storage.local.get(ReportsStorage.DAILY_SNAPSHOTS_KEY);
+      const result = await chrome.storage.local.get(
+        ReportsStorage.DAILY_SNAPSHOTS_KEY
+      );
       const rawSnapshots = result[ReportsStorage.DAILY_SNAPSHOTS_KEY];
-      
+
       // Validate and clean existing data
       const snapshots = ReportsStorage.validateStoredData(
         rawSnapshots,
         ReportsStorage.isValidDailySnapshot,
         'daily snapshots'
       );
-      
+
       // Remove existing snapshot for the same date
       const filteredSnapshots = snapshots.filter(
         (s: DailySnapshot) => s.date !== snapshot.date
       );
-      
+
       filteredSnapshots.push(snapshot);
-      
+
       // Keep only last 90 days
-      filteredSnapshots.sort((a: DailySnapshot, b: DailySnapshot) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
+      filteredSnapshots.sort(
+        (a: DailySnapshot, b: DailySnapshot) =>
+          new Date(a.date).getTime() - new Date(b.date).getTime()
       );
-      
+
       if (filteredSnapshots.length > 90) {
         filteredSnapshots.splice(0, filteredSnapshots.length - 90);
       }
-      
+
       await chrome.storage.local.set({
         [ReportsStorage.DAILY_SNAPSHOTS_KEY]: filteredSnapshots,
       });
@@ -121,25 +127,34 @@ export class ReportsStorage {
    */
   static async getDailySnapshots(days: number = 30): Promise<DailySnapshot[]> {
     try {
-      const result = await chrome.storage.local.get(ReportsStorage.DAILY_SNAPSHOTS_KEY);
+      const result = await chrome.storage.local.get(
+        ReportsStorage.DAILY_SNAPSHOTS_KEY
+      );
       const rawSnapshots = result[ReportsStorage.DAILY_SNAPSHOTS_KEY];
-      
+
       // Validate and clean existing data
       const snapshots = ReportsStorage.validateStoredData(
         rawSnapshots,
         ReportsStorage.isValidDailySnapshot,
         'daily snapshots'
       );
-      
+
       // If we found invalid data, update storage with cleaned data
-      if (rawSnapshots && (!Array.isArray(rawSnapshots) || rawSnapshots.length !== snapshots.length)) {
-        await chrome.storage.local.set({ [ReportsStorage.DAILY_SNAPSHOTS_KEY]: snapshots });
+      if (
+        rawSnapshots &&
+        (!Array.isArray(rawSnapshots) ||
+          rawSnapshots.length !== snapshots.length)
+      ) {
+        await chrome.storage.local.set({
+          [ReportsStorage.DAILY_SNAPSHOTS_KEY]: snapshots,
+        });
       }
-      
+
       // Sort by date (newest first) and limit
       return snapshots
-        .sort((a: DailySnapshot, b: DailySnapshot) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
+        .sort(
+          (a: DailySnapshot, b: DailySnapshot) =>
+            new Date(b.date).getTime() - new Date(a.date).getTime()
         )
         .slice(0, days);
     } catch (error) {
@@ -153,32 +168,35 @@ export class ReportsStorage {
    */
   static async storeWeeklyReport(report: WeeklyReport): Promise<void> {
     try {
-      const result = await chrome.storage.local.get(ReportsStorage.WEEKLY_REPORTS_KEY);
+      const result = await chrome.storage.local.get(
+        ReportsStorage.WEEKLY_REPORTS_KEY
+      );
       const rawReports = result[ReportsStorage.WEEKLY_REPORTS_KEY];
-      
+
       // Validate and clean existing data
       const reports = ReportsStorage.validateStoredData(
         rawReports,
         ReportsStorage.isValidWeeklyReport,
         'weekly reports'
       );
-      
+
       // Remove existing report for the same week
       const filteredReports = reports.filter(
         (r: WeeklyReport) => r.weekStart !== report.weekStart
       );
-      
+
       filteredReports.push(report);
-      
+
       // Keep only last 52 weeks (1 year)
-      filteredReports.sort((a: WeeklyReport, b: WeeklyReport) => 
-        new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime()
+      filteredReports.sort(
+        (a: WeeklyReport, b: WeeklyReport) =>
+          new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime()
       );
-      
+
       if (filteredReports.length > 52) {
         filteredReports.splice(0, filteredReports.length - 52);
       }
-      
+
       await chrome.storage.local.set({
         [ReportsStorage.WEEKLY_REPORTS_KEY]: filteredReports,
       });
@@ -193,25 +211,33 @@ export class ReportsStorage {
    */
   static async getWeeklyReports(weeks: number = 12): Promise<WeeklyReport[]> {
     try {
-      const result = await chrome.storage.local.get(ReportsStorage.WEEKLY_REPORTS_KEY);
+      const result = await chrome.storage.local.get(
+        ReportsStorage.WEEKLY_REPORTS_KEY
+      );
       const rawReports = result[ReportsStorage.WEEKLY_REPORTS_KEY];
-      
+
       // Validate and clean existing data
       const reports = ReportsStorage.validateStoredData(
         rawReports,
         ReportsStorage.isValidWeeklyReport,
         'weekly reports'
       );
-      
+
       // If we found invalid data, update storage with cleaned data
-      if (rawReports && (!Array.isArray(rawReports) || rawReports.length !== reports.length)) {
-        await chrome.storage.local.set({ [ReportsStorage.WEEKLY_REPORTS_KEY]: reports });
+      if (
+        rawReports &&
+        (!Array.isArray(rawReports) || rawReports.length !== reports.length)
+      ) {
+        await chrome.storage.local.set({
+          [ReportsStorage.WEEKLY_REPORTS_KEY]: reports,
+        });
       }
-      
+
       // Sort by week start (newest first) and limit
       return reports
-        .sort((a: WeeklyReport, b: WeeklyReport) => 
-          new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime()
+        .sort(
+          (a: WeeklyReport, b: WeeklyReport) =>
+            new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime()
         )
         .slice(0, weeks);
     } catch (error) {
@@ -226,29 +252,33 @@ export class ReportsStorage {
   static async migrateAndCleanData(): Promise<void> {
     try {
       console.log('Starting data migration and cleanup...');
-      
+
       // Clean daily snapshots
-      const dailyResult = await chrome.storage.local.get(ReportsStorage.DAILY_SNAPSHOTS_KEY);
+      const dailyResult = await chrome.storage.local.get(
+        ReportsStorage.DAILY_SNAPSHOTS_KEY
+      );
       const cleanedDaily = ReportsStorage.validateStoredData(
         dailyResult[ReportsStorage.DAILY_SNAPSHOTS_KEY],
         ReportsStorage.isValidDailySnapshot,
         'daily snapshots'
       );
-      
+
       // Clean weekly reports
-      const weeklyResult = await chrome.storage.local.get(ReportsStorage.WEEKLY_REPORTS_KEY);
+      const weeklyResult = await chrome.storage.local.get(
+        ReportsStorage.WEEKLY_REPORTS_KEY
+      );
       const cleanedWeekly = ReportsStorage.validateStoredData(
         weeklyResult[ReportsStorage.WEEKLY_REPORTS_KEY],
         ReportsStorage.isValidWeeklyReport,
         'weekly reports'
       );
-      
+
       // Update storage with cleaned data
       await chrome.storage.local.set({
         [ReportsStorage.DAILY_SNAPSHOTS_KEY]: cleanedDaily,
         [ReportsStorage.WEEKLY_REPORTS_KEY]: cleanedWeekly,
       });
-      
+
       console.log('Data migration and cleanup completed successfully');
     } catch (error) {
       console.error('Failed to migrate and clean data:', error);

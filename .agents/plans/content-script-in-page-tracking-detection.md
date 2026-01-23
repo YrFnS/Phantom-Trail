@@ -42,14 +42,16 @@ The solution uses WXT's `defineContentScript` with main world injection via `inj
 
 **Feature Type**: New Capability
 **Estimated Complexity**: High
-**Primary Systems Affected**: 
+**Primary Systems Affected**:
+
 - Content script (new)
 - Background script (message handling)
 - Tracker database (new detection patterns)
 - Type definitions (new event types)
 - Storage manager (event storage)
 
-**Dependencies**: 
+**Dependencies**:
+
 - WXT framework utilities (`defineContentScript`, `injectScript`, `defineUnlistedScript`)
 - Chrome extension messaging APIs
 - Existing tracker classification system
@@ -99,17 +101,20 @@ The solution uses WXT's `defineContentScript` with main world injection via `inj
 ### Patterns to Follow
 
 **Event ID Generation** (from background.ts:60):
+
 ```typescript
-id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 ```
 
 **Throttling Pattern** (from background.ts:15-17):
+
 ```typescript
 const recentDomains = new Map<string, number>();
 const DOMAIN_THROTTLE_MS = 5000; // 5 seconds between same domain events
 ```
 
 **Event Storage Pattern** (from background.ts:85-90):
+
 ```typescript
 const event: TrackingEvent = {
   id: generateId(),
@@ -124,6 +129,7 @@ await StorageManager.addEvent(event);
 ```
 
 **Error Handling Pattern** (from background.ts:105-108):
+
 ```typescript
 try {
   // Operation
@@ -133,6 +139,7 @@ try {
 ```
 
 **Async Processing Pattern** (from background.ts:25-27):
+
 ```typescript
 (async () => {
   try {
@@ -152,6 +159,7 @@ try {
 Set up type-safe communication infrastructure and extend existing types to support in-page tracking events.
 
 **Tasks:**
+
 - Extend TrackingEvent type with in-page tracking metadata
 - Create message type definitions for content-background communication
 - Implement type-safe messaging utilities
@@ -162,6 +170,7 @@ Set up type-safe communication infrastructure and extend existing types to suppo
 Implement core detection algorithms for identifying tracking patterns in the page's main world.
 
 **Tasks:**
+
 - Create detection patterns for canvas fingerprinting
 - Implement localStorage/cookie monitoring logic
 - Add mouse/scroll tracking detection
@@ -174,6 +183,7 @@ Implement core detection algorithms for identifying tracking patterns in the pag
 Create the main content script that runs in isolated world for secure communication with background script.
 
 **Tasks:**
+
 - Implement WXT content script with proper configuration
 - Set up message listener for main world events
 - Implement throttling and deduplication logic
@@ -185,6 +195,7 @@ Create the main content script that runs in isolated world for secure communicat
 Implement the unlisted script that runs in page's main world to intercept native API calls.
 
 **Tasks:**
+
 - Create main world script with API interception
 - Implement canvas API monitoring
 - Add storage API interception
@@ -197,6 +208,7 @@ Implement the unlisted script that runs in page's main world to intercept native
 Extend background script to receive and process in-page tracking events from content script.
 
 **Tasks:**
+
 - Add message listener for content script events
 - Integrate with existing event processing pipeline
 - Extend TrackerDatabase with in-page detection patterns
@@ -207,6 +219,7 @@ Extend background script to receive and process in-page tracking events from con
 Comprehensive testing across different tracking scenarios and websites.
 
 **Tasks:**
+
 - Test canvas fingerprinting detection on known fingerprinting sites
 - Validate localStorage/cookie monitoring
 - Test mouse tracking detection
@@ -358,7 +371,8 @@ export class InPageDetector {
       suspiciousPatterns.some(pattern => op.includes(pattern))
     );
 
-    const detected = matchedOperations.length >= this.CANVAS_FINGERPRINT_THRESHOLD;
+    const detected =
+      matchedOperations.length >= this.CANVAS_FINGERPRINT_THRESHOLD;
 
     return {
       detected,
@@ -402,7 +416,10 @@ export class InPageDetector {
   /**
    * Analyze mouse tracking patterns
    */
-  static analyzeMouseTracking(eventCount: number, duration: number): DetectionResult {
+  static analyzeMouseTracking(
+    eventCount: number,
+    duration: number
+  ): DetectionResult {
     const eventsPerSecond = (eventCount / duration) * 1000;
     const detected = eventsPerSecond >= this.MOUSE_TRACKING_THRESHOLD;
 
@@ -485,7 +502,9 @@ export class InPageDetector {
     if (detectedResults.length === 0) return 'low';
 
     const riskScores = { low: 1, medium: 2, high: 3, critical: 4 };
-    const maxRisk = Math.max(...detectedResults.map(r => riskScores[r.riskLevel]));
+    const maxRisk = Math.max(
+      ...detectedResults.map(r => riskScores[r.riskLevel])
+    );
 
     if (maxRisk >= 4) return 'critical';
     if (maxRisk >= 3 || detectedResults.length >= 3) return 'high';
@@ -500,7 +519,7 @@ export class InPageDetector {
 - **IMPLEMENT**: Unlisted script for main world API interception
 - **PATTERN**: Use WXT defineUnlistedScript pattern (see WXT documentation)
 - **IMPORTS**: None (runs in page context, no access to extension APIs)
-- **GOTCHA**: Cannot use chrome.* APIs in main world, must use CustomEvents for communication
+- **GOTCHA**: Cannot use chrome.\* APIs in main world, must use CustomEvents for communication
 - **VALIDATE**: `pnpm build` (check for compilation errors)
 
 ```typescript
@@ -514,7 +533,11 @@ export default defineUnlistedScript(() => {
 
   // Tracking state
   const canvasOperations: string[] = [];
-  const storageOperations: Array<{ type: string; key: string; timestamp: number }> = [];
+  const storageOperations: Array<{
+    type: string;
+    key: string;
+    timestamp: number;
+  }> = [];
   const mouseEventCount = { count: 0, startTime: Date.now() };
   const deviceAPICalls: string[] = [];
 
@@ -671,7 +694,7 @@ export default defineUnlistedScript(() => {
 
     document.addEventListener(
       'input',
-      (event) => {
+      event => {
         const target = event.target as HTMLInputElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
           monitoredFields.add(target);
@@ -706,18 +729,31 @@ export default defineUnlistedScript(() => {
   function monitorDeviceAPIs() {
     const apis = [
       { obj: navigator, prop: 'getBattery', name: 'navigator.getBattery' },
-      { obj: navigator.geolocation, prop: 'getCurrentPosition', name: 'navigator.geolocation' },
-      { obj: navigator.clipboard, prop: 'readText', name: 'navigator.clipboard' },
+      {
+        obj: navigator.geolocation,
+        prop: 'getCurrentPosition',
+        name: 'navigator.geolocation',
+      },
+      {
+        obj: navigator.clipboard,
+        prop: 'readText',
+        name: 'navigator.clipboard',
+      },
     ];
 
     apis.forEach(({ obj, prop, name }) => {
       if (obj && prop in obj) {
         const original = (obj as Record<string, unknown>)[prop];
         if (typeof original === 'function') {
-          (obj as Record<string, unknown>)[prop] = function (...args: unknown[]) {
+          (obj as Record<string, unknown>)[prop] = function (
+            ...args: unknown[]
+          ) {
             deviceAPICalls.push(name);
             checkDeviceAPIs();
-            return (original as (...args: unknown[]) => unknown).apply(this, args);
+            return (original as (...args: unknown[]) => unknown).apply(
+              this,
+              args
+            );
           };
         }
       }
@@ -866,7 +902,8 @@ export default defineContentScript({
         };
 
         // Send to background script
-        const response = await ContentMessaging.sendTrackingEvent(trackingEvent);
+        const response =
+          await ContentMessaging.sendTrackingEvent(trackingEvent);
 
         if (response.success) {
           console.log(
@@ -875,7 +912,10 @@ export default defineContentScript({
             detectionResult.riskLevel
           );
         } else {
-          console.error('[Phantom Trail] Failed to report detection:', response.error);
+          console.error(
+            '[Phantom Trail] Failed to report detection:',
+            response.error
+          );
         }
       } catch (error) {
         console.error('[Phantom Trail] Failed to process detection:', error);
@@ -891,13 +931,16 @@ export default defineContentScript({
       });
 
       // Listen for detection events from main world
-      ctx.addEventListener(script, 'phantom-trail-detection', (event) => {
+      ctx.addEventListener(script, 'phantom-trail-detection', event => {
         processDetection(event as CustomEvent);
       });
 
       console.log('[Phantom Trail] Main world detector injected');
     } catch (error) {
-      console.error('[Phantom Trail] Failed to inject main world detector:', error);
+      console.error(
+        '[Phantom Trail] Failed to inject main world detector:',
+        error
+      );
     }
 
     // Cleanup on context invalidation
@@ -964,10 +1007,7 @@ chrome.runtime.onMessage.addListener(
           await StorageManager.addEvent(event);
 
           // Trigger AI analysis for high-risk in-page tracking
-          if (
-            event.riskLevel === 'critical' ||
-            event.riskLevel === 'high'
-          ) {
+          if (event.riskLevel === 'critical' || event.riskLevel === 'high') {
             const context = ContextDetector.detectContext(event);
             await AIEngine.generateEventAnalysis(event, context);
           }
@@ -1076,6 +1116,7 @@ This tracking happened directly in the browser without network requests, making 
   - Device APIs: https://webkay.robinlinus.com/
 
 **Manual Testing Steps:**
+
 1. Build extension: `pnpm build`
 2. Load unpacked extension in Chrome from `.output/chrome-mv3`
 3. Visit test websites
@@ -1102,16 +1143,19 @@ Currently no test framework implemented. When adding tests:
 ### Integration Tests
 
 **Content Script Injection:**
+
 - Verify content script loads on all URLs
 - Verify main world script injection succeeds
 - Verify bidirectional communication between worlds
 
 **Message Passing:**
+
 - Verify content script can send messages to background
 - Verify background script receives and processes messages
 - Verify async response handling
 
 **Event Processing:**
+
 - Verify in-page events stored in chrome.storage
 - Verify AI analysis triggered for high-risk events
 - Verify events appear in Live Feed UI
@@ -1119,21 +1163,25 @@ Currently no test framework implemented. When adding tests:
 ### Edge Cases
 
 **Script Invalidation:**
+
 - Extension reload during active tracking
 - Page navigation during detection
 - Multiple tabs with same domain
 
 **Performance:**
+
 - High-frequency mouse events (gaming sites)
 - Rapid canvas operations (animation sites)
 - Excessive storage access (web apps)
 
 **False Positives:**
+
 - Legitimate canvas usage (charts, graphs)
 - Normal storage for user preferences
 - Standard form validation
 
 **Security:**
+
 - CSP-restricted pages
 - Sandboxed iframes
 - Cross-origin restrictions
@@ -1184,6 +1232,7 @@ du -sh .output/chrome-mv3
 ### Level 4: Manual Validation
 
 **Test 1: Canvas Fingerprinting Detection**
+
 1. Visit https://browserleaks.com/canvas
 2. Open extension popup
 3. Verify "Canvas Fingerprinting" event in Live Feed
@@ -1191,30 +1240,35 @@ du -sh .output/chrome-mv3
 5. Check description mentions "unique browser signature"
 
 **Test 2: Storage Access Detection**
+
 1. Visit https://panopticlick.eff.org/
 2. Run fingerprint test
 3. Verify "Storage Access Tracking" events
 4. Verify multiple storage operations detected
 
 **Test 3: Mouse Tracking Detection**
+
 1. Visit Amazon product page
 2. Move mouse rapidly across page
 3. Verify "Mouse Movement Tracking" event
 4. Check frequency count in details
 
 **Test 4: Form Monitoring Detection**
+
 1. Visit any login page
 2. Type in username field
 3. Verify "Form Field Monitoring" event
 4. If password field monitored, verify "critical" risk
 
 **Test 5: Device API Detection**
+
 1. Visit https://webkay.robinlinus.com/
 2. Allow site to run
 3. Verify "Device Fingerprinting" events
 4. Check API calls list includes navigator/screen properties
 
 **Test 6: Background Communication**
+
 1. Open browser console (F12)
 2. Filter logs by "[Phantom Trail]"
 3. Verify "Main world detector loaded" message
@@ -1222,6 +1276,7 @@ du -sh .output/chrome-mv3
 5. Verify no error messages
 
 **Test 7: AI Analysis Integration**
+
 1. Trigger high-risk detection (password field monitoring)
 2. Wait 3 seconds for AI analysis
 3. Check Live Feed for AI narrative
@@ -1229,6 +1284,7 @@ du -sh .output/chrome-mv3
 5. Verify recommendations are relevant
 
 **Test 8: Performance Check**
+
 1. Open Chrome Task Manager (Shift+Esc)
 2. Find extension process
 3. Verify CPU usage <5% during normal browsing
@@ -1303,22 +1359,26 @@ pnpm build:firefox
 ### Design Decisions
 
 **Main World Injection Strategy:**
+
 - Used WXT's `injectScript` + `defineUnlistedScript` pattern instead of `world: 'MAIN'` for better compatibility and control
 - CustomEvents provide reliable bidirectional communication between worlds
 - Script element reference enables event passing without polluting global scope
 
 **Detection Thresholds:**
+
 - Canvas: 3+ operations (balances false positives vs detection rate)
 - Mouse: 50+ events/second (normal usage is <20/second)
 - Storage: 10+ operations/minute (normal apps use <5/minute)
 - Device APIs: 3+ different APIs (single API = legitimate, 3+ = fingerprinting)
 
 **Throttling Strategy:**
+
 - 3-second throttle per detection type prevents event spam
 - Separate throttling from background script's domain throttling
 - Allows multiple detection types simultaneously
 
 **Risk Level Assignment:**
+
 - Password field monitoring = critical (immediate security concern)
 - Canvas/device fingerprinting = high (privacy invasion)
 - Mouse/storage tracking = medium (behavioral tracking)
@@ -1327,16 +1387,19 @@ pnpm build:firefox
 ### Trade-offs
 
 **Performance vs Detection:**
+
 - Chose selective API interception over comprehensive monitoring
 - Focused on high-value tracking methods (canvas, storage, device APIs)
 - Skipped low-value detections (single cookie reads, occasional mouse events)
 
 **False Positives vs False Negatives:**
+
 - Tuned thresholds to minimize false positives (user trust)
 - Accept some false negatives for legitimate use cases
 - Provide detailed descriptions so users can judge context
 
 **Security vs Functionality:**
+
 - Main world injection required for API interception
 - Isolated world content script maintains security boundary
 - No sensitive data passed through CustomEvents
@@ -1344,6 +1407,7 @@ pnpm build:firefox
 ### Future Enhancements
 
 **Additional Detection Methods:**
+
 - WebRTC fingerprinting (IP address leakage)
 - Font enumeration (installed fonts fingerprinting)
 - Audio fingerprinting (AudioContext API)
@@ -1351,17 +1415,20 @@ pnpm build:firefox
 - Accelerometer/gyroscope access (mobile fingerprinting)
 
 **Machine Learning:**
+
 - Train model on known tracking patterns
 - Adaptive thresholds based on site category
 - Anomaly detection for novel tracking techniques
 
 **User Controls:**
+
 - Whitelist trusted sites
 - Adjust detection sensitivity
 - Disable specific detection methods
 - Export tracking reports
 
 **Performance Optimizations:**
+
 - Worker thread for heavy analysis
 - Incremental detection (spread over time)
 - Lazy initialization (only when needed)
@@ -1369,18 +1436,21 @@ pnpm build:firefox
 ### Known Limitations
 
 **Cannot Detect:**
+
 - Server-side tracking (cookies set by server)
 - Tracking pixels (1x1 images)
 - Network-level tracking (ISP, DNS)
 - Browser extensions that track
 
 **May Miss:**
+
 - Obfuscated tracking code
 - Delayed tracking (setTimeout with long delays)
 - Tracking in Web Workers
 - Tracking in Service Workers
 
 **Performance Impact:**
+
 - API interception adds ~1-2ms per call
 - Event listeners add ~0.5% CPU overhead
 - Memory footprint ~10-20MB per tab
@@ -1388,26 +1458,32 @@ pnpm build:firefox
 ### Testing Sites Reference
 
 **Canvas Fingerprinting:**
+
 - https://browserleaks.com/canvas
 - https://fingerprintjs.com/demo
 
 **Storage Tracking:**
+
 - https://panopticlick.eff.org/
 - https://amiunique.org/
 
 **Mouse Tracking:**
+
 - Amazon.com (product pages)
 - eBay.com (auction pages)
 - Any e-commerce site
 
 **Form Monitoring:**
+
 - Any login page
 - Banking sites
 - Social media signup forms
 
 **Device APIs:**
+
 - https://webkay.robinlinus.com/
 - https://deviceinfo.me/
 
 **Comprehensive Testing:**
+
 - https://coveryourtracks.eff.org/ (all methods)

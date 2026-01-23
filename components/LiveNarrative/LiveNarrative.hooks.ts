@@ -9,7 +9,11 @@ import { usePatternDetection } from '../../lib/hooks/usePatternDetection';
  */
 export function useLiveNarrative(): NarrativeState {
   const { events, loading: eventsLoading } = useTrackingEvents();
-  const { analysis: aiAnalysis, loading: aiLoading, error } = useAIAnalysis(events);
+  const {
+    analysis: aiAnalysis,
+    loading: aiLoading,
+    error,
+  } = useAIAnalysis(events);
 
   return {
     events,
@@ -20,4 +24,9 @@ export function useLiveNarrative(): NarrativeState {
 }
 
 // Re-export individual hooks for direct use
-export { useTrackingEvents, useEventAnalysis, useAIAnalysis, usePatternDetection };
+export {
+  useTrackingEvents,
+  useEventAnalysis,
+  useAIAnalysis,
+  usePatternDetection,
+};

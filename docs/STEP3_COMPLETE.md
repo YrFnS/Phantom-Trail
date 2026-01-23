@@ -25,16 +25,19 @@ Implemented comprehensive PII protection before sending data to OpenRouter AI:
 **Function**: `sanitizeUrl(url: string): string`
 
 **What it removes**:
+
 - Query parameters (session tokens, user IDs, tracking IDs)
 - Hash fragments (section anchors, tracking data)
 - OAuth tokens and authentication codes
 
 **What it keeps**:
+
 - Protocol (https://)
 - Hostname (example.com)
 - Pathname (/path/to/page)
 
 **Example**:
+
 ```
 Input:  https://example.com/page?session=abc123&user_id=456#tracking
 Output: https://example.com/page
@@ -45,12 +48,14 @@ Output: https://example.com/page
 **Function**: `sanitizeEvent(event: TrackingEvent): TrackingEvent`
 
 **What it does**:
+
 - Sanitizes event URL using `sanitizeUrl()`
 - Limits API calls to 5 entries (prevents excessive data sharing)
 - Preserves essential tracking information (domain, type, risk level)
 - Removes potentially sensitive details
 
 **Protected fields**:
+
 - `url` → Sanitized (no query/hash)
 - `inPageTracking.apiCalls` → Limited to 5 entries
 - `domain` → Kept as-is (no PII in domains)
@@ -59,6 +64,7 @@ Output: https://example.com/page
 ### 3. Applied to All AI Methods
 
 **Updated methods**:
+
 1. `generateEventAnalysis()` - Sanitizes single event
 2. `generateNarrative()` - Sanitizes all events in batch
 3. `buildChatPrompt()` - Sanitizes events for chat context
@@ -72,6 +78,7 @@ Output: https://example.com/page
 ### Test Suite: `scripts/test-sanitization.js`
 
 **Test Cases** (8 total):
+
 1. ✅ Session token in query
 2. ✅ Hash fragment with tracking
 3. ✅ Both query and hash
@@ -101,6 +108,7 @@ Output: https://example.com/callback ✅
 ## Privacy Impact
 
 ### Before Sanitization ❌
+
 ```json
 {
   "url": "https://bank.com/account?session=secret123&user_id=456",
@@ -108,7 +116,7 @@ Output: https://example.com/callback ✅
     "apiCalls": [
       "localStorage.getItem(auth_token)",
       "localStorage.getItem(user_email)",
-      "localStorage.getItem(account_number)",
+      "localStorage.getItem(account_number)"
       // ... 20+ more entries
     ]
   }
@@ -118,6 +126,7 @@ Output: https://example.com/callback ✅
 **Risk**: Session tokens, user IDs, and sensitive storage keys sent to OpenRouter
 
 ### After Sanitization ✅
+
 ```json
 {
   "url": "https://bank.com/account",
@@ -143,15 +152,18 @@ Output: https://example.com/callback ✅
 ### Requirements Met
 
 ✅ **Data Minimization** (Article 5.1.c)
+
 - Only essential data sent to AI provider
 - Query parameters removed (often contain PII)
 - API calls limited to 5 entries
 
 ✅ **Purpose Limitation** (Article 5.1.b)
+
 - Data used only for privacy analysis
 - No unnecessary data collection
 
 ✅ **Storage Limitation** (Article 5.1.e)
+
 - No PII stored in AI requests
 - Sanitization happens before transmission
 
@@ -169,7 +181,7 @@ Output: https://example.com/callback ✅
 ✅ **ESLint**: Passed  
 ✅ **TypeScript**: No errors  
 ✅ **Test Coverage**: 8/8 tests passed  
-✅ **Architecture**: Minimal, focused implementation  
+✅ **Architecture**: Minimal, focused implementation
 
 ---
 
@@ -192,11 +204,13 @@ Output: https://example.com/callback ✅
 ## Performance Impact
 
 **Overhead**: Negligible (<1ms per event)
+
 - URL parsing is fast (native browser API)
 - Array slicing is O(1) operation
 - No network overhead (happens before API call)
 
 **Memory**: Minimal
+
 - Creates sanitized copy of event
 - Original event unchanged
 - Garbage collected after AI request
@@ -206,6 +220,7 @@ Output: https://example.com/callback ✅
 ## Security Benefits
 
 ### PII Protection
+
 - **Session tokens**: Removed from URLs
 - **User IDs**: Removed from URLs
 - **Email addresses**: Removed from URLs
@@ -213,11 +228,13 @@ Output: https://example.com/callback ✅
 - **Tracking IDs**: Removed from hash fragments
 
 ### Data Minimization
+
 - **API calls**: Limited to 5 entries (was unlimited)
 - **URL data**: Only essential parts sent
 - **Event data**: Only tracking-relevant fields
 
 ### Compliance
+
 - **GDPR Article 5**: Data minimization principle
 - **GDPR Article 25**: Privacy by design
 - **CCPA**: Reasonable security measures
@@ -251,6 +268,7 @@ All sanitization tests passed (8/8).
 ### Phase 1 Complete! 🎉
 
 All 3 critical improvements implemented:
+
 1. ✅ Tracker database expansion (15 → 62 trackers)
 2. ✅ Missing detection methods (6 new methods)
 3. ✅ Data sanitization (PII protection)
@@ -258,11 +276,13 @@ All 3 critical improvements implemented:
 ### Ready for Phase 2 (Optional)
 
 **Priority 4**: Refine Privacy Scoring Algorithm
+
 - Rebalance risk weights
 - Add cross-site tracking penalty
 - Add persistent tracking penalty
 
 **Priority 5**: GDPR/CCPA Compliance
+
 - Privacy policy document
 - 30-day data retention
 - Data deletion UI
@@ -275,7 +295,7 @@ All 3 critical improvements implemented:
 ✅ **Test Coverage**: 8/8 tests passed  
 ✅ **Code Quality**: All checks passed  
 ✅ **GDPR Compliance**: Data minimization achieved  
-✅ **Performance**: <1ms overhead per event  
+✅ **Performance**: <1ms overhead per event
 
 ---
 

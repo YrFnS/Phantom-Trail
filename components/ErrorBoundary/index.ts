@@ -1,1 +1,6 @@
-export { ErrorBoundary, ErrorFallback, withErrorBoundary, useErrorHandler } from './ErrorBoundary';
+export {
+  ErrorBoundary,
+  ErrorFallback,
+  withErrorBoundary,
+  useErrorHandler,
+} from './ErrorBoundary';

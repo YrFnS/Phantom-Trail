@@ -3,22 +3,36 @@ declare module 'vis-network' {
     borderWidth?: number;
     borderWidthSelected?: number;
     brokenImage?: string;
-    chosen?: boolean | {
-      node?: (values: unknown, id: string, selected: boolean, hovering: boolean) => void;
-      label?: (values: unknown, id: string, selected: boolean, hovering: boolean) => void;
-    };
-    color?: string | {
-      border?: string;
-      background?: string;
-      highlight?: {
-        border?: string;
-        background?: string;
-      };
-      hover?: {
-        border?: string;
-        background?: string;
-      };
-    };
+    chosen?:
+      | boolean
+      | {
+          node?: (
+            values: unknown,
+            id: string,
+            selected: boolean,
+            hovering: boolean
+          ) => void;
+          label?: (
+            values: unknown,
+            id: string,
+            selected: boolean,
+            hovering: boolean
+          ) => void;
+        };
+    color?:
+      | string
+      | {
+          border?: string;
+          background?: string;
+          highlight?: {
+            border?: string;
+            background?: string;
+          };
+          hover?: {
+            border?: string;
+            background?: string;
+          };
+        };
     fixed?: boolean | { x?: boolean; y?: boolean };
     font?: {
       color?: string;
@@ -54,16 +68,38 @@ declare module 'vis-network' {
         maxVisible?: number;
         drawThreshold?: number;
       };
-      customScalingFunction?: (min: number, max: number, total: number, value: number) => number;
+      customScalingFunction?: (
+        min: number,
+        max: number,
+        total: number,
+        value: number
+      ) => number;
     };
-    shadow?: boolean | {
-      enabled?: boolean;
-      color?: string;
-      size?: number;
-      x?: number;
-      y?: number;
-    };
-    shape?: 'ellipse' | 'circle' | 'database' | 'box' | 'text' | 'image' | 'circularImage' | 'diamond' | 'dot' | 'star' | 'triangle' | 'triangleDown' | 'square' | 'icon' | 'hexagon';
+    shadow?:
+      | boolean
+      | {
+          enabled?: boolean;
+          color?: string;
+          size?: number;
+          x?: number;
+          y?: number;
+        };
+    shape?:
+      | 'ellipse'
+      | 'circle'
+      | 'database'
+      | 'box'
+      | 'text'
+      | 'image'
+      | 'circularImage'
+      | 'diamond'
+      | 'dot'
+      | 'star'
+      | 'triangle'
+      | 'triangleDown'
+      | 'square'
+      | 'icon'
+      | 'hexagon';
     shapeProperties?: {
       borderDashes?: number[] | boolean;
       borderRadius?: number;
@@ -84,44 +120,66 @@ declare module 'vis-network' {
   }
 
   export interface EdgeOptions {
-    arrows?: string | {
-      to?: boolean | {
-        enabled?: boolean;
-        imageHeight?: number;
-        imageWidth?: number;
-        scaleFactor?: number;
-        src?: string;
-        type?: string;
-      };
-      middle?: boolean | {
-        enabled?: boolean;
-        imageHeight?: number;
-        imageWidth?: number;
-        scaleFactor?: number;
-        src?: string;
-        type?: string;
-      };
-      from?: boolean | {
-        enabled?: boolean;
-        imageHeight?: number;
-        imageWidth?: number;
-        scaleFactor?: number;
-        src?: string;
-        type?: string;
-      };
-    };
+    arrows?:
+      | string
+      | {
+          to?:
+            | boolean
+            | {
+                enabled?: boolean;
+                imageHeight?: number;
+                imageWidth?: number;
+                scaleFactor?: number;
+                src?: string;
+                type?: string;
+              };
+          middle?:
+            | boolean
+            | {
+                enabled?: boolean;
+                imageHeight?: number;
+                imageWidth?: number;
+                scaleFactor?: number;
+                src?: string;
+                type?: string;
+              };
+          from?:
+            | boolean
+            | {
+                enabled?: boolean;
+                imageHeight?: number;
+                imageWidth?: number;
+                scaleFactor?: number;
+                src?: string;
+                type?: string;
+              };
+        };
     arrowStrikethrough?: boolean;
-    chosen?: boolean | {
-      edge?: (values: unknown, id: string, selected: boolean, hovering: boolean) => void;
-      label?: (values: unknown, id: string, selected: boolean, hovering: boolean) => void;
-    };
-    color?: string | {
-      color?: string;
-      highlight?: string;
-      hover?: string;
-      inherit?: boolean | 'from' | 'to' | 'both';
-      opacity?: number;
-    };
+    chosen?:
+      | boolean
+      | {
+          edge?: (
+            values: unknown,
+            id: string,
+            selected: boolean,
+            hovering: boolean
+          ) => void;
+          label?: (
+            values: unknown,
+            id: string,
+            selected: boolean,
+            hovering: boolean
+          ) => void;
+        };
+    color?:
+      | string
+      | {
+          color?: string;
+          highlight?: string;
+          hover?: string;
+          inherit?: boolean | 'from' | 'to' | 'both';
+          opacity?: number;
+        };
     dashes?: boolean | number[];
     font?: {
       color?: string;
@@ -148,23 +206,42 @@ declare module 'vis-network' {
         maxVisible?: number;
         drawThreshold?: number;
       };
-      customScalingFunction?: (min: number, max: number, total: number, value: number) => number;
+      customScalingFunction?: (
+        min: number,
+        max: number,
+        total: number,
+        value: number
+      ) => number;
     };
     selectionWidth?: number;
     selfReferenceSize?: number;
-    shadow?: boolean | {
-      enabled?: boolean;
-      color?: string;
-      size?: number;
-      x?: number;
-      y?: number;
-    };
-    smooth?: boolean | {
-      enabled?: boolean;
-      type?: 'dynamic' | 'continuous' | 'discrete' | 'diagonalCross' | 'straightCross' | 'horizontal' | 'vertical' | 'curvedCW' | 'curvedCCW' | 'cubicBezier';
-      roundness?: number;
-      forceDirection?: 'horizontal' | 'vertical' | 'none';
-    };
+    shadow?:
+      | boolean
+      | {
+          enabled?: boolean;
+          color?: string;
+          size?: number;
+          x?: number;
+          y?: number;
+        };
+    smooth?:
+      | boolean
+      | {
+          enabled?: boolean;
+          type?:
+            | 'dynamic'
+            | 'continuous'
+            | 'discrete'
+            | 'diagonalCross'
+            | 'straightCross'
+            | 'horizontal'
+            | 'vertical'
+            | 'curvedCW'
+            | 'curvedCCW'
+            | 'cubicBezier';
+          roundness?: number;
+          forceDirection?: 'horizontal' | 'vertical' | 'none';
+        };
     title?: string;
     value?: number;
     width?: number;
@@ -215,14 +292,20 @@ declare module 'vis-network' {
     };
     maxVelocity?: number;
     minVelocity?: number;
-    solver?: 'barnesHut' | 'repulsion' | 'hierarchicalRepulsion' | 'forceAtlas2Based';
-    stabilization?: boolean | {
-      enabled?: boolean;
-      iterations?: number;
-      updateInterval?: number;
-      onlyDynamicEdges?: boolean;
-      fit?: boolean;
-    };
+    solver?:
+      | 'barnesHut'
+      | 'repulsion'
+      | 'hierarchicalRepulsion'
+      | 'forceAtlas2Based';
+    stabilization?:
+      | boolean
+      | {
+          enabled?: boolean;
+          iterations?: number;
+          updateInterval?: number;
+          onlyDynamicEdges?: boolean;
+          fit?: boolean;
+        };
     timestep?: number;
     adaptiveTimestep?: boolean;
   }
@@ -235,11 +318,13 @@ declare module 'vis-network' {
     hideNodesOnDrag?: boolean;
     hover?: boolean;
     hoverConnectedEdges?: boolean;
-    keyboard?: boolean | {
-      enabled?: boolean;
-      speed?: { x?: number; y?: number; zoom?: number };
-      bindToWindow?: boolean;
-    };
+    keyboard?:
+      | boolean
+      | {
+          enabled?: boolean;
+          speed?: { x?: number; y?: number; zoom?: number };
+          bindToWindow?: boolean;
+        };
     multiselect?: boolean;
     navigationButtons?: boolean;
     selectable?: boolean;
@@ -258,40 +343,73 @@ declare module 'vis-network' {
       randomSeed?: number;
       improvedLayout?: boolean;
       clusterThreshold?: number;
-      hierarchical?: boolean | {
-        enabled?: boolean;
-        levelSeparation?: number;
-        nodeSpacing?: number;
-        treeSpacing?: number;
-        blockShifting?: boolean;
-        edgeMinimization?: boolean;
-        parentCentralization?: boolean;
-        direction?: 'UD' | 'DU' | 'LR' | 'RL';
-        sortMethod?: 'hubsize' | 'directed';
-        shakeTowards?: 'leaves' | 'roots';
-      };
+      hierarchical?:
+        | boolean
+        | {
+            enabled?: boolean;
+            levelSeparation?: number;
+            nodeSpacing?: number;
+            treeSpacing?: number;
+            blockShifting?: boolean;
+            edgeMinimization?: boolean;
+            parentCentralization?: boolean;
+            direction?: 'UD' | 'DU' | 'LR' | 'RL';
+            sortMethod?: 'hubsize' | 'directed';
+            shakeTowards?: 'leaves' | 'roots';
+          };
     };
-    manipulation?: boolean | {
-      enabled?: boolean;
-      initiallyActive?: boolean;
-      addNode?: boolean | ((data: Node, callback: (data: Node | null) => void) => void);
-      addEdge?: boolean | ((data: Edge, callback: (data: Edge | null) => void) => void);
-      editNode?: (data: Node, callback: (data: Node | null) => void) => void;
-      editEdge?: boolean | ((data: Edge, callback: (data: Edge | null) => void) => void);
-      deleteNode?: boolean | ((data: { nodes: string[]; edges: string[] }, callback: (data: { nodes: string[]; edges: string[] } | null) => void) => void);
-      deleteEdge?: boolean | ((data: { nodes: string[]; edges: string[] }, callback: (data: { nodes: string[]; edges: string[] } | null) => void) => void);
-      controlNodeStyle?: NodeOptions;
-    };
+    manipulation?:
+      | boolean
+      | {
+          enabled?: boolean;
+          initiallyActive?: boolean;
+          addNode?:
+            | boolean
+            | ((data: Node, callback: (data: Node | null) => void) => void);
+          addEdge?:
+            | boolean
+            | ((data: Edge, callback: (data: Edge | null) => void) => void);
+          editNode?: (
+            data: Node,
+            callback: (data: Node | null) => void
+          ) => void;
+          editEdge?:
+            | boolean
+            | ((data: Edge, callback: (data: Edge | null) => void) => void);
+          deleteNode?:
+            | boolean
+            | ((
+                data: { nodes: string[]; edges: string[] },
+                callback: (
+                  data: { nodes: string[]; edges: string[] } | null
+                ) => void
+              ) => void);
+          deleteEdge?:
+            | boolean
+            | ((
+                data: { nodes: string[]; edges: string[] },
+                callback: (
+                  data: { nodes: string[]; edges: string[] } | null
+                ) => void
+              ) => void);
+          controlNodeStyle?: NodeOptions;
+        };
     height?: string;
     width?: string;
     autoResize?: boolean;
     clickToUse?: boolean;
-    configure?: boolean | {
-      enabled?: boolean;
-      filter?: boolean | string | string[] | ((option: string, path: string[]) => boolean);
-      container?: HTMLElement;
-      showButton?: boolean;
-    };
+    configure?:
+      | boolean
+      | {
+          enabled?: boolean;
+          filter?:
+            | boolean
+            | string
+            | string[]
+            | ((option: string, path: string[]) => boolean);
+          container?: HTMLElement;
+          showButton?: boolean;
+        };
     groups?: Record<string, NodeOptions>;
     locale?: string;
     locales?: Record<string, Record<string, string>>;
@@ -308,7 +426,12 @@ declare module 'vis-network' {
     getPositions(nodeIds?: string[]): Record<string, { x: number; y: number }>;
     storePositions(): void;
     moveNode(nodeId: string, x: number, y: number): void;
-    getBoundingBox(nodeId: string): { top: number; left: number; right: number; bottom: number };
+    getBoundingBox(nodeId: string): {
+      top: number;
+      left: number;
+      right: number;
+      bottom: number;
+    };
     getConnectedNodes(nodeId: string, direction?: 'from' | 'to'): string[];
     getConnectedEdges(nodeId: string): string[];
     startSimulation(): void;
@@ -316,9 +439,24 @@ declare module 'vis-network' {
     stabilize(iterations?: number): void;
     getScale(): number;
     getViewPosition(): { x: number; y: number };
-    fit(options?: { nodes?: string[]; animation?: boolean | { duration?: number; easingFunction?: string } }): void;
-    focus(nodeId: string, options?: { scale?: number; offset?: { x: number; y: number }; animation?: boolean | { duration?: number; easingFunction?: string } }): void;
-    moveTo(options: { position?: { x: number; y: number }; scale?: number; offset?: { x: number; y: number }; animation?: boolean | { duration?: number; easingFunction?: string } }): void;
+    fit(options?: {
+      nodes?: string[];
+      animation?: boolean | { duration?: number; easingFunction?: string };
+    }): void;
+    focus(
+      nodeId: string,
+      options?: {
+        scale?: number;
+        offset?: { x: number; y: number };
+        animation?: boolean | { duration?: number; easingFunction?: string };
+      }
+    ): void;
+    moveTo(options: {
+      position?: { x: number; y: number };
+      scale?: number;
+      offset?: { x: number; y: number };
+      animation?: boolean | { duration?: number; easingFunction?: string };
+    }): void;
     releaseNode(): void;
     getNodeAt(position: { x: number; y: number }): string | undefined;
     getEdgeAt(position: { x: number; y: number }): string | undefined;

@@ -7,7 +7,10 @@ interface PrivacyComparisonCardProps {
   className?: string;
 }
 
-export function PrivacyComparisonCard({ domain, className = '' }: PrivacyComparisonCardProps) {
+export function PrivacyComparisonCard({
+  domain,
+  className = '',
+}: PrivacyComparisonCardProps) {
   const [insights, setInsights] = useState<ComparisonInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +19,8 @@ export function PrivacyComparisonCard({ domain, className = '' }: PrivacyCompari
     try {
       setLoading(true);
       setError(null);
-      const comparisonData = await PrivacyComparison.generateComparisonInsights(domain);
+      const comparisonData =
+        await PrivacyComparison.generateComparisonInsights(domain);
       setInsights(comparisonData);
     } catch (err) {
       console.error('Failed to load privacy comparison:', err);
@@ -54,14 +58,24 @@ export function PrivacyComparisonCard({ domain, className = '' }: PrivacyCompari
     );
   }
 
-  const { categoryComparison, userComparison, overallInsight, recommendations, trustLevel } = insights;
+  const {
+    categoryComparison,
+    userComparison,
+    overallInsight,
+    recommendations,
+    trustLevel,
+  } = insights;
 
   const getTrustColor = (level: string) => {
     switch (level) {
-      case 'high': return 'text-green-400';
-      case 'medium': return 'text-yellow-400';
-      case 'low': return 'text-red-400';
-      default: return 'text-gray-400';
+      case 'high':
+        return 'text-green-400';
+      case 'medium':
+        return 'text-yellow-400';
+      case 'low':
+        return 'text-red-400';
+      default:
+        return 'text-gray-400';
     }
   };
 
@@ -80,7 +94,9 @@ export function PrivacyComparisonCard({ domain, className = '' }: PrivacyCompari
     <div className={`bg-gray-800 rounded-lg p-4 space-y-4 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-200">Privacy Comparison</h3>
+        <h3 className="text-sm font-semibold text-gray-200">
+          Privacy Comparison
+        </h3>
         <span className={`text-xs font-medium ${getTrustColor(trustLevel)}`}>
           {trustLevel.toUpperCase()} TRUST
         </span>
@@ -88,34 +104,44 @@ export function PrivacyComparisonCard({ domain, className = '' }: PrivacyCompari
 
       {/* Overall Insight */}
       <div className="bg-gray-700/50 rounded-lg p-3">
-        <p className="text-xs text-gray-300 leading-relaxed">{overallInsight}</p>
+        <p className="text-xs text-gray-300 leading-relaxed">
+          {overallInsight}
+        </p>
       </div>
 
       {/* Category Comparison */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">vs {categoryComparison.categoryAverage.category}</span>
+          <span className="text-xs text-gray-400">
+            vs {categoryComparison.categoryAverage.category}
+          </span>
           <div className="flex items-center gap-1">
             <span className="text-xs">
               {getComparisonIcon(categoryComparison.betterThanAverage)}
             </span>
-            <span className={`text-xs font-medium ${getPercentileColor(categoryComparison.percentile)}`}>
+            <span
+              className={`text-xs font-medium ${getPercentileColor(categoryComparison.percentile)}`}
+            >
               {categoryComparison.percentile}th percentile
             </span>
           </div>
         </div>
-        
+
         <div className="bg-gray-700 rounded-full h-2">
-          <div 
+          <div
             className={`h-2 rounded-full transition-all duration-300 ${
-              categoryComparison.percentile >= 80 ? 'bg-green-500' :
-              categoryComparison.percentile >= 60 ? 'bg-yellow-500' :
-              categoryComparison.percentile >= 40 ? 'bg-orange-500' : 'bg-red-500'
+              categoryComparison.percentile >= 80
+                ? 'bg-green-500'
+                : categoryComparison.percentile >= 60
+                  ? 'bg-yellow-500'
+                  : categoryComparison.percentile >= 40
+                    ? 'bg-orange-500'
+                    : 'bg-red-500'
             }`}
             style={{ width: `${categoryComparison.percentile}%` }}
           ></div>
         </div>
-        
+
         <p className="text-xs text-gray-400">{categoryComparison.insight}</p>
       </div>
 
@@ -128,23 +154,29 @@ export function PrivacyComparisonCard({ domain, className = '' }: PrivacyCompari
               <span className="text-xs">
                 {getComparisonIcon(userComparison.betterThanUsual)}
               </span>
-              <span className={`text-xs font-medium ${getPercentileColor(userComparison.percentile)}`}>
+              <span
+                className={`text-xs font-medium ${getPercentileColor(userComparison.percentile)}`}
+              >
                 {userComparison.percentile}th percentile
               </span>
             </div>
           </div>
-          
+
           <div className="bg-gray-700 rounded-full h-2">
-            <div 
+            <div
               className={`h-2 rounded-full transition-all duration-300 ${
-                userComparison.percentile >= 80 ? 'bg-green-500' :
-                userComparison.percentile >= 60 ? 'bg-yellow-500' :
-                userComparison.percentile >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                userComparison.percentile >= 80
+                  ? 'bg-green-500'
+                  : userComparison.percentile >= 60
+                    ? 'bg-yellow-500'
+                    : userComparison.percentile >= 40
+                      ? 'bg-orange-500'
+                      : 'bg-red-500'
               }`}
               style={{ width: `${userComparison.percentile}%` }}
             ></div>
           </div>
-          
+
           <p className="text-xs text-gray-400">{userComparison.insight}</p>
         </div>
       )}
@@ -152,7 +184,9 @@ export function PrivacyComparisonCard({ domain, className = '' }: PrivacyCompari
       {/* Recommendations */}
       {recommendations.length > 0 && (
         <div className="border-t border-gray-700 pt-3">
-          <h4 className="text-xs font-medium text-gray-300 mb-2">Recommendations</h4>
+          <h4 className="text-xs font-medium text-gray-300 mb-2">
+            Recommendations
+          </h4>
           <div className="space-y-1">
             {recommendations.slice(0, 2).map((rec, index) => (
               <div key={index} className="flex items-start gap-2">

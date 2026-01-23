@@ -3,6 +3,7 @@
 ## Environment Overview
 
 This project runs in a hybrid environment:
+
 - **Kiro CLI**: Runs in WSL (Linux environment)
 - **Local Development**: Runs in Windows PowerShell
 - **Shared Files**: Project files accessible from both environments
@@ -16,6 +17,7 @@ This project runs in a hybrid environment:
 **Solution**: Automatic hook runs after each agent execution to refresh dependencies.
 
 ### Manual Fix (if needed):
+
 ```powershell
 # In Windows PowerShell - Complete fix for persistent issues
 Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
@@ -25,6 +27,7 @@ pnpm lint
 ```
 
 ### Quick Fix Script:
+
 ```powershell
 # Run the automated fix script
 .\scripts\fix-dependencies.ps1
@@ -35,6 +38,7 @@ pnpm lint
 **Problem**: Git converts LF ↔ CRLF between WSL and Windows.
 
 **Solution**: Configure Git to handle line endings consistently:
+
 ```bash
 git config core.autocrlf true  # Windows
 git config core.eol lf         # WSL
@@ -50,6 +54,7 @@ Always use relative paths in scripts for cross-environment compatibility.
 ## Development Workflow
 
 ### Before Using Kiro CLI:
+
 ```powershell
 # Ensure clean state (Windows PowerShell)
 pnpm lint
@@ -58,12 +63,15 @@ npx tsc --noEmit
 ```
 
 ### After Kiro CLI Work:
+
 The `fix-dependencies` hook automatically:
+
 1. Removes corrupted node_modules
 2. Reinstalls dependencies with pnpm
 3. Ensures linting passes
 
 ### Manual Verification:
+
 ```powershell
 # Verify everything works (Windows PowerShell)
 pnpm lint && pnpm build && npx tsc --noEmit
@@ -72,8 +80,9 @@ pnpm lint && pnpm build && npx tsc --noEmit
 ## ESLint Configuration
 
 Advanced feature files are temporarily excluded from strict linting:
+
 - `lib/sync-manager.ts`
-- `lib/conflict-resolver.ts` 
+- `lib/conflict-resolver.ts`
 - `lib/storage-manager.ts`
 - `lib/privacy-predictor.ts`
 - `lib/cache-optimizer.ts`
@@ -84,17 +93,20 @@ This allows Kiro CLI to create experimental features without breaking the build.
 ## Troubleshooting
 
 ### If Dependencies Still Break:
+
 1. Check if new files were created by Kiro CLI
 2. Add them to the ESLint relaxed rules in `eslint.config.mjs`
 3. Run `.\scripts\fix-dependencies.ps1` for complete cleanup
 4. If issues persist, clear pnpm cache: `pnpm store prune`
 
 ### If Build Fails:
+
 1. Ensure you're in Windows PowerShell (not WSL)
 2. Check that pnpm is installed in Windows
 3. Verify Node.js version compatibility
 
 ### If Kiro CLI Can't Access Files:
+
 1. Ensure WSL can access Windows files: `/mnt/c/Users/...`
 2. Check file permissions between environments
 3. Use relative paths in all scripts

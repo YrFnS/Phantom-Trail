@@ -5,11 +5,13 @@
 ### Service Worker Registration Failures
 
 **Symptoms:**
+
 - "Service worker registration failed. Status code: 15"
 - Extension not loading properly
 - Background script errors
 
 **Solutions:**
+
 1. **Clear Extension Data:**
    - Go to `chrome://extensions/`
    - Find Phantom Trail extension
@@ -27,11 +29,13 @@
 ### Context Invalidation Issues
 
 **Symptoms:**
+
 - "Extension context invalidated" errors
 - Content scripts not working
 - Communication failures between scripts
 
 **Solutions:**
+
 1. **Automatic Recovery:**
    - Extension now includes automatic recovery
    - Wait 5-10 seconds for recovery to complete
@@ -47,11 +51,13 @@
 ### Content Script Errors
 
 **Symptoms:**
+
 - "window is not defined" errors
 - Tracking detection not working
 - No privacy analysis appearing
 
 **Solutions:**
+
 1. **Check Permissions:**
    - Ensure extension has access to the current site
    - Check if site is in restricted list (chrome://, extension pages)
@@ -67,11 +73,13 @@
 ### Performance Issues
 
 **Symptoms:**
+
 - Slow page loading
 - High CPU usage
 - Browser freezing
 
 **Solutions:**
+
 1. **Reduce Tracking Sensitivity:**
    - Open extension settings
    - Increase detection thresholds
@@ -85,11 +93,13 @@
 ### AI Features Not Working
 
 **Symptoms:**
+
 - No AI analysis appearing
 - "AI unavailable" messages
 - Empty narrative feed
 
 **Solutions:**
+
 1. **Check API Key:**
    - Open extension settings
    - Verify OpenRouter API key is set
@@ -125,11 +135,13 @@
 ### Complete Reset
 
 1. **Remove Extension:**
+
    ```
    chrome://extensions/ → Remove Phantom Trail
    ```
 
 2. **Clear Browser Data:**
+
    ```
    chrome://settings/clearBrowserData
    Select "Cookies and other site data"
@@ -143,6 +155,7 @@
 ### Partial Reset
 
 1. **Reload Extension:**
+
    ```
    chrome://extensions/ → Developer mode → Reload
    ```
@@ -215,11 +228,13 @@ Include the following information:
 ### Compatibility
 
 **Supported:**
+
 - Chrome 88+ (Manifest V3)
 - Chromium-based browsers (Edge, Brave)
 - Most websites and web applications
 
 **Not Supported:**
+
 - Chrome internal pages (chrome://)
 - Extension pages
 - Local file:// URLs (without permission)

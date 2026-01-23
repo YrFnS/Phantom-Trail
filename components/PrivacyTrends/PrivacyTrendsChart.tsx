@@ -35,7 +35,10 @@ interface PrivacyTrendsChartProps {
   days?: number;
 }
 
-export function PrivacyTrendsChart({ className = '', days = 30 }: PrivacyTrendsChartProps) {
+export function PrivacyTrendsChart({
+  className = '',
+  days = 30,
+}: PrivacyTrendsChartProps) {
   const [trendData, setTrendData] = useState<TrendData[]>([]);
   const [weeklyReport, setWeeklyReport] = useState<WeeklyReport | null>(null);
   const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
@@ -48,9 +51,9 @@ export function PrivacyTrendsChart({ className = '', days = 30 }: PrivacyTrendsC
       const [trends, report, detectedAnomalies] = await Promise.all([
         PrivacyTrends.calculateDailyTrends(days),
         PrivacyTrends.getWeeklyReport(),
-        PrivacyTrends.detectAnomalies()
+        PrivacyTrends.detectAnomalies(),
       ]);
-      
+
       setTrendData(trends);
       setWeeklyReport(report);
       setAnomalies(detectedAnomalies);
@@ -150,7 +153,7 @@ export function PrivacyTrendsChart({ className = '', days = 30 }: PrivacyTrendsC
               return [
                 `Top Trackers: ${trend.topTrackers.slice(0, 3).join(', ')}`,
                 `High Risk: ${trend.riskDistribution.high || 0}`,
-                `Critical: ${trend.riskDistribution.critical || 0}`
+                `Critical: ${trend.riskDistribution.critical || 0}`,
               ];
             }
             return [];
@@ -223,7 +226,9 @@ export function PrivacyTrendsChart({ className = '', days = 30 }: PrivacyTrendsC
       {/* Weekly Report */}
       {weeklyReport && (
         <div className="bg-gray-800 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-200 mb-3">Weekly Summary</h4>
+          <h4 className="text-sm font-medium text-gray-200 mb-3">
+            Weekly Summary
+          </h4>
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
               <span className="text-gray-400">Average Score:</span>
@@ -233,10 +238,15 @@ export function PrivacyTrendsChart({ className = '', days = 30 }: PrivacyTrendsC
             </div>
             <div>
               <span className="text-gray-400">Change:</span>
-              <span className={`ml-2 font-medium ${
-                weeklyReport.scoreChange >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {weeklyReport.scoreChange >= 0 ? '+' : ''}{weeklyReport.scoreChange}
+              <span
+                className={`ml-2 font-medium ${
+                  weeklyReport.scoreChange >= 0
+                    ? 'text-green-400'
+                    : 'text-red-400'
+                }`}
+              >
+                {weeklyReport.scoreChange >= 0 ? '+' : ''}
+                {weeklyReport.scoreChange}
               </span>
             </div>
             {weeklyReport.newTrackers.length > 0 && (
@@ -254,14 +264,21 @@ export function PrivacyTrendsChart({ className = '', days = 30 }: PrivacyTrendsC
       {/* Anomalies */}
       {anomalies.length > 0 && (
         <div className="bg-gray-800 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-200 mb-3">Recent Anomalies</h4>
+          <h4 className="text-sm font-medium text-gray-200 mb-3">
+            Recent Anomalies
+          </h4>
           <div className="space-y-2">
             {anomalies.slice(0, 3).map((anomaly, index) => (
               <div key={index} className="flex items-center gap-2 text-xs">
-                <span className={`w-2 h-2 rounded-full ${
-                  anomaly.severity === 'high' ? 'bg-red-500' :
-                  anomaly.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
-                }`}></span>
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    anomaly.severity === 'high'
+                      ? 'bg-red-500'
+                      : anomaly.severity === 'medium'
+                        ? 'bg-yellow-500'
+                        : 'bg-blue-500'
+                  }`}
+                ></span>
                 <span className="text-gray-400">{anomaly.date}:</span>
                 <span className="text-gray-300">{anomaly.description}</span>
               </div>

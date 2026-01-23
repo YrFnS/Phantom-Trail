@@ -9,7 +9,11 @@ export interface PrivacyAction {
   id: string;
   title: string;
   description: string;
-  actionType: 'browser_setting' | 'alternative_service' | 'extension' | 'behavior';
+  actionType:
+    | 'browser_setting'
+    | 'alternative_service'
+    | 'extension'
+    | 'behavior';
   difficulty: 'easy' | 'medium' | 'advanced';
   impact: 'low' | 'medium' | 'high';
   url?: string;
@@ -38,39 +42,42 @@ export class PrivacyRecommendations {
       alternative: 'DuckDuckGo',
       description: 'Privacy-focused search engine',
       privacyBenefit: 'No search tracking or personalized ads',
-      url: 'https://duckduckgo.com'
+      url: 'https://duckduckgo.com',
     },
     {
       original: 'gmail.com',
       alternative: 'ProtonMail',
       description: 'End-to-end encrypted email',
       privacyBenefit: 'Emails are encrypted and not scanned for ads',
-      url: 'https://protonmail.com'
+      url: 'https://protonmail.com',
     },
     {
       original: 'youtube.com',
       alternative: 'Invidious',
       description: 'Privacy-friendly YouTube frontend',
       privacyBenefit: 'Watch YouTube without Google tracking',
-      url: 'https://invidious.io'
+      url: 'https://invidious.io',
     },
     {
       original: 'facebook.com',
       alternative: 'Signal',
       description: 'Private messaging app',
       privacyBenefit: 'End-to-end encrypted messaging without data collection',
-      url: 'https://signal.org'
+      url: 'https://signal.org',
     },
     {
       original: 'twitter.com',
       alternative: 'Mastodon',
       description: 'Decentralized social network',
       privacyBenefit: 'No algorithmic timeline or advertising tracking',
-      url: 'https://joinmastodon.org'
-    }
+      url: 'https://joinmastodon.org',
+    },
   ];
 
-  private static readonly TRACKER_ACTIONS: Record<TrackerType, PrivacyAction[]> = {
+  private static readonly TRACKER_ACTIONS: Record<
+    TrackerType,
+    PrivacyAction[]
+  > = {
     advertising: [
       {
         id: 'install-ublock',
@@ -80,7 +87,11 @@ export class PrivacyRecommendations {
         difficulty: 'easy',
         impact: 'high',
         url: 'https://ublockorigin.com',
-        steps: ['Visit Chrome Web Store', 'Search for uBlock Origin', 'Click Add to Chrome']
+        steps: [
+          'Visit Chrome Web Store',
+          'Search for uBlock Origin',
+          'Click Add to Chrome',
+        ],
       },
       {
         id: 'disable-ad-personalization',
@@ -90,8 +101,12 @@ export class PrivacyRecommendations {
         difficulty: 'easy',
         impact: 'medium',
         url: 'https://adssettings.google.com',
-        steps: ['Visit Google Ad Settings', 'Turn off Ad Personalization', 'Delete advertising ID']
-      }
+        steps: [
+          'Visit Google Ad Settings',
+          'Turn off Ad Personalization',
+          'Delete advertising ID',
+        ],
+      },
     ],
     analytics: [
       {
@@ -101,7 +116,11 @@ export class PrivacyRecommendations {
         actionType: 'browser_setting',
         difficulty: 'easy',
         impact: 'low',
-        steps: ['Open Chrome Settings', 'Go to Privacy and Security', 'Enable "Send Do Not Track request"']
+        steps: [
+          'Open Chrome Settings',
+          'Go to Privacy and Security',
+          'Enable "Send Do Not Track request"',
+        ],
       },
       {
         id: 'use-private-browsing',
@@ -110,8 +129,12 @@ export class PrivacyRecommendations {
         actionType: 'behavior',
         difficulty: 'easy',
         impact: 'medium',
-        steps: ['Press Ctrl+Shift+N', 'Browse in incognito window', 'Close when done']
-      }
+        steps: [
+          'Press Ctrl+Shift+N',
+          'Browse in incognito window',
+          'Close when done',
+        ],
+      },
     ],
     social: [
       {
@@ -121,7 +144,11 @@ export class PrivacyRecommendations {
         actionType: 'browser_setting',
         difficulty: 'medium',
         impact: 'high',
-        steps: ['Visit Facebook Privacy Settings', 'Disable "Apps, Websites and Games"', 'Limit ad data usage']
+        steps: [
+          'Visit Facebook Privacy Settings',
+          'Disable "Apps, Websites and Games"',
+          'Limit ad data usage',
+        ],
       },
       {
         id: 'use-social-alternatives',
@@ -129,8 +156,8 @@ export class PrivacyRecommendations {
         description: 'Switch to platforms that respect your privacy',
         actionType: 'alternative_service',
         difficulty: 'medium',
-        impact: 'high'
-      }
+        impact: 'high',
+      },
     ],
     fingerprinting: [
       {
@@ -140,7 +167,11 @@ export class PrivacyRecommendations {
         actionType: 'browser_setting',
         difficulty: 'medium',
         impact: 'high',
-        steps: ['Install Firefox', 'Enable Enhanced Tracking Protection', 'Set to Strict mode']
+        steps: [
+          'Install Firefox',
+          'Enable Enhanced Tracking Protection',
+          'Set to Strict mode',
+        ],
       },
       {
         id: 'use-privacy-browser',
@@ -149,8 +180,8 @@ export class PrivacyRecommendations {
         actionType: 'alternative_service',
         difficulty: 'medium',
         impact: 'high',
-        url: 'https://brave.com'
-      }
+        url: 'https://brave.com',
+      },
     ],
     cryptomining: [
       {
@@ -161,8 +192,12 @@ export class PrivacyRecommendations {
         difficulty: 'easy',
         impact: 'high',
         url: 'https://github.com/keraf/NoCoin',
-        steps: ['Install NoCoin extension', 'Enable mining protection', 'Monitor CPU usage']
-      }
+        steps: [
+          'Install NoCoin extension',
+          'Enable mining protection',
+          'Monitor CPU usage',
+        ],
+      },
     ],
     unknown: [
       {
@@ -173,15 +208,21 @@ export class PrivacyRecommendations {
         difficulty: 'easy',
         impact: 'medium',
         url: 'https://myaccount.google.com/privacycheckup',
-        steps: ['Visit Google Privacy Checkup', 'Review each section', 'Apply recommended settings']
-      }
-    ]
+        steps: [
+          'Visit Google Privacy Checkup',
+          'Review each section',
+          'Apply recommended settings',
+        ],
+      },
+    ],
   };
 
   /**
    * Get personalized privacy actions based on detected tracking events
    */
-  static async getPersonalizedActions(events: TrackingEvent[]): Promise<PrivacyAction[]> {
+  static async getPersonalizedActions(
+    events: TrackingEvent[]
+  ): Promise<PrivacyAction[]> {
     if (events.length === 0) {
       return [];
     }
@@ -193,7 +234,7 @@ export class PrivacyRecommendations {
     // Analyze events to determine recommendations
     for (const event of events) {
       trackerTypes.add(event.trackerType);
-      
+
       if (event.riskLevel === 'high' || event.riskLevel === 'critical') {
         highRiskDomains.add(event.domain);
       }
@@ -207,17 +248,18 @@ export class PrivacyRecommendations {
 
     // Prioritize high-impact, easy actions
     const prioritizedActions = actions
-      .filter((action, index, self) => 
-        self.findIndex(a => a.id === action.id) === index // Remove duplicates
+      .filter(
+        (action, index, self) =>
+          self.findIndex(a => a.id === action.id) === index // Remove duplicates
       )
       .sort((a, b) => {
         // Sort by impact (high first), then difficulty (easy first)
         const impactOrder = { high: 3, medium: 2, low: 1 };
         const difficultyOrder = { easy: 3, medium: 2, advanced: 1 };
-        
+
         const impactDiff = impactOrder[b.impact] - impactOrder[a.impact];
         if (impactDiff !== 0) return impactDiff;
-        
+
         return difficultyOrder[b.difficulty] - difficultyOrder[a.difficulty];
       })
       .slice(0, 5); // Limit to top 5 recommendations
@@ -228,9 +270,11 @@ export class PrivacyRecommendations {
   /**
    * Get privacy-friendly alternatives for tracked services
    */
-  static async suggestAlternatives(domain: string): Promise<ServiceAlternative[]> {
-    return this.SERVICE_ALTERNATIVES.filter(alt => 
-      domain.includes(alt.original) || alt.original.includes(domain)
+  static async suggestAlternatives(
+    domain: string
+  ): Promise<ServiceAlternative[]> {
+    return this.SERVICE_ALTERNATIVES.filter(
+      alt => domain.includes(alt.original) || alt.original.includes(domain)
     );
   }
 
@@ -243,32 +287,34 @@ export class PrivacyRecommendations {
         name: 'uBlock Origin',
         detected: false,
         effectiveness: 0,
-        recommendation: 'Install uBlock Origin for comprehensive ad and tracker blocking'
+        recommendation:
+          'Install uBlock Origin for comprehensive ad and tracker blocking',
       },
       {
         name: 'Privacy Badger',
         detected: false,
         effectiveness: 0,
-        recommendation: 'Add Privacy Badger for intelligent tracker blocking'
+        recommendation: 'Add Privacy Badger for intelligent tracker blocking',
       },
       {
         name: 'DuckDuckGo Privacy Essentials',
         detected: false,
         effectiveness: 0,
-        recommendation: 'Install DuckDuckGo extension for search and tracker protection'
-      }
+        recommendation:
+          'Install DuckDuckGo extension for search and tracker protection',
+      },
     ];
 
     // Basic detection via extension APIs (limited in content script context)
     try {
       // This is a simplified detection - in practice, we'd need more sophisticated methods
-      const extensions = await chrome.management?.getAll?.() || [];
-      
+      const extensions = (await chrome.management?.getAll?.()) || [];
+
       for (const tool of tools) {
-        const found = extensions.find(ext => 
+        const found = extensions.find(ext =>
           ext.name.toLowerCase().includes(tool.name.toLowerCase())
         );
-        
+
         if (found && found.enabled) {
           tool.detected = true;
           tool.effectiveness = 85; // Estimated effectiveness
@@ -287,25 +333,26 @@ export class PrivacyRecommendations {
    * Get contextual recommendations based on current website
    */
   static async getContextualRecommendations(
-    domain: string, 
+    domain: string,
     events: TrackingEvent[]
   ): Promise<PrivacyAction[]> {
     const actions: PrivacyAction[] = [];
-    
+
     // Banking/financial sites
     if (this.isBankingDomain(domain)) {
       actions.push({
         id: 'banking-privacy',
         title: 'Use Dedicated Browser for Banking',
-        description: 'Use a separate browser or incognito mode for financial sites',
+        description:
+          'Use a separate browser or incognito mode for financial sites',
         actionType: 'behavior',
         difficulty: 'easy',
         impact: 'high',
         steps: [
           'Open incognito/private window',
           'Navigate to banking site',
-          'Close window when done'
-        ]
+          'Close window when done',
+        ],
       });
     }
 
@@ -317,7 +364,7 @@ export class PrivacyRecommendations {
         description: 'Limit data sharing and ad targeting on this platform',
         actionType: 'browser_setting',
         difficulty: 'medium',
-        impact: 'high'
+        impact: 'high',
       });
     }
 
@@ -326,10 +373,11 @@ export class PrivacyRecommendations {
       actions.push({
         id: 'avoid-site',
         title: 'Consider Alternative Website',
-        description: 'This site has excessive tracking - look for privacy-friendly alternatives',
+        description:
+          'This site has excessive tracking - look for privacy-friendly alternatives',
         actionType: 'behavior',
         difficulty: 'easy',
-        impact: 'medium'
+        impact: 'medium',
       });
     }
 
@@ -342,7 +390,13 @@ export class PrivacyRecommendations {
   }
 
   private static isSocialMediaDomain(domain: string): boolean {
-    const socialKeywords = ['facebook', 'twitter', 'instagram', 'linkedin', 'tiktok'];
+    const socialKeywords = [
+      'facebook',
+      'twitter',
+      'instagram',
+      'linkedin',
+      'tiktok',
+    ];
     return socialKeywords.some(keyword => domain.includes(keyword));
   }
 }

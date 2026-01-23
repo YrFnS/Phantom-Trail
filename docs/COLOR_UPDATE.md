@@ -5,6 +5,7 @@
 ### Primary Brand Color
 
 **BEFORE:**
+
 ```
 Primary: #3b82f6 (Blue 500)
 ├─ Generic tech/security aesthetic
@@ -16,6 +17,7 @@ Hover State:   [████████] Lighter Blue
 ```
 
 **AFTER:**
+
 ```
 Primary: #8b5cf6 (Purple 500)
 ├─ Ghost/phantom aesthetic ✨
@@ -29,12 +31,14 @@ Hover State:   [████████] Deeper Purple
 ### Accent Colors
 
 **BEFORE:**
+
 ```
 Teal: #14b8a6 (Contrast: 4.1:1) ⚠️ Borderline
 Cyan: #06b6d4
 ```
 
 **AFTER:**
+
 ```
 Teal: #2dd4bf (Contrast: 5.5:1) ✅ WCAG AA
 Ghost: #a78bfa (New ethereal accent)
@@ -55,6 +59,7 @@ Critical: [████] #ef4444 Red
 ### Navigation Buttons
 
 **BEFORE:**
+
 ```
 [📡 Live Feed]  ← Blue glow, generic
 [🕸️ Network]   ← Blue glow, generic
@@ -63,6 +68,7 @@ Critical: [████] #ef4444 Red
 ```
 
 **AFTER:**
+
 ```
 [📡 Live Feed]  ← Purple, ghost theme
 [🕸️ Network]   ← Purple, ghost theme
@@ -73,6 +79,7 @@ Critical: [████] #ef4444 Red
 ### Privacy Score Display
 
 **BEFORE:**
+
 ```
 ┌─────────────────────────┐
 │   Privacy Score         │
@@ -84,6 +91,7 @@ Critical: [████] #ef4444 Red
 ```
 
 **AFTER:**
+
 ```
 ┌─────────────────────────┐
 │   Privacy Score         │
@@ -107,22 +115,24 @@ Critical: [████] #ef4444 Red
 
 ### Text on Dark Background (#0a0e1a)
 
-| Color | Before | After | Standard |
-|-------|--------|-------|----------|
-| Primary | 5.2:1 (Blue) | 5.8:1 (Purple) | ✅ AA |
-| Accent Teal | 4.1:1 ⚠️ | 5.5:1 ✅ | ✅ AA |
-| Body Text | 11.8:1 ✅ | 11.8:1 ✅ | ✅ AAA |
-| Risk Colors | 4.5:1+ ✅ | 4.5:1+ ✅ | ✅ AA |
+| Color       | Before       | After          | Standard |
+| ----------- | ------------ | -------------- | -------- |
+| Primary     | 5.2:1 (Blue) | 5.8:1 (Purple) | ✅ AA    |
+| Accent Teal | 4.1:1 ⚠️     | 5.5:1 ✅       | ✅ AA    |
+| Body Text   | 11.8:1 ✅    | 11.8:1 ✅      | ✅ AAA   |
+| Risk Colors | 4.5:1+ ✅    | 4.5:1+ ✅      | ✅ AA    |
 
 ## Brand Perception
 
 ### Before (Blue)
+
 - 🔵 Generic tech/security
 - 🔵 Trustworthy but forgettable
 - 🔵 Blends in with other extensions
 - 🔵 Doesn't match "Phantom" name
 
 ### After (Purple)
+
 - 👻 Ghost/phantom aesthetic
 - 👻 Mysterious, protective
 - 👻 Stands out in toolbar
@@ -132,14 +142,14 @@ Critical: [████] #ef4444 Red
 
 ### Privacy Extensions Color Schemes
 
-| Extension | Primary Color | Theme |
-|-----------|--------------|-------|
-| uBlock Origin | Red/Orange | Blocking/Warning |
-| Privacy Badger | Yellow/Black | Caution |
-| Ghostery | **Purple** | Mystery/Stealth |
-| DuckDuckGo | Orange | Friendly Protection |
-| HTTPS Everywhere | Blue | Trust/Security |
-| **Phantom Trail** | **Purple** | **Ghost/Stealth** |
+| Extension         | Primary Color | Theme               |
+| ----------------- | ------------- | ------------------- |
+| uBlock Origin     | Red/Orange    | Blocking/Warning    |
+| Privacy Badger    | Yellow/Black  | Caution             |
+| Ghostery          | **Purple**    | Mystery/Stealth     |
+| DuckDuckGo        | Orange        | Friendly Protection |
+| HTTPS Everywhere  | Blue          | Trust/Security      |
+| **Phantom Trail** | **Purple**    | **Ghost/Stealth**   |
 
 **Insight**: Purple is used by Ghostery (similar stealth theme), differentiates from blue-heavy market.
 
@@ -176,11 +186,12 @@ Size Scale (400px popup):
    - Button.tsx: Removed blue glow
    - App.tsx: Navigation buttons (blue → purple)
    - LiveNarrative.tsx: Info alerts (blue → teal)
-   - NetworkGraph.tsx: Legend colors (generic → risk-*)
+   - NetworkGraph.tsx: Legend colors (generic → risk-\*)
 
 ## User Impact
 
 ### Positive Changes
+
 ✅ Stronger brand identity (ghost/phantom theme)
 ✅ Better contrast (teal improved from 4.1:1 → 5.5:1)
 ✅ More memorable visual design
@@ -188,6 +199,7 @@ Size Scale (400px popup):
 ✅ Consistent with "Phantom Trail" name
 
 ### No Negative Impact
+
 ✅ Risk colors unchanged (industry standard)
 ✅ Typography unchanged (already optimal)
 ✅ Accessibility maintained (WCAG AA/AAA)
@@ -197,11 +209,13 @@ Size Scale (400px popup):
 ## Recommendations
 
 ### Immediate
+
 ✅ **Done**: Updated all components to purple theme
 ✅ **Done**: Improved teal contrast
 ✅ **Done**: Standardized risk colors
 
 ### Future Enhancements
+
 - [ ] Add subtle ghost/phantom animations (floating, fading)
 - [ ] Consider ghost icon in toolbar (instead of generic icon)
 - [ ] Add "phantom mode" toggle (extra stealth features)

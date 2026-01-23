@@ -18,35 +18,54 @@ const createEvent = (domain, riskLevel, inPageMethod = null) => ({
 // Simplified scoring function for testing
 function calculateScore(events, isHttps = true) {
   let score = 100;
-  
+
   events.forEach(e => {
     switch (e.riskLevel) {
-      case 'critical': score -= 30; break;
-      case 'high': score -= 18; break;
-      case 'medium': score -= 10; break;
-      case 'low': score -= 5; break;
+      case 'critical':
+        score -= 30;
+        break;
+      case 'high':
+        score -= 18;
+        break;
+      case 'medium':
+        score -= 10;
+        break;
+      case 'low':
+        score -= 5;
+        break;
     }
   });
-  
+
   if (isHttps) score += 5;
   if (events.length > 10) score -= 20;
-  
+
   // Cross-site tracking penalty
-  const companies = new Set(events.map(e => {
-    const cleaned = e.domain.replace(/^(www\.|analytics\.|tracking\.|ads\.)/, '');
-    const parts = cleaned.split('.');
-    return parts.length >= 2 ? parts[parts.length - 2] : cleaned;
-  }));
+  const companies = new Set(
+    events.map(e => {
+      const cleaned = e.domain.replace(
+        /^(www\.|analytics\.|tracking\.|ads\.)/,
+        ''
+      );
+      const parts = cleaned.split('.');
+      return parts.length >= 2 ? parts[parts.length - 2] : cleaned;
+    })
+  );
   if (companies.size >= 3) score -= 15;
-  
+
   // Persistent tracking penalty
-  const hasPersistent = events.some(e => 
-    e.inPageTracking?.method && 
-    ['canvas-fingerprint', 'font-fingerprint', 'audio-fingerprint', 
-     'webgl-fingerprint', 'webrtc-leak'].includes(e.inPageTracking.method)
+  const hasPersistent = events.some(
+    e =>
+      e.inPageTracking?.method &&
+      [
+        'canvas-fingerprint',
+        'font-fingerprint',
+        'audio-fingerprint',
+        'webgl-fingerprint',
+        'webrtc-leak',
+      ].includes(e.inPageTracking.method)
   );
   if (hasPersistent) score -= 20;
-  
+
   return Math.max(0, Math.min(100, score));
 }
 
@@ -72,9 +91,7 @@ const testCases = [
   },
   {
     name: 'Persistent fingerprinting',
-    events: [
-      createEvent('site.com', 'high', 'canvas-fingerprint'),
-    ],
+    events: [createEvent('site.com', 'high', 'canvas-fingerprint')],
     expected: { min: 60, max: 75, grade: 'C/D' },
   },
   {
@@ -88,9 +105,9 @@ const testCases = [
   },
   {
     name: 'Excessive tracking (10+ trackers)',
-    events: Array(12).fill(null).map((_, i) => 
-      createEvent(`tracker${i}.com`, 'low')
-    ),
+    events: Array(12)
+      .fill(null)
+      .map((_, i) => createEvent(`tracker${i}.com`, 'low')),
     expected: { min: 0, max: 30, grade: 'F' },
   },
 ];
@@ -103,15 +120,19 @@ let failed = 0;
 testCases.forEach(({ name, events, expected }) => {
   const score = calculateScore(events);
   const success = score >= expected.min && score <= expected.max;
-  
+
   if (success) {
     console.log(`✅ ${name}`);
-    console.log(`   Score: ${score} (expected ${expected.min}-${expected.max})`);
+    console.log(
+      `   Score: ${score} (expected ${expected.min}-${expected.max})`
+    );
     console.log(`   Grade: ${expected.grade}\n`);
     passed++;
   } else {
     console.log(`❌ ${name}`);
-    console.log(`   Score: ${score} (expected ${expected.min}-${expected.max})`);
+    console.log(
+      `   Score: ${score} (expected ${expected.min}-${expected.max})`
+    );
     console.log(`   FAILED: Score out of expected range\n`);
     failed++;
   }
@@ -127,7 +148,9 @@ if (failed > 0) {
   console.log('\n✅ All scoring tests passed!');
   console.log('🎯 Privacy scoring algorithm is working correctly');
   console.log('\nKey improvements:');
-  console.log('  • Rebalanced risk weights (Critical: -30, High: -18, Medium: -10, Low: -5)');
+  console.log(
+    '  • Rebalanced risk weights (Critical: -30, High: -18, Medium: -10, Low: -5)'
+  );
   console.log('  • Cross-site tracking penalty: -15');
   console.log('  • Persistent tracking penalty: -20');
   process.exit(0);

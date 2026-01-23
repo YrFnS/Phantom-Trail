@@ -81,28 +81,36 @@ export class PerformanceMonitor {
   async measureCPUUsage(): Promise<CPUMetrics> {
     try {
       if (typeof window === 'undefined' || !window.performance) {
-        return { averageUsage: 0, peakUsage: 0, backgroundUsage: 0, contentScriptUsage: 0 };
+        return {
+          averageUsage: 0,
+          peakUsage: 0,
+          backgroundUsage: 0,
+          contentScriptUsage: 0,
+        };
       }
 
       const startTime = window.performance.now();
-      
+
       // Simulate CPU-intensive task to measure performance
       let iterations = 0;
       const testDuration = 100; // ms
       const endTime = startTime + testDuration;
-      
+
       while (window.performance.now() < endTime) {
         iterations++;
         void (Math.random() * Math.random());
       }
-      
+
       const actualDuration = window.performance.now() - startTime;
       const efficiency = iterations / actualDuration;
-      
+
       // Convert to usage percentage (higher efficiency = lower usage)
       const baselineEfficiency = 10000; // Baseline iterations per ms
-      const usage = Math.max(0, Math.min(100, 100 - (efficiency / baselineEfficiency) * 100));
-      
+      const usage = Math.max(
+        0,
+        Math.min(100, 100 - (efficiency / baselineEfficiency) * 100)
+      );
+
       return {
         averageUsage: usage,
         peakUsage: usage * 1.2,
@@ -123,20 +131,20 @@ export class PerformanceMonitor {
   async measureMemoryUsage(): Promise<MemoryMetrics> {
     try {
       let memoryInfo: any = {};
-      
+
       // Try to get memory info from performance API
       if (typeof window !== 'undefined' && 'performance' in window) {
         const perf = window.performance as any;
         memoryInfo = perf.memory || {};
       }
-      
+
       const totalUsage = memoryInfo.totalJSHeapSize || 0;
       const heapUsage = memoryInfo.usedJSHeapSize || 0;
-      
+
       // Estimate cache and storage usage
       const cacheUsage = Math.floor(totalUsage * 0.1);
       const eventStorageUsage = Math.floor(totalUsage * 0.05);
-      
+
       return {
         totalUsage,
         heapUsage,
@@ -162,19 +170,19 @@ export class PerformanceMonitor {
 
       const entries = window.performance.getEntriesByType('navigation');
       const paintEntries = window.performance.getEntriesByType('paint');
-      
+
       let renderTime = 0;
       let paintTime = 0;
-      
+
       if (entries.length > 0) {
         const navEntry = entries[0] as any;
         renderTime = navEntry.loadEventEnd - navEntry.loadEventStart;
       }
-      
+
       if (paintEntries.length > 0) {
         paintTime = paintEntries[paintEntries.length - 1].startTime;
       }
-      
+
       return {
         frameRate: 60, // Assume 60fps for now
         renderTime,
@@ -195,11 +203,15 @@ export class PerformanceMonitor {
   async optimizeForDevice(): Promise<OptimizationSettings> {
     const cpuMetrics = await this.measureCPUUsage();
     const memoryMetrics = await this.measureMemoryUsage();
-    
+
     // Determine optimization level based on performance
-    const isLowEnd = cpuMetrics.averageUsage > 70 || memoryMetrics.totalUsage > 100 * 1024 * 1024;
-    const isMidRange = cpuMetrics.averageUsage > 40 || memoryMetrics.totalUsage > 50 * 1024 * 1024;
-    
+    const isLowEnd =
+      cpuMetrics.averageUsage > 70 ||
+      memoryMetrics.totalUsage > 100 * 1024 * 1024;
+    const isMidRange =
+      cpuMetrics.averageUsage > 40 ||
+      memoryMetrics.totalUsage > 50 * 1024 * 1024;
+
     if (isLowEnd) {
       return {
         enableVirtualScrolling: true,
@@ -233,7 +245,7 @@ export class PerformanceMonitor {
   async generatePerformanceReport(): Promise<PerformanceReport> {
     const metrics = await this.getCurrentMetrics();
     const recommendations: string[] = [];
-    
+
     // Generate recommendations based on metrics
     if (metrics.cpu.averageUsage > 70) {
       recommendations.push('Consider reducing background processing');
@@ -244,14 +256,17 @@ export class PerformanceMonitor {
     if (metrics.rendering.frameRate < 30) {
       recommendations.push('Enable virtual scrolling to improve rendering');
     }
-    
+
     // Calculate overall score
     const cpuScore = Math.max(0, 100 - metrics.cpu.averageUsage);
-    const memoryScore = Math.max(0, 100 - (metrics.memory.totalUsage / (1024 * 1024)));
+    const memoryScore = Math.max(
+      0,
+      100 - metrics.memory.totalUsage / (1024 * 1024)
+    );
     const renderScore = Math.min(100, (metrics.rendering.frameRate / 60) * 100);
-    
+
     const score = Math.round((cpuScore + memoryScore + renderScore) / 3);
-    
+
     let grade: PerformanceReport['grade'];
     if (score >= 95) grade = 'A+';
     else if (score >= 85) grade = 'A';
@@ -259,7 +274,7 @@ export class PerformanceMonitor {
     else if (score >= 65) grade = 'C';
     else if (score >= 55) grade = 'D';
     else grade = 'F';
-    
+
     return {
       metrics,
       recommendations,
@@ -272,14 +287,14 @@ export class PerformanceMonitor {
     const cpu = await this.measureCPUUsage();
     const memory = await this.measureMemoryUsage();
     const rendering = await this.trackRenderPerformance();
-    
+
     this.metrics = {
       cpu,
       memory,
       rendering,
       timestamp: Date.now(),
     };
-    
+
     return this.metrics;
   }
 
@@ -288,14 +303,17 @@ export class PerformanceMonitor {
       // Layout shift observer
       if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
         const PerformanceObserver = window.PerformanceObserver;
-        const layoutShiftObserver = new PerformanceObserver((list) => {
+        const layoutShiftObserver = new PerformanceObserver(list => {
           for (const entry of list.getEntries()) {
-            if (entry.entryType === 'layout-shift' && !(entry as any).hadRecentInput) {
+            if (
+              entry.entryType === 'layout-shift' &&
+              !(entry as any).hadRecentInput
+            ) {
               this.metrics.rendering.layoutShifts++;
             }
           }
         });
-        
+
         layoutShiftObserver.observe({ entryTypes: ['layout-shift'] });
         this.observers.push(layoutShiftObserver);
       }

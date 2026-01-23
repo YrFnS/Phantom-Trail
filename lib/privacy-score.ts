@@ -31,7 +31,7 @@ export function calculatePrivacyScore(
   isHttps: boolean = true
 ): PrivacyScore {
   let score = 100; // Start with perfect score
-  
+
   // Count trackers by risk level
   const breakdown = {
     totalTrackers: events.length,
@@ -77,18 +77,22 @@ export function calculatePrivacyScore(
   }
 
   // NEW: Cross-site tracking penalty (3+ unique tracker companies)
-  const uniqueCompanies = new Set(
-    events.map(e => extractCompany(e.domain))
-  );
+  const uniqueCompanies = new Set(events.map(e => extractCompany(e.domain)));
   if (uniqueCompanies.size >= 3) {
     score -= 15;
   }
 
   // NEW: Persistent tracking penalty (fingerprinting detected)
   const hasPersistentTracking = events.some(
-    e => e.inPageTracking?.method && 
-    ['canvas-fingerprint', 'font-fingerprint', 'audio-fingerprint', 
-     'webgl-fingerprint', 'webrtc-leak'].includes(e.inPageTracking.method)
+    e =>
+      e.inPageTracking?.method &&
+      [
+        'canvas-fingerprint',
+        'font-fingerprint',
+        'audio-fingerprint',
+        'webgl-fingerprint',
+        'webrtc-leak',
+      ].includes(e.inPageTracking.method)
   );
   if (hasPersistentTracking) {
     score -= 20;
@@ -102,9 +106,9 @@ export function calculatePrivacyScore(
 
   // Generate recommendations
   const recommendations = generateRecommendations(
-    breakdown, 
-    score, 
-    uniqueCompanies.size, 
+    breakdown,
+    score,
+    uniqueCompanies.size,
     hasPersistentTracking
   );
 
@@ -127,32 +131,43 @@ export async function calculatePrivacyScoreWithTrust(
 ): Promise<PrivacyScore> {
   // Start with base calculation
   const baseScore = calculatePrivacyScore(events, isHttps);
-  
+
   // Apply trust adjustment if domain is provided
   if (domain) {
     const originalScore = baseScore.score;
-    const adjustedScore = await TrustedSitesManager.adjustScoreForTrust(originalScore, domain);
-    
+    const adjustedScore = await TrustedSitesManager.adjustScoreForTrust(
+      originalScore,
+      domain
+    );
+
     if (adjustedScore !== originalScore) {
       const trustedSite = await TrustedSitesManager.getTrustedSite(domain);
       const trustAdjustment = {
         applied: true,
         domain,
         adjustment: adjustedScore - originalScore,
-        reason: trustedSite?.reason || 'Trusted site adjustment applied'
+        reason: trustedSite?.reason || 'Trusted site adjustment applied',
       };
 
       // Recalculate grade and color with adjusted score
       const { grade, color } = getGradeAndColor(adjustedScore);
-      
+
       // Generate recommendations with trust context
       const recommendations = generateRecommendations(
-        { ...baseScore.breakdown, trustAdjustment }, 
-        adjustedScore, 
-        new Set(events.map(e => extractCompany(e.domain))).size, 
-        events.some(e => e.inPageTracking?.method && 
-          ['canvas-fingerprint', 'font-fingerprint', 'audio-fingerprint', 
-           'webgl-fingerprint', 'webrtc-leak'].includes(e.inPageTracking.method)),
+        { ...baseScore.breakdown, trustAdjustment },
+        adjustedScore,
+        new Set(events.map(e => extractCompany(e.domain))).size,
+        events.some(
+          e =>
+            e.inPageTracking?.method &&
+            [
+              'canvas-fingerprint',
+              'font-fingerprint',
+              'audio-fingerprint',
+              'webgl-fingerprint',
+              'webrtc-leak',
+            ].includes(e.inPageTracking.method)
+        ),
         domain
       );
 
@@ -194,7 +209,10 @@ function extractCompany(domain: string): string {
 /**
  * Get letter grade and color based on score
  */
-function getGradeAndColor(score: number): { grade: PrivacyScore['grade']; color: PrivacyScore['color'] } {
+function getGradeAndColor(score: number): {
+  grade: PrivacyScore['grade'];
+  color: PrivacyScore['color'];
+} {
   if (score >= 90) return { grade: 'A', color: 'green' };
   if (score >= 80) return { grade: 'B', color: 'green' };
   if (score >= 70) return { grade: 'C', color: 'yellow' };
@@ -217,38 +235,56 @@ function generateRecommendations(
   // Trust-related recommendations first
   if (breakdown.trustAdjustment?.applied) {
     if (breakdown.trustAdjustment.adjustment > 0) {
-      recommendations.push(`✅ Score boosted for trusted site: ${breakdown.trustAdjustment.reason}`);
+      recommendations.push(
+        `✅ Score boosted for trusted site: ${breakdown.trustAdjustment.reason}`
+      );
     }
   } else if (domain && score < 80) {
-    recommendations.push(`Consider adding ${domain} to trusted sites if you use it regularly.`);
+    recommendations.push(
+      `Consider adding ${domain} to trusted sites if you use it regularly.`
+    );
   }
 
   if (breakdown.criticalRisk > 0) {
-    recommendations.push(`${breakdown.criticalRisk} critical-risk trackers detected. Immediate action recommended.`);
+    recommendations.push(
+      `${breakdown.criticalRisk} critical-risk trackers detected. Immediate action recommended.`
+    );
   }
 
   if (breakdown.highRisk > 0) {
-    recommendations.push(`${breakdown.highRisk} high-risk trackers detected. Consider using an ad blocker.`);
+    recommendations.push(
+      `${breakdown.highRisk} high-risk trackers detected. Consider using an ad blocker.`
+    );
   }
 
   if (crossSiteTrackers >= 3) {
-    recommendations.push(`Cross-site tracking detected (${crossSiteTrackers} companies). Your data is being shared across multiple sites.`);
+    recommendations.push(
+      `Cross-site tracking detected (${crossSiteTrackers} companies). Your data is being shared across multiple sites.`
+    );
   }
 
   if (hasPersistentTracking) {
-    recommendations.push('Persistent fingerprinting detected. This tracking works even in incognito mode.');
+    recommendations.push(
+      'Persistent fingerprinting detected. This tracking works even in incognito mode.'
+    );
   }
 
   if (breakdown.excessiveTrackingPenalty) {
-    recommendations.push('Excessive tracking detected. This site may be sharing data with many third parties.');
+    recommendations.push(
+      'Excessive tracking detected. This site may be sharing data with many third parties.'
+    );
   }
 
   if (!breakdown.httpsBonus) {
-    recommendations.push('Site is not using HTTPS. Your data may be transmitted insecurely.');
+    recommendations.push(
+      'Site is not using HTTPS. Your data may be transmitted insecurely.'
+    );
   }
 
   if (score < 60) {
-    recommendations.push('Consider using privacy-focused browser extensions or switching to a more private browser.');
+    recommendations.push(
+      'Consider using privacy-focused browser extensions or switching to a more private browser.'
+    );
   }
 
   if (breakdown.totalTrackers === 0) {
@@ -266,7 +302,7 @@ export function getPrivacyTrend(
   previousScore: number
 ): 'improving' | 'declining' | 'stable' {
   const difference = currentScore - previousScore;
-  
+
   if (difference > 5) return 'improving';
   if (difference < -5) return 'declining';
   return 'stable';
@@ -274,15 +310,20 @@ export function getPrivacyTrend(
 
 // Main PrivacyScoreCalculator class for compatibility
 export class PrivacyScoreCalculator {
-  static async calculateDomainScore(): Promise<{ score: number; grade: string; color: string }> {
+  static async calculateDomainScore(): Promise<{
+    score: number;
+    grade: string;
+    color: string;
+  }> {
     // Simple stub implementation
     const score = Math.floor(Math.random() * 100);
-    const grade = score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : 'D';
+    const grade =
+      score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : 'D';
     const color = score >= 80 ? 'green' : score >= 60 ? 'yellow' : 'red';
-    
+
     return { score, grade, color };
   }
 }
 
-// Export as PrivacyScore for backward compatibility  
+// Export as PrivacyScore for backward compatibility
 export const PrivacyScoreClass = PrivacyScoreCalculator;

@@ -1,9 +1,9 @@
 import { BaseStorage } from './storage/base-storage';
 
 export enum TrustLevel {
-  FULL_TRUST = 'full',      // No monitoring, always green score
+  FULL_TRUST = 'full', // No monitoring, always green score
   PARTIAL_TRUST = 'partial', // Reduced monitoring, adjusted scoring
-  CONDITIONAL = 'conditional' // Trust with specific conditions
+  CONDITIONAL = 'conditional', // Trust with specific conditions
 }
 
 export interface TrustCondition {
@@ -42,15 +42,19 @@ export interface TrustedSitesStorage {
 export class TrustedSitesManager {
   private static readonly STORAGE_KEY = 'trustedSites';
 
-  static async addTrustedSite(domain: string, trustLevel: TrustLevel = TrustLevel.PARTIAL_TRUST, reason?: string): Promise<void> {
+  static async addTrustedSite(
+    domain: string,
+    trustLevel: TrustLevel = TrustLevel.PARTIAL_TRUST,
+    reason?: string
+  ): Promise<void> {
     const data = await this.getTrustedSitesData();
-    
+
     data.sites[domain] = {
       domain,
       trustLevel,
       dateAdded: Date.now(),
       reason,
-      lastVerified: Date.now()
+      lastVerified: Date.now(),
     };
 
     await BaseStorage.set(this.STORAGE_KEY, data);
@@ -77,7 +81,10 @@ export class TrustedSitesManager {
     return Object.values(data.sites);
   }
 
-  static async updateTrustLevel(domain: string, level: TrustLevel): Promise<void> {
+  static async updateTrustLevel(
+    domain: string,
+    level: TrustLevel
+  ): Promise<void> {
     const data = await this.getTrustedSitesData();
     if (data.sites[domain]) {
       data.sites[domain].trustLevel = level;
@@ -86,7 +93,10 @@ export class TrustedSitesManager {
     }
   }
 
-  static async adjustScoreForTrust(baseScore: number, domain: string): Promise<number> {
+  static async adjustScoreForTrust(
+    baseScore: number,
+    domain: string
+  ): Promise<number> {
     const trustedSite = await this.getTrustedSite(domain);
     if (!trustedSite) return baseScore;
 
@@ -102,7 +112,10 @@ export class TrustedSitesManager {
     }
   }
 
-  static async shouldMonitorTracker(domain: string, trackerRiskLevel: 'low' | 'medium' | 'high' | 'critical'): Promise<boolean> {
+  static async shouldMonitorTracker(
+    domain: string,
+    trackerRiskLevel: 'low' | 'medium' | 'high' | 'critical'
+  ): Promise<boolean> {
     const trustedSite = await this.getTrustedSite(domain);
     if (!trustedSite) return true;
 
@@ -118,9 +131,12 @@ export class TrustedSitesManager {
     }
   }
 
-  private static evaluateConditions(baseScore: number, trustedSite: TrustedSite): number {
+  private static evaluateConditions(
+    baseScore: number,
+    trustedSite: TrustedSite
+  ): number {
     if (!trustedSite.conditions) return baseScore;
-    
+
     // Simple condition evaluation - can be expanded
     let adjustedScore = baseScore;
     for (const condition of trustedSite.conditions) {
@@ -131,9 +147,12 @@ export class TrustedSitesManager {
     return Math.min(adjustedScore, 100);
   }
 
-  private static shouldMonitorWithConditions(trustedSite: TrustedSite, riskLevel: string): boolean {
+  private static shouldMonitorWithConditions(
+    trustedSite: TrustedSite,
+    riskLevel: string
+  ): boolean {
     if (!trustedSite.conditions) return true;
-    
+
     // Check conditions - if any condition suggests monitoring, do it
     for (const condition of trustedSite.conditions) {
       if (condition.type === 'allowed_types' && riskLevel === 'critical') {
@@ -145,7 +164,7 @@ export class TrustedSitesManager {
 
   private static async getTrustedSitesData(): Promise<TrustedSitesStorage> {
     const data = await BaseStorage.get<TrustedSitesStorage>(this.STORAGE_KEY);
-    
+
     if (!data) {
       const defaultData: TrustedSitesStorage = {
         sites: {},
@@ -153,42 +172,50 @@ export class TrustedSitesManager {
           autoSuggestTrust: true,
           verificationInterval: 30, // days
           defaultTrustLevel: TrustLevel.PARTIAL_TRUST,
-          inheritSubdomains: true
+          inheritSubdomains: true,
         },
-        suggestions: []
+        suggestions: [],
       };
       await BaseStorage.set(this.STORAGE_KEY, defaultData);
       return defaultData;
     }
-    
+
     return data;
   }
 
-  static async generateTrustSuggestions(domain: string): Promise<TrustSuggestion[]> {
+  static async generateTrustSuggestions(
+    domain: string
+  ): Promise<TrustSuggestion[]> {
     const suggestions: TrustSuggestion[] = [];
-    
+
     // Check if it's a reputable domain
     if (this.isReputableDomain(domain)) {
       suggestions.push({
         type: 'reputable',
         confidence: 0.9,
         reason: 'This is a well-known, reputable website',
-        domain
+        domain,
       });
     }
-    
+
     return suggestions;
   }
 
   private static isReputableDomain(domain: string): boolean {
     const reputableDomains = [
-      'github.com', 'stackoverflow.com', 'wikipedia.org',
-      'google.com', 'microsoft.com', 'apple.com',
-      'amazon.com', 'netflix.com', 'spotify.com'
+      'github.com',
+      'stackoverflow.com',
+      'wikipedia.org',
+      'google.com',
+      'microsoft.com',
+      'apple.com',
+      'amazon.com',
+      'netflix.com',
+      'spotify.com',
     ];
-    
-    return reputableDomains.some(reputable => 
-      domain === reputable || domain.endsWith(`.${reputable}`)
+
+    return reputableDomains.some(
+      reputable => domain === reputable || domain.endsWith(`.${reputable}`)
     );
   }
 

@@ -9,9 +9,11 @@ import { cleanupExpiredSignatures } from './event-detection';
  */
 function isContextValid(): boolean {
   try {
-    return typeof chrome !== 'undefined' && 
-           chrome.runtime && 
-           chrome.runtime.id !== undefined;
+    return (
+      typeof chrome !== 'undefined' &&
+      chrome.runtime &&
+      chrome.runtime.id !== undefined
+    );
   } catch {
     return false;
   }
@@ -27,13 +29,17 @@ export default defineContentScript({
 
     // Check context before initialization
     if (!isContextValid()) {
-      console.warn('[Phantom Trail] Extension context invalid at startup, retrying...');
-      
+      console.warn(
+        '[Phantom Trail] Extension context invalid at startup, retrying...'
+      );
+
       // Wait a bit and retry
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       if (!isContextValid()) {
-        console.error('[Phantom Trail] Extension context still invalid, aborting initialization');
+        console.error(
+          '[Phantom Trail] Extension context still invalid, aborting initialization'
+        );
         return;
       }
     }
@@ -44,18 +50,18 @@ export default defineContentScript({
       setupDOMMonitoring();
 
       // Set up privacy prediction on links
-      document.addEventListener('mouseover', (event) => {
+      document.addEventListener('mouseover', event => {
         if (!isContextValid()) return;
-        
+
         const target = event.target as HTMLElement;
         if (target.tagName === 'A') {
           handleLinkHover(target as HTMLAnchorElement);
         }
       });
 
-      document.addEventListener('mouseout', (event) => {
+      document.addEventListener('mouseout', event => {
         if (!isContextValid()) return;
-        
+
         const target = event.target as HTMLElement;
         if (target.tagName === 'A') {
           handleLinkLeave();
@@ -86,7 +92,10 @@ export default defineContentScript({
 
       console.log('[Phantom Trail] Content script initialization complete');
     } catch (error) {
-      console.error('[Phantom Trail] Content script initialization failed:', error);
+      console.error(
+        '[Phantom Trail] Content script initialization failed:',
+        error
+      );
     }
-  }
+  },
 });

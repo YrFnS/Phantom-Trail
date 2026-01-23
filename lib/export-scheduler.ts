@@ -37,27 +37,27 @@ export class ExportScheduler {
   static async scheduleExport(config: ExportScheduleConfig): Promise<string> {
     const scheduleId = `schedule-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const nextExecution = this.calculateNextExecution(config.frequency);
-    
+
     const schedule: ExportSchedule = {
       id: scheduleId,
       config,
       nextExecution,
-      status: 'active'
+      status: 'active',
     };
 
     // Save schedule
     await this.saveSchedule(schedule);
-    
+
     // Create Chrome alarm
     await this.createAlarm(schedule);
-    
+
     return scheduleId;
   }
 
   static async cancelSchedule(scheduleId: string): Promise<void> {
     // Remove Chrome alarm
     await chrome.alarms.clear(`export-schedule-${scheduleId}`);
-    
+
     // Remove from storage
     const schedules = await this.getSchedules();
     delete schedules[scheduleId];
@@ -82,8 +82,10 @@ export class ExportScheduler {
       // const { ExportService } = await import('./export-service');
 
       // Get data for the specified range
-      const events = await EventsStorage.getRecentEvents(schedule.config.dataRange * 24); // Convert days to hours
-      
+      const events = await EventsStorage.getRecentEvents(
+        schedule.config.dataRange * 24
+      ); // Convert days to hours
+
       // Generate export
       const exportData = await ExportService.generateExport(
         events,
@@ -100,35 +102,45 @@ export class ExportScheduler {
         executionTime: new Date(),
         status: 'success',
         fileSize: exportData.size,
-        deliveryMethod: schedule.config.deliveryMethod
+        deliveryMethod: schedule.config.deliveryMethod,
       });
 
       // Schedule next execution
-      const updatedSchedule = { ...schedule, lastExecution: new Date(), nextExecution: this.calculateNextExecution(schedule.config.frequency) };
+      const updatedSchedule = {
+        ...schedule,
+        lastExecution: new Date(),
+        nextExecution: this.calculateNextExecution(schedule.config.frequency),
+      };
       await this.saveSchedule(updatedSchedule);
       await this.createAlarm(updatedSchedule);
-
     } catch (error) {
       console.error(`Scheduled export failed for ${scheduleId}:`, error);
-      await this.updateScheduleStatus(scheduleId, 'error', error instanceof Error ? error.message : 'Unknown error');
+      await this.updateScheduleStatus(
+        scheduleId,
+        'error',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       await this.addHistoryEntry({
         scheduleId,
         executionTime: new Date(),
         status: 'error',
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        deliveryMethod: 'unknown'
+        deliveryMethod: 'unknown',
       });
     }
   }
 
-  static async updateSchedule(scheduleId: string, config: ExportScheduleConfig): Promise<void> {
+  static async updateSchedule(
+    scheduleId: string,
+    config: ExportScheduleConfig
+  ): Promise<void> {
     const schedule = await this.getSchedule(scheduleId);
     if (!schedule) throw new Error(`Schedule ${scheduleId} not found`);
 
     const updatedSchedule: ExportSchedule = {
       ...schedule,
       config,
-      nextExecution: this.calculateNextExecution(config.frequency)
+      nextExecution: this.calculateNextExecution(config.frequency),
     };
 
     await this.saveSchedule(updatedSchedule);
@@ -140,7 +152,9 @@ export class ExportScheduler {
     return result[STORAGE_KEY] || {};
   }
 
-  private static async getSchedule(scheduleId: string): Promise<ExportSchedule | null> {
+  private static async getSchedule(
+    scheduleId: string
+  ): Promise<ExportSchedule | null> {
     const schedules = await this.getSchedules();
     return schedules[scheduleId] || null;
   }
@@ -153,18 +167,20 @@ export class ExportScheduler {
 
   private static async createAlarm(schedule: ExportSchedule): Promise<void> {
     const alarmName = `export-schedule-${schedule.id}`;
-    
+
     // Clear existing alarm
     await chrome.alarms.clear(alarmName);
-    
+
     // Create new alarm
     await chrome.alarms.create(alarmName, {
       when: schedule.nextExecution.getTime(),
-      periodInMinutes: this.getIntervalMinutes(schedule.config.frequency)
+      periodInMinutes: this.getIntervalMinutes(schedule.config.frequency),
     });
   }
 
-  private static calculateNextExecution(frequency: ExportScheduleConfig['frequency']): Date {
+  private static calculateNextExecution(
+    frequency: ExportScheduleConfig['frequency']
+  ): Date {
     const now = new Date();
     const next = new Date(now);
 
@@ -186,11 +202,16 @@ export class ExportScheduler {
     return next;
   }
 
-  private static getIntervalMinutes(frequency: ExportScheduleConfig['frequency']): number {
+  private static getIntervalMinutes(
+    frequency: ExportScheduleConfig['frequency']
+  ): number {
     switch (frequency) {
-      case 'daily': return 24 * 60; // 1 day
-      case 'weekly': return 7 * 24 * 60; // 1 week
-      case 'monthly': return 30 * 24 * 60; // 30 days (approximate)
+      case 'daily':
+        return 24 * 60; // 1 day
+      case 'weekly':
+        return 7 * 24 * 60; // 1 week
+      case 'monthly':
+        return 30 * 24 * 60; // 30 days (approximate)
     }
   }
 
@@ -201,7 +222,10 @@ export class ExportScheduler {
     return `phantom-trail-${frequency}-${date}.${format}`;
   }
 
-  private static async deliverExport(exportData: Blob, config: ExportScheduleConfig): Promise<void> {
+  private static async deliverExport(
+    exportData: Blob,
+    config: ExportScheduleConfig
+  ): Promise<void> {
     switch (config.deliveryMethod) {
       case 'download':
         await this.triggerAutoDownload(exportData, config);
@@ -217,18 +241,25 @@ export class ExportScheduler {
     }
   }
 
-  private static async triggerAutoDownload(data: Blob, config: ExportScheduleConfig): Promise<void> {
+  private static async triggerAutoDownload(
+    data: Blob,
+    config: ExportScheduleConfig
+  ): Promise<void> {
     const url = URL.createObjectURL(data);
     const filename = `phantom-trail-exports/${this.generateScheduledFilename({ id: '', config, nextExecution: new Date(), status: 'active' })}`;
-    
+
     await chrome.downloads.download({
       url: url,
       filename: filename,
-      saveAs: false
+      saveAs: false,
     });
   }
 
-  private static async updateScheduleStatus(scheduleId: string, status: ExportSchedule['status'], errorMessage?: string): Promise<void> {
+  private static async updateScheduleStatus(
+    scheduleId: string,
+    status: ExportSchedule['status'],
+    errorMessage?: string
+  ): Promise<void> {
     const schedule = await this.getSchedule(scheduleId);
     if (!schedule) return;
 
@@ -242,17 +273,19 @@ export class ExportScheduler {
     await this.saveSchedule(schedule);
   }
 
-  private static async addHistoryEntry(entry: ExportHistoryEntry): Promise<void> {
+  private static async addHistoryEntry(
+    entry: ExportHistoryEntry
+  ): Promise<void> {
     const result = await chrome.storage.local.get(HISTORY_KEY);
     const history: ExportHistoryEntry[] = result[HISTORY_KEY] || [];
-    
+
     history.unshift(entry);
-    
+
     // Keep only last 100 entries
     if (history.length > 100) {
       history.splice(100);
     }
-    
+
     await chrome.storage.local.set({ [HISTORY_KEY]: history });
   }
 

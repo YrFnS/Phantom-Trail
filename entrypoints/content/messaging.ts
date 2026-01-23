@@ -5,9 +5,11 @@ import { ContentMessaging } from '../../lib/content-messaging';
  */
 function isContextValid(): boolean {
   try {
-    return typeof chrome !== 'undefined' && 
-           chrome.runtime && 
-           chrome.runtime.id !== undefined;
+    return (
+      typeof chrome !== 'undefined' &&
+      chrome.runtime &&
+      chrome.runtime.id !== undefined
+    );
   } catch {
     return false;
   }
@@ -29,9 +31,9 @@ export function setupMessaging(): void {
   });
 
   // Listen for P2P discovery messages
-  window.addEventListener('message', (event) => {
+  window.addEventListener('message', event => {
     if (event.source !== window) return;
-    
+
     if (event.data.type === 'PHANTOM_TRAIL_P2P_DISCOVERY') {
       handleP2PDiscovery(event.data);
     }
@@ -46,7 +48,10 @@ export function setupMessaging(): void {
   }, 10000); // Check every 10 seconds
 }
 
-function handleMessage(_message: unknown, sendResponse: (response?: unknown) => void): void {
+function handleMessage(
+  _message: unknown,
+  sendResponse: (response?: unknown) => void
+): void {
   try {
     // Check context before handling
     if (!isContextValid()) {
@@ -57,7 +62,7 @@ function handleMessage(_message: unknown, sendResponse: (response?: unknown) => 
     sendResponse({
       url: window.location.href,
       title: document.title,
-      domain: window.location.hostname
+      domain: window.location.hostname,
     });
   } catch (error) {
     console.warn('[Phantom Trail] Message handling error:', error);
@@ -65,7 +70,10 @@ function handleMessage(_message: unknown, sendResponse: (response?: unknown) => 
   }
 }
 
-function handleP2PDiscovery(data: { extensionId: string; version: string }): void {
+function handleP2PDiscovery(data: {
+  extensionId: string;
+  version: string;
+}): void {
   try {
     // Check context before handling P2P discovery
     if (!isContextValid()) {
@@ -82,7 +90,7 @@ function handleP2PDiscovery(data: { extensionId: string; version: string }): voi
         domain: window.location.hostname,
         trackerType: 'analytics',
         riskLevel: 'low',
-        description: 'P2P discovery response'
+        description: 'P2P discovery response',
       }).catch(error => {
         console.warn('[Phantom Trail] P2P discovery response failed:', error);
       });

@@ -1,13 +1,17 @@
 /**
  * Trusted Sites Configuration
- * 
+ *
  * Hybrid system combining:
  * 1. Default whitelist (hardcoded trusted sites)
  * 2. User whitelist (user-added sites)
  * 3. Context detection (smart security context detection)
  */
 
-import type { InPageTrackingMethod, UserTrustedSite, SecurityContext } from './types';
+import type {
+  InPageTrackingMethod,
+  UserTrustedSite,
+  SecurityContext,
+} from './types';
 import { UserWhitelistManager } from './user-whitelist-manager';
 
 /**
@@ -33,75 +37,76 @@ export const TRUSTED_SITES: TrustedSiteConfig[] = [
     domain: 'github.com',
     reason: 'security',
     allowedMethods: ['device-api', 'canvas-fingerprint'],
-    description: 'Uses fingerprinting for account security and fraud prevention'
+    description:
+      'Uses fingerprinting for account security and fraud prevention',
   },
   {
     domain: 'gitlab.com',
     reason: 'security',
     allowedMethods: ['device-api', 'canvas-fingerprint'],
-    description: 'Uses fingerprinting for account security'
+    description: 'Uses fingerprinting for account security',
   },
-  
+
   // Financial Services
   {
     domain: 'paypal.com',
     reason: 'fraud-prevention',
     allowedMethods: ['device-api', 'canvas-fingerprint', 'mouse-tracking'],
-    description: 'Uses fingerprinting to prevent fraudulent transactions'
+    description: 'Uses fingerprinting to prevent fraudulent transactions',
   },
   {
     domain: 'stripe.com',
     reason: 'fraud-prevention',
     allowedMethods: ['device-api', 'canvas-fingerprint'],
-    description: 'Uses fingerprinting for payment security'
+    description: 'Uses fingerprinting for payment security',
   },
-  
+
   // Banking (add your banks here)
   {
     domain: 'chase.com',
     reason: 'fraud-prevention',
     allowedMethods: ['device-api', 'canvas-fingerprint', 'mouse-tracking'],
-    description: 'Banking security measures'
+    description: 'Banking security measures',
   },
   {
     domain: 'bankofamerica.com',
     reason: 'fraud-prevention',
     allowedMethods: ['device-api', 'canvas-fingerprint', 'mouse-tracking'],
-    description: 'Banking security measures'
+    description: 'Banking security measures',
   },
-  
+
   // Cloud Services
   {
     domain: 'aws.amazon.com',
     reason: 'security',
     allowedMethods: ['device-api', 'canvas-fingerprint'],
-    description: 'AWS console security'
+    description: 'AWS console security',
   },
   {
     domain: 'console.cloud.google.com',
     reason: 'security',
     allowedMethods: ['device-api', 'canvas-fingerprint'],
-    description: 'Google Cloud console security'
+    description: 'Google Cloud console security',
   },
   {
     domain: 'portal.azure.com',
     reason: 'security',
     allowedMethods: ['device-api', 'canvas-fingerprint'],
-    description: 'Azure portal security'
+    description: 'Azure portal security',
   },
-  
+
   // Enterprise Authentication
   {
     domain: 'login.microsoftonline.com',
     reason: 'authentication',
     allowedMethods: ['device-api', 'canvas-fingerprint'],
-    description: 'Microsoft authentication security'
+    description: 'Microsoft authentication security',
   },
   {
     domain: 'accounts.google.com',
     reason: 'authentication',
     allowedMethods: ['device-api', 'canvas-fingerprint'],
-    description: 'Google account security'
+    description: 'Google account security',
   },
 ];
 
@@ -112,10 +117,12 @@ export function isTrustedSite(domain: string): TrustedSiteConfig | null {
   // Exact match
   const exactMatch = TRUSTED_SITES.find(site => site.domain === domain);
   if (exactMatch) return exactMatch;
-  
+
   // Subdomain match (e.g., api.github.com matches github.com)
-  const subdomainMatch = TRUSTED_SITES.find(site => matchesDomain(domain, site.domain));
-  
+  const subdomainMatch = TRUSTED_SITES.find(site =>
+    matchesDomain(domain, site.domain)
+  );
+
   return subdomainMatch || null;
 }
 
@@ -123,12 +130,12 @@ export function isTrustedSite(domain: string): TrustedSiteConfig | null {
  * Check if a specific fingerprinting method is allowed for a domain
  */
 export function isMethodAllowed(
-  domain: string, 
+  domain: string,
   method: InPageTrackingMethod
 ): boolean {
   const trustedSite = isTrustedSite(domain);
   if (!trustedSite) return false;
-  
+
   return trustedSite.allowedMethods.includes(method);
 }
 
@@ -141,15 +148,15 @@ export function getSecurityContext(domain: string): {
   description?: string;
 } {
   const trustedSite = isTrustedSite(domain);
-  
+
   if (!trustedSite) {
     return { isTrusted: false };
   }
-  
+
   return {
     isTrusted: true,
     reason: trustedSite.reason,
-    description: trustedSite.description
+    description: trustedSite.description,
   };
 }
 
@@ -179,7 +186,10 @@ export async function isSiteTrusted(
   const userTrusted = await isUserTrusted(domain);
   if (userTrusted) {
     // If no specific methods defined, trust all methods
-    if (!userTrusted.allowedMethods || userTrusted.allowedMethods.length === 0) {
+    if (
+      !userTrusted.allowedMethods ||
+      userTrusted.allowedMethods.length === 0
+    ) {
       return {
         trusted: true,
         source: 'user',
@@ -222,7 +232,9 @@ export function isDefaultTrusted(domain: string): TrustedSiteConfig | null {
 /**
  * Check user whitelist (Layer 2)
  */
-export async function isUserTrusted(domain: string): Promise<UserTrustedSite | null> {
+export async function isUserTrusted(
+  domain: string
+): Promise<UserTrustedSite | null> {
   return await UserWhitelistManager.isUserTrusted(domain);
 }
 
@@ -240,7 +252,10 @@ export function isContextTrusted(
   }
 
   // Login pages with device fingerprinting
-  if (context.isLoginPage && (method === 'device-api' || method === 'canvas-fingerprint')) {
+  if (
+    context.isLoginPage &&
+    (method === 'device-api' || method === 'canvas-fingerprint')
+  ) {
     return true;
   }
 
@@ -250,12 +265,18 @@ export function isContextTrusted(
   }
 
   // Payment pages with device fingerprinting
-  if (context.isPaymentPage && (method === 'device-api' || method === 'canvas-fingerprint')) {
+  if (
+    context.isPaymentPage &&
+    (method === 'device-api' || method === 'canvas-fingerprint')
+  ) {
     return true;
   }
 
   // Pages with password fields (likely auth)
-  if (context.hasPasswordField && (method === 'device-api' || method === 'canvas-fingerprint')) {
+  if (
+    context.hasPasswordField &&
+    (method === 'device-api' || method === 'canvas-fingerprint')
+  ) {
     return true;
   }
 

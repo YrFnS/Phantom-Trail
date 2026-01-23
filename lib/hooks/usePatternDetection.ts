@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { TrackingEvent } from '../../lib/types';
-import type { TrackingPattern, PatternAlert } from '../../components/LiveNarrative/LiveNarrative.types';
+import type {
+  TrackingPattern,
+  PatternAlert,
+} from '../../components/LiveNarrative/LiveNarrative.types';
 
 /**
  * Hook for detecting tracking patterns across events
@@ -23,7 +26,7 @@ export function usePatternDetection(events: TrackingEvent[]) {
     const crossSitePattern = detectCrossSiteTracking(events);
     if (crossSitePattern) {
       detectedPatterns.push(crossSitePattern);
-      
+
       newAlerts.push({
         pattern: {
           id: `cross-site-${Date.now()}`,
@@ -44,7 +47,7 @@ export function usePatternDetection(events: TrackingEvent[]) {
     const fingerprintingPattern = detectFingerprintingPattern(events);
     if (fingerprintingPattern) {
       detectedPatterns.push(fingerprintingPattern);
-      
+
       newAlerts.push({
         pattern: {
           id: `fingerprinting-${Date.now()}`,
@@ -76,10 +79,12 @@ export function usePatternDetection(events: TrackingEvent[]) {
   };
 }
 
-function detectCrossSiteTracking(events: TrackingEvent[]): TrackingPattern | null {
+function detectCrossSiteTracking(
+  events: TrackingEvent[]
+): TrackingPattern | null {
   // Group events by tracker domain
   const trackerDomains = new Map<string, TrackingEvent[]>();
-  
+
   events.forEach(event => {
     const domain = extractDomain(event.url);
     if (!trackerDomains.has(domain)) {
@@ -89,16 +94,19 @@ function detectCrossSiteTracking(events: TrackingEvent[]): TrackingPattern | nul
   });
 
   // Find trackers present on multiple sites
-  const crossSiteTrackers = Array.from(trackerDomains.entries())
-    .filter(([, trackerEvents]) => {
+  const crossSiteTrackers = Array.from(trackerDomains.entries()).filter(
+    ([, trackerEvents]) => {
       const uniqueSites = new Set(trackerEvents.map(e => extractDomain(e.url)));
       return uniqueSites.size > 1;
-    });
+    }
+  );
 
   if (crossSiteTrackers.length === 0) return null;
 
   const allCrossSiteEvents = crossSiteTrackers.flatMap(([, events]) => events);
-  const uniqueSites = new Set(allCrossSiteEvents.map(e => extractDomain(e.url)));
+  const uniqueSites = new Set(
+    allCrossSiteEvents.map(e => extractDomain(e.url))
+  );
 
   return {
     id: `cross-site-${Date.now()}`,
@@ -111,9 +119,11 @@ function detectCrossSiteTracking(events: TrackingEvent[]): TrackingPattern | nul
   };
 }
 
-function detectFingerprintingPattern(events: TrackingEvent[]): TrackingPattern | null {
-  const fingerprintingEvents = events.filter(event => 
-    event.trackerType === 'fingerprinting'
+function detectFingerprintingPattern(
+  events: TrackingEvent[]
+): TrackingPattern | null {
+  const fingerprintingEvents = events.filter(
+    event => event.trackerType === 'fingerprinting'
   );
 
   if (fingerprintingEvents.length === 0) return null;

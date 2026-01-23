@@ -45,7 +45,14 @@ export class TrackerDatabase {
       }
 
       // Check path-based detection
-      const trackingPaths = ['/gtag/', '/pixel/', '/collect/', '/beacon/', '/track/', '/analytics/'];
+      const trackingPaths = [
+        '/gtag/',
+        '/pixel/',
+        '/collect/',
+        '/beacon/',
+        '/track/',
+        '/analytics/',
+      ];
       if (trackingPaths.some(trackingPath => path.includes(trackingPath))) {
         return {
           domain,
@@ -57,7 +64,15 @@ export class TrackerDatabase {
       }
 
       // Check query parameter detection
-      const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'gclid', '_ga', 'mc_eid'];
+      const trackingParams = [
+        'utm_source',
+        'utm_medium',
+        'utm_campaign',
+        'fbclid',
+        'gclid',
+        '_ga',
+        'mc_eid',
+      ];
       if (trackingParams.some(param => search.includes(param))) {
         return {
           domain,

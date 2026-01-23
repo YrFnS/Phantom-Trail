@@ -7,5 +7,5 @@ export type {
   PerformanceMetrics,
   OptimizationSettings,
   PerformanceReport,
-  PerformanceMode
+  PerformanceMode,
 } from './performance-monitor';

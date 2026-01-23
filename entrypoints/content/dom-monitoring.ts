@@ -1,4 +1,8 @@
-import type { TrackingEvent, TrackerType, InPageTrackingMethod } from '../../lib/types';
+import type {
+  TrackingEvent,
+  TrackerType,
+  InPageTrackingMethod,
+} from '../../lib/types';
 import { isDuplicateEvent } from './event-detection';
 
 const recentDetections = new Map<string, number>();
@@ -9,9 +13,11 @@ const DETECTION_THROTTLE_MS = 3000;
  */
 function isContextValid(): boolean {
   try {
-    return typeof chrome !== 'undefined' && 
-           chrome.runtime && 
-           chrome.runtime.id !== undefined;
+    return (
+      typeof chrome !== 'undefined' &&
+      chrome.runtime &&
+      chrome.runtime.id !== undefined
+    );
   } catch {
     return false;
   }
@@ -20,14 +26,16 @@ function isContextValid(): boolean {
 export function setupDOMMonitoring(): void {
   // Skip setup if context is invalid
   if (!isContextValid()) {
-    console.log('[Phantom Trail] Skipping DOM monitoring setup, context invalid');
+    console.log(
+      '[Phantom Trail] Skipping DOM monitoring setup, context invalid'
+    );
     return;
   }
 
   // Monitor DOM mutations for tracking scripts
-  const observer = new window.MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      mutation.addedNodes.forEach((node) => {
+  const observer = new window.MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
         if (node.nodeType === window.Node.ELEMENT_NODE) {
           const element = node as HTMLElement;
           if (element.tagName === 'SCRIPT' || element.tagName === 'IFRAME') {
@@ -40,7 +48,7 @@ export function setupDOMMonitoring(): void {
 
   observer.observe(document, {
     childList: true,
-    subtree: true
+    subtree: true,
   });
 
   // Monitor form interactions
@@ -60,21 +68,22 @@ async function checkForTracking(element: HTMLElement): Promise<void> {
     }
 
     const currentDomain = window.location.hostname;
-    
+
     if (currentDomain.includes('trusted')) {
       return;
     }
 
     const detectionKey = `${element.tagName}-${Date.now()}`;
     const lastDetection = recentDetections.get(detectionKey);
-    
+
     if (lastDetection && Date.now() - lastDetection < DETECTION_THROTTLE_MS) {
       return;
     }
 
     // Simplified tracking detection
-    const hasTracking = element.getAttribute('src')?.includes('analytics') || false;
-    
+    const hasTracking =
+      element.getAttribute('src')?.includes('analytics') || false;
+
     if (hasTracking) {
       const event: TrackingEvent = {
         id: `dom-${Date.now()}`,
@@ -83,7 +92,7 @@ async function checkForTracking(element: HTMLElement): Promise<void> {
         domain: window.location.hostname,
         trackerType: 'analytics',
         riskLevel: 'medium',
-        description: 'DOM tracking detected'
+        description: 'DOM tracking detected',
       };
 
       await sendTrackingEvent(event);
@@ -108,7 +117,7 @@ function handleMainWorldDetection(event: Event): void {
 
     const customEvent = event as CustomEvent;
     const data = customEvent.detail;
-    
+
     if (!data || !data.type) {
       return;
     }
@@ -124,17 +133,41 @@ function handleMainWorldDetection(event: Event): void {
       inPageTracking: {
         method: data.type as InPageTrackingMethod,
         details: JSON.stringify(data),
-        apiCalls: (data as { operations?: string[]; apiCalls?: string[] }).operations || 
-                  (data as { operations?: string[]; apiCalls?: string[] }).apiCalls,
-        frequency: (data as { count?: number; operations?: unknown[]; eventCount?: number }).count || 
-                   (data as { count?: number; operations?: unknown[]; eventCount?: number }).operations?.length || 
-                   (data as { count?: number; operations?: unknown[]; eventCount?: number }).eventCount || 1
-      }
+        apiCalls:
+          (data as { operations?: string[]; apiCalls?: string[] }).operations ||
+          (data as { operations?: string[]; apiCalls?: string[] }).apiCalls,
+        frequency:
+          (
+            data as {
+              count?: number;
+              operations?: unknown[];
+              eventCount?: number;
+            }
+          ).count ||
+          (
+            data as {
+              count?: number;
+              operations?: unknown[];
+              eventCount?: number;
+            }
+          ).operations?.length ||
+          (
+            data as {
+              count?: number;
+              operations?: unknown[];
+              eventCount?: number;
+            }
+          ).eventCount ||
+          1,
+      },
     };
 
     if (!isDuplicateEvent(trackingEvent)) {
       sendTrackingEvent(trackingEvent).catch(error => {
-        console.warn('[Phantom Trail] Failed to send main world detection:', error);
+        console.warn(
+          '[Phantom Trail] Failed to send main world detection:',
+          error
+        );
       });
     }
   } catch (error) {
@@ -154,7 +187,7 @@ function mapDetectionType(type: string): TrackerType {
     'audio-fingerprint': 'fingerprinting',
     'webgl-fingerprint': 'fingerprinting',
     'battery-api': 'fingerprinting',
-    'sensor-api': 'fingerprinting'
+    'sensor-api': 'fingerprinting',
   };
   return typeMap[type] || 'analytics';
 }
@@ -171,7 +204,7 @@ function getRiskLevel(type: string): 'low' | 'medium' | 'high' | 'critical' {
     'audio-fingerprint': 'high',
     'webgl-fingerprint': 'high',
     'battery-api': 'medium',
-    'sensor-api': 'medium'
+    'sensor-api': 'medium',
   };
   return riskMap[type] || 'medium';
 }
@@ -188,7 +221,7 @@ function getDescription(type: string, data: unknown): string {
     'audio-fingerprint': `Audio fingerprinting (${(data as { operations?: unknown[] })?.operations?.length || 0} operations)`,
     'webgl-fingerprint': `WebGL fingerprinting (${(data as { parameters?: unknown[] })?.parameters?.length || 0} parameters)`,
     'battery-api': 'Battery API accessed for fingerprinting',
-    'sensor-api': `Sensor API accessed (${(data as { sensor?: string })?.sensor || 'unknown'})`
+    'sensor-api': `Sensor API accessed (${(data as { sensor?: string })?.sensor || 'unknown'})`,
   };
   return descriptions[type] || `${type} tracking detected`;
 }
@@ -208,9 +241,11 @@ function handleFormSubmit(): void {
   });
 }
 
-async function detectSensitiveDataTracking(input: HTMLInputElement): Promise<void> {
+async function detectSensitiveDataTracking(
+  input: HTMLInputElement
+): Promise<void> {
   const isSensitive = input.type === 'password' || input.type === 'email';
-  
+
   if (isSensitive) {
     const event: TrackingEvent = {
       id: `sensitive-${Date.now()}`,
@@ -219,7 +254,7 @@ async function detectSensitiveDataTracking(input: HTMLInputElement): Promise<voi
       domain: window.location.hostname,
       trackerType: 'analytics',
       riskLevel: 'high',
-      description: `Sensitive ${input.type} field monitoring detected`
+      description: `Sensitive ${input.type} field monitoring detected`,
     };
 
     if (!isDuplicateEvent(event)) {
@@ -236,7 +271,7 @@ async function detectFormTracking(): Promise<void> {
     domain: window.location.hostname,
     trackerType: 'analytics',
     riskLevel: 'medium',
-    description: 'Form submission tracking detected'
+    description: 'Form submission tracking detected',
   };
 
   if (!isDuplicateEvent(event)) {
@@ -255,23 +290,27 @@ async function sendTrackingEvent(event: TrackingEvent): Promise<void> {
     // Send to background script with timeout
     const message = {
       type: 'TRACKING_DETECTED',
-      event
+      event,
     };
 
     // Use a promise race to implement timeout
     await Promise.race([
       chrome.runtime.sendMessage(message),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Message timeout')), 3000)
-      )
+      ),
     ]);
   } catch (error) {
     // Don't log context invalidation errors as warnings - they're expected
     const errorMessage = String(error);
-    if (errorMessage.includes('Extension context invalidated') || 
-        errorMessage.includes('Could not establish connection') ||
-        errorMessage.includes('Message timeout')) {
-      console.log('[Phantom Trail] Context lost, event will be retried by messaging system');
+    if (
+      errorMessage.includes('Extension context invalidated') ||
+      errorMessage.includes('Could not establish connection') ||
+      errorMessage.includes('Message timeout')
+    ) {
+      console.log(
+        '[Phantom Trail] Context lost, event will be retried by messaging system'
+      );
     } else {
       console.warn('[Phantom Trail] Failed to send tracking event:', error);
     }

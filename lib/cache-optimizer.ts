@@ -5,7 +5,10 @@ export interface CacheOptions<T = unknown> {
 }
 
 export class LRUCache<T> {
-  private cache: Map<string, { value: T; timestamp: number; accessCount: number }> = new Map();
+  private cache: Map<
+    string,
+    { value: T; timestamp: number; accessCount: number }
+  > = new Map();
   private maxSize: number;
   private maxAge?: number;
   private onEvict?: (key: string, value: T) => void;
@@ -18,7 +21,7 @@ export class LRUCache<T> {
 
   get(key: string): T | undefined {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       return undefined;
     }
@@ -32,7 +35,7 @@ export class LRUCache<T> {
     // Update access info (LRU)
     entry.accessCount++;
     entry.timestamp = Date.now();
-    
+
     // Move to end (most recently used)
     this.cache.delete(key);
     this.cache.set(key, entry);
@@ -55,7 +58,7 @@ export class LRUCache<T> {
     this.cache.set(key, {
       value,
       timestamp: Date.now(),
-      accessCount: 1
+      accessCount: 1,
     });
   }
 
@@ -109,8 +112,12 @@ export class LRUCache<T> {
     return {
       size: this.cache.size,
       maxSize: this.maxSize,
-      averageAge: entries.reduce((sum, entry) => sum + (Date.now() - entry.timestamp), 0) / entries.length,
-      totalAccesses: entries.reduce((sum, entry) => sum + entry.accessCount, 0)
+      averageAge:
+        entries.reduce(
+          (sum, entry) => sum + (Date.now() - entry.timestamp),
+          0
+        ) / entries.length,
+      totalAccesses: entries.reduce((sum, entry) => sum + entry.accessCount, 0),
     };
   }
 }
@@ -123,7 +130,8 @@ export interface MemoryMetrics {
 }
 
 export class CacheOptimizer {
-  private caches: Map<string, { cache: LRUCache<unknown>; name: string }> = new Map();
+  private caches: Map<string, { cache: LRUCache<unknown>; name: string }> =
+    new Map();
   private maxTotalMemory: number = 100 * 1024 * 1024; // 100MB
   private cleanupInterval: number = 60000; // 1 minute
   private cleanupTimer?: ReturnType<typeof setInterval>;
@@ -135,14 +143,14 @@ export class CacheOptimizer {
 
   createCache<T>(name: string, options: CacheOptions<T>): LRUCache<T> {
     const cache = new LRUCache<T>(options);
-    
+
     // Store with type erasure for internal management
     // We use a wrapper to avoid generic type conflicts
     const cacheWrapper = {
       cache: cache as unknown as LRUCache<unknown>,
-      name
+      name,
     };
-    
+
     this.caches.set(name, cacheWrapper);
     return cache;
   }
@@ -153,8 +161,10 @@ export class CacheOptimizer {
   }
 
   async getMemoryMetrics(): Promise<MemoryMetrics> {
-    const performance = (window as { performance?: { memory?: { usedJSHeapSize: number } } }).performance;
-    
+    const performance = (
+      window as { performance?: { memory?: { usedJSHeapSize: number } } }
+    ).performance;
+
     let heapUsage = 0;
     if (performance?.memory) {
       heapUsage = performance.memory.usedJSHeapSize;
@@ -178,7 +188,7 @@ export class CacheOptimizer {
       totalUsage: heapUsage + cacheUsage + eventStorageUsage,
       heapUsage,
       cacheUsage,
-      eventStorageUsage
+      eventStorageUsage,
     };
   }
 
@@ -211,12 +221,14 @@ export class CacheOptimizer {
       const cache = entry.cache;
       const targetSize = Math.floor(cache.size() / 2);
       const keys = cache.keys();
-      
+
       for (let i = 0; i < keys.length - targetSize; i++) {
         cache.delete(keys[i]);
       }
-      
-      console.debug(`Aggressively cleaned cache: ${name}, new size: ${cache.size()}`);
+
+      console.debug(
+        `Aggressively cleaned cache: ${name}, new size: ${cache.size()}`
+      );
     }
 
     // Force garbage collection if available

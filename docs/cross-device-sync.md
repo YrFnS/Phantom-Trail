@@ -7,12 +7,14 @@ The Cross-Device Sync feature allows users to synchronize their privacy settings
 ## Features Implemented
 
 ### ✅ Core Sync Infrastructure
+
 - **SyncManager**: Main sync coordination class with Chrome storage.sync integration
 - **Device identification**: Unique device IDs for tracking sync sources
 - **Automatic sync triggers**: Syncs on data changes, startup, and periodic intervals
 - **Manual sync**: Users can trigger sync manually through the UI
 
 ### ✅ Selective Sync Controls
+
 - **Granular data type selection**: Users can choose what to sync
   - Privacy Settings (extension preferences, AI settings)
   - Trusted Sites (user-defined trusted domains)
@@ -22,6 +24,7 @@ The Cross-Device Sync feature allows users to synchronize their privacy settings
 - **Sync status monitoring**: Real-time sync status and error reporting
 
 ### ✅ Advanced Sync Features
+
 - **Conflict detection**: Identifies data differences between devices
 - **Smart conflict resolution**: Multiple strategies for handling conflicts
 - **Data compression**: Optimizes sync payload size for Chrome's 100KB limit
@@ -29,6 +32,7 @@ The Cross-Device Sync feature allows users to synchronize their privacy settings
 - **Sync analytics**: Device count, last sync time, sync history
 
 ### ✅ User Interface
+
 - **Sync Settings Component**: Complete UI for managing sync preferences
 - **Status indicators**: Visual feedback on sync state and progress
 - **Error handling**: Clear error messages and recovery guidance
@@ -37,6 +41,7 @@ The Cross-Device Sync feature allows users to synchronize their privacy settings
 ## Technical Implementation
 
 ### Storage Architecture
+
 ```
 Chrome Storage Sync (100KB limit)
 ├── phantom-trail-sync (main sync data)
@@ -52,6 +57,7 @@ Chrome Storage Local (5MB limit)
 ```
 
 ### Data Flow
+
 1. **Data Change Detection**: Chrome storage change listeners trigger sync
 2. **Data Collection**: Gather syncable data from local storage
 3. **Conflict Detection**: Compare local vs remote data timestamps/content
@@ -60,6 +66,7 @@ Chrome Storage Local (5MB limit)
 6. **Status Update**: Update sync status and notify user
 
 ### Security & Privacy
+
 - **Local-first processing**: All sync logic runs locally
 - **Selective data sync**: Only user-approved data types are synced
 - **Privacy-sensitive exclusions**: Raw tracking data, API keys, and chat history never sync
@@ -69,6 +76,7 @@ Chrome Storage Local (5MB limit)
 ## Usage
 
 ### Enable Sync
+
 1. Open extension settings
 2. Navigate to "Sync Settings" section
 3. Toggle "Enable Sync" switch
@@ -76,12 +84,14 @@ Chrome Storage Local (5MB limit)
 5. Choose conflict resolution strategy
 
 ### Monitor Sync Status
+
 - **Last sync time**: Shows when data was last synchronized
 - **Device count**: Number of devices with sync enabled
 - **Sync status**: Current state (idle, syncing, success, error)
 - **Manual sync**: "Sync Now" button for immediate synchronization
 
 ### Conflict Resolution
+
 - **Newest Wins**: Automatically use most recent data
 - **Smart Merge**: Intelligently combine local and remote changes
 - **Manual Resolution**: User reviews and resolves conflicts (future enhancement)
@@ -89,6 +99,7 @@ Chrome Storage Local (5MB limit)
 ## Files Created/Modified
 
 ### New Files
+
 - `lib/sync-manager.ts` - Core sync functionality
 - `lib/conflict-resolver.ts` - Conflict detection and resolution
 - `components/Settings/SyncSettings.tsx` - Sync settings UI
@@ -96,6 +107,7 @@ Chrome Storage Local (5MB limit)
 - `tests/sync-functionality.test.js` - Sync feature tests
 
 ### Modified Files
+
 - `lib/storage-manager.ts` - Enhanced with sync-specific methods
 - `entrypoints/background.ts` - Added sync triggers and periodic checks
 - `wxt.config.ts` - Verified sync permissions (already included)
@@ -110,6 +122,7 @@ await window.testSyncFeatures.runAllSyncTests();
 ```
 
 Tests cover:
+
 - Sync manager basic operations
 - Conflict resolution strategies
 - Storage manager sync enhancements
@@ -118,6 +131,7 @@ Tests cover:
 ## Future Enhancements
 
 ### Planned Features
+
 - **Manual conflict resolution UI**: Visual interface for resolving data conflicts
 - **Sync history**: Track sync operations and changes over time
 - **Selective device sync**: Exclude specific devices from sync
@@ -125,6 +139,7 @@ Tests cover:
 - **Sync analytics dashboard**: Detailed sync statistics and insights
 
 ### Performance Optimizations
+
 - **Delta sync**: Only sync changed data instead of full datasets
 - **Compression improvements**: Better compression algorithms for large datasets
 - **Batch operations**: Group multiple changes into single sync operations
@@ -133,12 +148,14 @@ Tests cover:
 ## Troubleshooting
 
 ### Common Issues
+
 1. **Sync not working**: Check Chrome sync is enabled in browser settings
 2. **Data conflicts**: Review conflict resolution strategy in settings
 3. **Storage limit exceeded**: Reduce synced data types or clean up old data
 4. **Sync errors**: Check network connectivity and Chrome sync status
 
 ### Debug Information
+
 - Sync status available in extension settings
 - Console logs provide detailed sync operation information
 - Chrome DevTools can inspect sync storage contents
@@ -147,12 +164,14 @@ Tests cover:
 ## Compliance & Privacy
 
 ### Data Handling
+
 - **GDPR Compliant**: Users control what data is synced
 - **Minimal data collection**: Only essential sync metadata stored
 - **User consent**: Explicit opt-in for sync functionality
 - **Data retention**: Follows Chrome's sync data retention policies
 
 ### Security Measures
+
 - **No remote servers**: All sync through Chrome's infrastructure
 - **Local processing**: Conflict resolution and data preparation done locally
 - **Secure transmission**: Chrome handles encryption and secure transport

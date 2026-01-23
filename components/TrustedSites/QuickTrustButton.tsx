@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TrustedSitesManager, TrustLevel } from '../../lib/trusted-sites-manager';
+import {
+  TrustedSitesManager,
+  TrustLevel,
+} from '../../lib/trusted-sites-manager';
 
 interface QuickTrustButtonProps {
   domain: string;
@@ -7,10 +10,10 @@ interface QuickTrustButtonProps {
   size?: 'sm' | 'md';
 }
 
-export const QuickTrustButton: React.FC<QuickTrustButtonProps> = ({ 
-  domain, 
+export const QuickTrustButton: React.FC<QuickTrustButtonProps> = ({
+  domain,
   className = '',
-  size = 'sm'
+  size = 'sm',
 }) => {
   const [isTrusted, setIsTrusted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -36,7 +39,7 @@ export const QuickTrustButton: React.FC<QuickTrustButtonProps> = ({
         setIsTrusted(false);
       } else {
         await TrustedSitesManager.addTrustedSite(
-          domain, 
+          domain,
           TrustLevel.PARTIAL_TRUST,
           'Added via quick trust button'
         );
@@ -58,9 +61,10 @@ export const QuickTrustButton: React.FC<QuickTrustButtonProps> = ({
       disabled={loading}
       className={`
         ${buttonSize}
-        ${isTrusted 
-          ? 'bg-[var(--success-light)] text-[var(--success)] hover:bg-[var(--success-light)]' 
-          : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+        ${
+          isTrusted
+            ? 'bg-[var(--success-light)] text-[var(--success)] hover:bg-[var(--success-light)]'
+            : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
         }
         border border-[var(--border-primary)] rounded-md transition-colors duration-200
         disabled:opacity-50 disabled:cursor-not-allowed

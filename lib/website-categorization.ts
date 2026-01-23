@@ -36,17 +36,42 @@ export class WebsiteCategorization {
       description: 'Online shopping and retail sites',
       averagePrivacyScore: 72,
       averageTrackers: 8.5,
-      commonTrackers: ['google-analytics', 'facebook-pixel', 'amazon-advertising'],
+      commonTrackers: [
+        'google-analytics',
+        'facebook-pixel',
+        'amazon-advertising',
+      ],
       riskProfile: 'medium',
-      keywords: ['shop', 'buy', 'cart', 'checkout', 'store', 'product', 'price'],
+      keywords: [
+        'shop',
+        'buy',
+        'cart',
+        'checkout',
+        'store',
+        'product',
+        'price',
+      ],
       domainPatterns: [
-        /amazon\./i, /ebay\./i, /shopify\./i, /etsy\./i, /walmart\./i,
-        /target\./i, /bestbuy\./i, /alibaba\./i, /aliexpress\./i
+        /amazon\./i,
+        /ebay\./i,
+        /shopify\./i,
+        /etsy\./i,
+        /walmart\./i,
+        /target\./i,
+        /bestbuy\./i,
+        /alibaba\./i,
+        /aliexpress\./i,
       ],
       urlPatterns: [
-        /\/shop/i, /\/cart/i, /\/checkout/i, /\/product/i, /\/buy/i,
-        /\/store/i, /\/catalog/i, /\/marketplace/i
-      ]
+        /\/shop/i,
+        /\/cart/i,
+        /\/checkout/i,
+        /\/product/i,
+        /\/buy/i,
+        /\/store/i,
+        /\/catalog/i,
+        /\/marketplace/i,
+      ],
     },
     {
       id: 'news',
@@ -58,13 +83,26 @@ export class WebsiteCategorization {
       riskProfile: 'high',
       keywords: ['news', 'article', 'breaking', 'politics', 'world', 'local'],
       domainPatterns: [
-        /cnn\./i, /bbc\./i, /reuters\./i, /nytimes\./i, /washingtonpost\./i,
-        /guardian\./i, /forbes\./i, /techcrunch\./i, /wired\./i
+        /cnn\./i,
+        /bbc\./i,
+        /reuters\./i,
+        /nytimes\./i,
+        /washingtonpost\./i,
+        /guardian\./i,
+        /forbes\./i,
+        /techcrunch\./i,
+        /wired\./i,
       ],
       urlPatterns: [
-        /\/news/i, /\/article/i, /\/story/i, /\/politics/i, /\/world/i,
-        /\/breaking/i, /\/opinion/i, /\/editorial/i
-      ]
+        /\/news/i,
+        /\/article/i,
+        /\/story/i,
+        /\/politics/i,
+        /\/world/i,
+        /\/breaking/i,
+        /\/opinion/i,
+        /\/editorial/i,
+      ],
     },
     {
       id: 'social-media',
@@ -72,17 +110,34 @@ export class WebsiteCategorization {
       description: 'Social networks and community platforms',
       averagePrivacyScore: 45,
       averageTrackers: 15.8,
-      commonTrackers: ['facebook-pixel', 'twitter-analytics', 'linkedin-insights'],
+      commonTrackers: [
+        'facebook-pixel',
+        'twitter-analytics',
+        'linkedin-insights',
+      ],
       riskProfile: 'critical',
       keywords: ['social', 'profile', 'friends', 'follow', 'share', 'post'],
       domainPatterns: [
-        /facebook\./i, /twitter\./i, /instagram\./i, /linkedin\./i, /tiktok\./i,
-        /snapchat\./i, /reddit\./i, /discord\./i, /telegram\./i
+        /facebook\./i,
+        /twitter\./i,
+        /instagram\./i,
+        /linkedin\./i,
+        /tiktok\./i,
+        /snapchat\./i,
+        /reddit\./i,
+        /discord\./i,
+        /telegram\./i,
       ],
       urlPatterns: [
-        /\/profile/i, /\/user/i, /\/friends/i, /\/timeline/i, /\/feed/i,
-        /\/post/i, /\/share/i, /\/follow/i
-      ]
+        /\/profile/i,
+        /\/user/i,
+        /\/friends/i,
+        /\/timeline/i,
+        /\/feed/i,
+        /\/post/i,
+        /\/share/i,
+        /\/follow/i,
+      ],
     },
     {
       id: 'entertainment',
@@ -94,13 +149,26 @@ export class WebsiteCategorization {
       riskProfile: 'medium',
       keywords: ['watch', 'stream', 'video', 'movie', 'game', 'music', 'play'],
       domainPatterns: [
-        /netflix\./i, /youtube\./i, /spotify\./i, /twitch\./i, /hulu\./i,
-        /disney\./i, /steam\./i, /xbox\./i, /playstation\./i
+        /netflix\./i,
+        /youtube\./i,
+        /spotify\./i,
+        /twitch\./i,
+        /hulu\./i,
+        /disney\./i,
+        /steam\./i,
+        /xbox\./i,
+        /playstation\./i,
       ],
       urlPatterns: [
-        /\/watch/i, /\/video/i, /\/stream/i, /\/movie/i, /\/game/i,
-        /\/music/i, /\/play/i, /\/entertainment/i
-      ]
+        /\/watch/i,
+        /\/video/i,
+        /\/stream/i,
+        /\/movie/i,
+        /\/game/i,
+        /\/music/i,
+        /\/play/i,
+        /\/entertainment/i,
+      ],
     },
     {
       id: 'finance',
@@ -110,15 +178,36 @@ export class WebsiteCategorization {
       averageTrackers: 4.1,
       commonTrackers: ['google-analytics', 'adobe-analytics'],
       riskProfile: 'low',
-      keywords: ['bank', 'invest', 'finance', 'money', 'loan', 'credit', 'payment'],
+      keywords: [
+        'bank',
+        'invest',
+        'finance',
+        'money',
+        'loan',
+        'credit',
+        'payment',
+      ],
       domainPatterns: [
-        /chase\./i, /bankofamerica\./i, /wells\./i, /paypal\./i, /stripe\./i,
-        /robinhood\./i, /fidelity\./i, /schwab\./i, /vanguard\./i
+        /chase\./i,
+        /bankofamerica\./i,
+        /wells\./i,
+        /paypal\./i,
+        /stripe\./i,
+        /robinhood\./i,
+        /fidelity\./i,
+        /schwab\./i,
+        /vanguard\./i,
       ],
       urlPatterns: [
-        /\/banking/i, /\/invest/i, /\/finance/i, /\/loan/i, /\/credit/i,
-        /\/payment/i, /\/account/i, /\/portfolio/i
-      ]
+        /\/banking/i,
+        /\/invest/i,
+        /\/finance/i,
+        /\/loan/i,
+        /\/credit/i,
+        /\/payment/i,
+        /\/account/i,
+        /\/portfolio/i,
+      ],
     },
     {
       id: 'technology',
@@ -130,13 +219,26 @@ export class WebsiteCategorization {
       riskProfile: 'low',
       keywords: ['software', 'app', 'api', 'developer', 'code', 'tech', 'saas'],
       domainPatterns: [
-        /github\./i, /stackoverflow\./i, /google\./i, /microsoft\./i, /apple\./i,
-        /slack\./i, /zoom\./i, /dropbox\./i, /atlassian\./i
+        /github\./i,
+        /stackoverflow\./i,
+        /google\./i,
+        /microsoft\./i,
+        /apple\./i,
+        /slack\./i,
+        /zoom\./i,
+        /dropbox\./i,
+        /atlassian\./i,
       ],
       urlPatterns: [
-        /\/api/i, /\/docs/i, /\/developer/i, /\/app/i, /\/software/i,
-        /\/tech/i, /\/code/i, /\/tools/i
-      ]
+        /\/api/i,
+        /\/docs/i,
+        /\/developer/i,
+        /\/app/i,
+        /\/software/i,
+        /\/tech/i,
+        /\/code/i,
+        /\/tools/i,
+      ],
     },
     {
       id: 'education',
@@ -146,15 +248,35 @@ export class WebsiteCategorization {
       averageTrackers: 5.3,
       commonTrackers: ['google-analytics', 'adobe-analytics'],
       riskProfile: 'low',
-      keywords: ['education', 'learn', 'course', 'school', 'university', 'study'],
+      keywords: [
+        'education',
+        'learn',
+        'course',
+        'school',
+        'university',
+        'study',
+      ],
       domainPatterns: [
-        /\.edu$/i, /coursera\./i, /udemy\./i, /khan\./i, /edx\./i,
-        /mit\./i, /harvard\./i, /stanford\./i, /cambridge\./i
+        /\.edu$/i,
+        /coursera\./i,
+        /udemy\./i,
+        /khan\./i,
+        /edx\./i,
+        /mit\./i,
+        /harvard\./i,
+        /stanford\./i,
+        /cambridge\./i,
       ],
       urlPatterns: [
-        /\/course/i, /\/learn/i, /\/education/i, /\/study/i, /\/class/i,
-        /\/lecture/i, /\/academic/i, /\/student/i
-      ]
+        /\/course/i,
+        /\/learn/i,
+        /\/education/i,
+        /\/study/i,
+        /\/class/i,
+        /\/lecture/i,
+        /\/academic/i,
+        /\/student/i,
+      ],
     },
     {
       id: 'health',
@@ -164,16 +286,36 @@ export class WebsiteCategorization {
       averageTrackers: 3.9,
       commonTrackers: ['google-analytics'],
       riskProfile: 'low',
-      keywords: ['health', 'medical', 'doctor', 'fitness', 'wellness', 'hospital'],
+      keywords: [
+        'health',
+        'medical',
+        'doctor',
+        'fitness',
+        'wellness',
+        'hospital',
+      ],
       domainPatterns: [
-        /webmd\./i, /mayoclinic\./i, /healthline\./i, /fitbit\./i, /myfitnesspal\./i,
-        /nike\./i, /peloton\./i, /headspace\./i, /calm\./i
+        /webmd\./i,
+        /mayoclinic\./i,
+        /healthline\./i,
+        /fitbit\./i,
+        /myfitnesspal\./i,
+        /nike\./i,
+        /peloton\./i,
+        /headspace\./i,
+        /calm\./i,
       ],
       urlPatterns: [
-        /\/health/i, /\/medical/i, /\/fitness/i, /\/wellness/i, /\/doctor/i,
-        /\/hospital/i, /\/medicine/i, /\/treatment/i
-      ]
-    }
+        /\/health/i,
+        /\/medical/i,
+        /\/fitness/i,
+        /\/wellness/i,
+        /\/doctor/i,
+        /\/hospital/i,
+        /\/medicine/i,
+        /\/treatment/i,
+      ],
+    },
   ];
 
   /**
@@ -219,7 +361,7 @@ export class WebsiteCategorization {
       riskProfile: 'medium',
       keywords: [],
       domainPatterns: [],
-      urlPatterns: []
+      urlPatterns: [],
     };
   }
 
@@ -248,7 +390,7 @@ export class WebsiteCategorization {
         averageTrackers: 8.0,
         commonRisks: ['analytics'],
         topPerformers: [],
-        distribution: this.generateNormalDistribution(70, 15)
+        distribution: this.generateNormalDistribution(70, 15),
       };
     }
 
@@ -257,19 +399,26 @@ export class WebsiteCategorization {
       averageTrackers: category.averageTrackers,
       commonRisks: category.commonTrackers,
       topPerformers: this.getTopPerformers(categoryId),
-      distribution: this.generateNormalDistribution(category.averagePrivacyScore, 15)
+      distribution: this.generateNormalDistribution(
+        category.averagePrivacyScore,
+        15
+      ),
     };
   }
 
   /**
    * Generate normal distribution for percentile calculations
    */
-  private static generateNormalDistribution(mean: number, stdDev: number): number[] {
+  private static generateNormalDistribution(
+    mean: number,
+    stdDev: number
+  ): number[] {
     const distribution: number[] = [];
     for (let i = 0; i <= 100; i++) {
       // Simplified normal distribution approximation
       const z = (i - mean) / stdDev;
-      const probability = Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI * stdDev * stdDev);
+      const probability =
+        Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI * stdDev * stdDev);
       distribution.push(probability);
     }
     return distribution;
@@ -281,13 +430,13 @@ export class WebsiteCategorization {
   private static getTopPerformers(categoryId: string): string[] {
     const topPerformers: Record<string, string[]> = {
       'e-commerce': ['duckduckgo.com', 'protonmail.com', 'signal.org'],
-      'news': ['reuters.com', 'bbc.com', 'npr.org'],
+      news: ['reuters.com', 'bbc.com', 'npr.org'],
       'social-media': ['mastodon.social', 'diaspora.social'],
-      'entertainment': ['archive.org', 'vimeo.com'],
-      'finance': ['mint.com', 'personalcapital.com'],
-      'technology': ['github.com', 'stackoverflow.com'],
-      'education': ['khanacademy.org', 'coursera.org'],
-      'health': ['mayoclinic.org', 'webmd.com']
+      entertainment: ['archive.org', 'vimeo.com'],
+      finance: ['mint.com', 'personalcapital.com'],
+      technology: ['github.com', 'stackoverflow.com'],
+      education: ['khanacademy.org', 'coursera.org'],
+      health: ['mayoclinic.org', 'webmd.com'],
     };
 
     return topPerformers[categoryId] || [];

@@ -11,10 +11,10 @@ export interface BadgeSettings {
 }
 
 export enum BadgeStyle {
-  SCORE_ONLY = 'score',      // "85"
-  GRADE_ONLY = 'grade',      // "A"
-  ICON_COLOR = 'icon',       // Colored icon only
-  COMBINED = 'combined'      // "A 85"
+  SCORE_ONLY = 'score', // "85"
+  GRADE_ONLY = 'grade', // "A"
+  ICON_COLOR = 'icon', // Colored icon only
+  COMBINED = 'combined', // "A 85"
 }
 
 export interface PrivacySummary {
@@ -28,26 +28,26 @@ const STORAGE_KEY = 'phantom-trail-badge-settings';
 
 const COLOR_SCHEMES = {
   'traffic-light': {
-    excellent: '#22c55e',  // Green
-    good: '#84cc16',       // Light green
-    moderate: '#eab308',   // Yellow
-    poor: '#f97316',       // Orange
-    critical: '#ef4444'    // Red
+    excellent: '#22c55e', // Green
+    good: '#84cc16', // Light green
+    moderate: '#eab308', // Yellow
+    poor: '#f97316', // Orange
+    critical: '#ef4444', // Red
   },
-  'gradient': {
+  gradient: {
     excellent: '#10b981',
     good: '#34d399',
     moderate: '#fbbf24',
     poor: '#fb923c',
-    critical: '#f87171'
+    critical: '#f87171',
   },
-  'minimal': {
-    excellent: '#6b7280',  // Gray variations
+  minimal: {
+    excellent: '#6b7280', // Gray variations
     good: '#6b7280',
     moderate: '#6b7280',
     poor: '#6b7280',
-    critical: '#ef4444'    // Only red for critical
-  }
+    critical: '#ef4444', // Only red for critical
+  },
 };
 
 const DEFAULT_BADGE_SETTINGS: BadgeSettings = {
@@ -57,7 +57,7 @@ const DEFAULT_BADGE_SETTINGS: BadgeSettings = {
   showGrade: true,
   colorScheme: 'traffic-light',
   updateFrequency: 'realtime',
-  showOnlyRisks: false
+  showOnlyRisks: false,
 };
 
 export class BadgeManager {
@@ -92,12 +92,12 @@ export class BadgeManager {
       // Update badge text and color
       await chrome.action.setBadgeText({
         text: badgeText,
-        tabId: tabId
+        tabId: tabId,
       });
 
       await chrome.action.setBadgeBackgroundColor({
         color: badgeColor,
-        tabId: tabId
+        tabId: tabId,
       });
 
       // Update tooltip
@@ -105,9 +105,8 @@ export class BadgeManager {
         score: score.score,
         grade: score.grade,
         trackerCount: score.breakdown.totalTrackers,
-        riskLevel: this.getRiskLevel(score.score)
+        riskLevel: this.getRiskLevel(score.score),
       });
-
     } catch (error) {
       console.error('Failed to update badge:', error);
     }
@@ -123,12 +122,12 @@ export class BadgeManager {
     try {
       await chrome.action.setBadgeText({
         text: '',
-        tabId: tabId
+        tabId: tabId,
       });
-      
+
       await chrome.action.setTitle({
         title: 'Phantom Trail - Privacy Monitor',
-        tabId: tabId
+        tabId: tabId,
       });
 
       this.lastUpdateTime.delete(tabId);
@@ -159,14 +158,17 @@ export class BadgeManager {
     try {
       await chrome.action.setTitle({
         title: summary,
-        tabId: tabId
+        tabId: tabId,
       });
     } catch (error) {
       console.error('Failed to show tooltip:', error);
     }
   }
 
-  private static generateBadgeText(score: PrivacyScore, style: BadgeStyle): string {
+  private static generateBadgeText(
+    score: PrivacyScore,
+    style: BadgeStyle
+  ): string {
     switch (style) {
       case BadgeStyle.SCORE_ONLY:
         return score.score.toString();
@@ -181,9 +183,12 @@ export class BadgeManager {
     }
   }
 
-  private static getScoreColor(score: number, colorScheme: BadgeSettings['colorScheme']): string {
+  private static getScoreColor(
+    score: number,
+    colorScheme: BadgeSettings['colorScheme']
+  ): string {
     const colors = COLOR_SCHEMES[colorScheme];
-    
+
     if (score >= 90) return colors.excellent;
     if (score >= 80) return colors.good;
     if (score >= 70) return colors.moderate;
@@ -199,7 +204,10 @@ export class BadgeManager {
     return 'Critical';
   }
 
-  private static async updateTooltip(tabId: number, summary: PrivacySummary): Promise<void> {
+  private static async updateTooltip(
+    tabId: number,
+    summary: PrivacySummary
+  ): Promise<void> {
     const tooltipText = `Privacy Score: ${summary.score} (${summary.grade})
 Trackers: ${summary.trackerCount}
 Risk Level: ${summary.riskLevel}
@@ -207,7 +215,7 @@ Click for details`;
 
     await chrome.action.setTitle({
       title: tooltipText,
-      tabId: tabId
+      tabId: tabId,
     });
   }
 

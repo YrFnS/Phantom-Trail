@@ -1,4 +1,9 @@
-import { AnonymousPrivacyData, CommunityStats, NetworkMessage, PeerConnection } from './types';
+import {
+  AnonymousPrivacyData,
+  CommunityStats,
+  NetworkMessage,
+  PeerConnection,
+} from './types';
 
 export class P2PPrivacyNetwork {
   private static instance: P2PPrivacyNetwork | null = null;
@@ -14,8 +19,8 @@ export class P2PPrivacyNetwork {
     this.rtcConfig = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-      ]
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ],
     };
   }
 
@@ -64,7 +69,7 @@ export class P2PPrivacyNetwork {
         type: 'peer_discovery',
         sender: this.localPeerId,
         extensionId: chrome.runtime.id,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       tabs.forEach(tab => {
@@ -96,7 +101,7 @@ export class P2PPrivacyNetwork {
     try {
       const connection = new RTCPeerConnection(this.rtcConfig);
       const dataChannel = connection.createDataChannel('privacy_data', {
-        ordered: true
+        ordered: true,
       });
 
       // Set up data channel handlers
@@ -104,19 +109,21 @@ export class P2PPrivacyNetwork {
         console.log(`Data channel opened with peer ${peerId}`);
       };
 
-      dataChannel.onmessage = (event) => {
+      dataChannel.onmessage = event => {
         this.handlePeerMessage(JSON.parse(event.data));
       };
 
-      dataChannel.onerror = (error) => {
+      dataChannel.onerror = error => {
         console.error(`Data channel error with peer ${peerId}:`, error);
         this.disconnectPeer(peerId);
       };
 
       // Set up connection handlers
       connection.oniceconnectionstatechange = () => {
-        if (connection.iceConnectionState === 'disconnected' || 
-            connection.iceConnectionState === 'failed') {
+        if (
+          connection.iceConnectionState === 'disconnected' ||
+          connection.iceConnectionState === 'failed'
+        ) {
           this.disconnectPeer(peerId);
         }
       };
@@ -126,7 +133,7 @@ export class P2PPrivacyNetwork {
         connection,
         dataChannel,
         lastSeen: Date.now(),
-        isActive: true
+        isActive: true,
       };
 
       this.peers.set(peerId, peer);
@@ -146,12 +153,15 @@ export class P2PPrivacyNetwork {
       type: 'privacy_data',
       data,
       timestamp: Date.now(),
-      sender: this.localPeerId
+      sender: this.localPeerId,
     };
 
     // Use gossip protocol - share with random subset of peers
     const activePeers = Array.from(this.peers.values()).filter(p => p.isActive);
-    const gossipTargets = this.selectRandomPeers(activePeers, Math.min(3, activePeers.length));
+    const gossipTargets = this.selectRandomPeers(
+      activePeers,
+      Math.min(3, activePeers.length)
+    );
 
     gossipTargets.forEach(peer => {
       if (peer.dataChannel.readyState === 'open') {
@@ -177,7 +187,7 @@ export class P2PPrivacyNetwork {
       scoreDistribution: {},
       regionalData: {},
       lastUpdated: Date.now(),
-      dataFreshness: 0
+      dataFreshness: 0,
     };
   }
 
@@ -200,18 +210,19 @@ export class P2PPrivacyNetwork {
 
   private setupMessageListener(): void {
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-      if (message.type === 'peer_discovery' && 
-          message.extensionId === chrome.runtime.id &&
-          message.sender !== this.localPeerId) {
-        
+      if (
+        message.type === 'peer_discovery' &&
+        message.extensionId === chrome.runtime.id &&
+        message.sender !== this.localPeerId
+      ) {
         // Respond to peer discovery
         if (this.shouldConnectToPeer(message.sender)) {
           this.connectToPeer(message.sender);
         }
-        
-        sendResponse({ 
-          type: 'peer_response', 
-          peerId: this.localPeerId 
+
+        sendResponse({
+          type: 'peer_response',
+          peerId: this.localPeerId,
         });
       }
     });
@@ -219,9 +230,11 @@ export class P2PPrivacyNetwork {
 
   private shouldConnectToPeer(peerId: string): boolean {
     const maxConnections = 10;
-    return this.peers.size < maxConnections && 
-           !this.peers.has(peerId) && 
-           peerId !== this.localPeerId;
+    return (
+      this.peers.size < maxConnections &&
+      !this.peers.has(peerId) &&
+      peerId !== this.localPeerId
+    );
   }
 
   private handlePeerMessage(message: NetworkMessage): void {
@@ -245,7 +258,7 @@ export class P2PPrivacyNetwork {
     // Update community statistics with new peer data
     // This is a simplified version - in practice, you'd maintain a rolling window
     console.log('Received peer privacy data:', data);
-    
+
     // Trigger community stats recalculation
     this.recalculateCommunityStats();
   }
@@ -257,14 +270,14 @@ export class P2PPrivacyNetwork {
       connectedPeers: this.peers.size,
       averageScore: 85, // Placeholder
       scoreDistribution: {
-        'A': 0.3,
-        'B': 0.4,
-        'C': 0.2,
-        'D': 0.1
+        A: 0.3,
+        B: 0.4,
+        C: 0.2,
+        D: 0.1,
       },
       regionalData: {},
       lastUpdated: Date.now(),
-      dataFreshness: Date.now()
+      dataFreshness: Date.now(),
     };
   }
 
@@ -278,7 +291,7 @@ export class P2PPrivacyNetwork {
       type: 'stats_request',
       data: this.communityStats!,
       timestamp: Date.now(),
-      sender: this.localPeerId
+      sender: this.localPeerId,
     };
 
     try {
@@ -313,7 +326,10 @@ export class P2PPrivacyNetwork {
     }
   }
 
-  private selectRandomPeers(peers: PeerConnection[], count: number): PeerConnection[] {
+  private selectRandomPeers(
+    peers: PeerConnection[],
+    count: number
+  ): PeerConnection[] {
     const shuffled = [...peers].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, count);
   }

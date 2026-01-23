@@ -78,7 +78,10 @@ export class BaseStorage {
   /**
    * Get storage usage info
    */
-  static async getStorageInfo(): Promise<{ bytesInUse: number; quota: number }> {
+  static async getStorageInfo(): Promise<{
+    bytesInUse: number;
+    quota: number;
+  }> {
     try {
       const bytesInUse = await chrome.storage.local.getBytesInUse();
       return { bytesInUse, quota: chrome.storage.local.QUOTA_BYTES };

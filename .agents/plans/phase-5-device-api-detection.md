@@ -115,8 +115,16 @@ function monitorDeviceAPIs() {
   // Monitor navigator methods
   const navigatorAPIs = [
     { obj: navigator, prop: 'getBattery', name: 'navigator.getBattery' },
-    { obj: navigator.geolocation, prop: 'getCurrentPosition', name: 'navigator.geolocation.getCurrentPosition' },
-    { obj: navigator.geolocation, prop: 'watchPosition', name: 'navigator.geolocation.watchPosition' },
+    {
+      obj: navigator.geolocation,
+      prop: 'getCurrentPosition',
+      name: 'navigator.geolocation.getCurrentPosition',
+    },
+    {
+      obj: navigator.geolocation,
+      prop: 'watchPosition',
+      name: 'navigator.geolocation.watchPosition',
+    },
   ];
 
   navigatorAPIs.forEach(({ obj, prop, name }) => {
@@ -126,7 +134,10 @@ function monitorDeviceAPIs() {
         (obj as Record<string, unknown>)[prop] = function (...args: unknown[]) {
           deviceAPICalls.push(name);
           checkDeviceAPIs();
-          return (original as (...args: unknown[]) => unknown).apply(this, args);
+          return (original as (...args: unknown[]) => unknown).apply(
+            this,
+            args
+          );
         };
       }
     }
@@ -155,14 +166,21 @@ function monitorDeviceAPIs() {
   }
 
   // Monitor screen property access
-  const screenProps = ['width', 'height', 'colorDepth', 'pixelDepth', 'availWidth', 'availHeight'];
+  const screenProps = [
+    'width',
+    'height',
+    'colorDepth',
+    'pixelDepth',
+    'availWidth',
+    'availHeight',
+  ];
   const screenValues: Record<string, unknown> = {};
 
   screenProps.forEach(prop => {
     const descriptor = Object.getOwnPropertyDescriptor(screen, prop);
     if (descriptor && descriptor.get) {
       screenValues[prop] = descriptor.get.call(screen);
-      
+
       Object.defineProperty(screen, prop, {
         get() {
           deviceAPICalls.push(`screen.${prop}`);
@@ -175,13 +193,18 @@ function monitorDeviceAPIs() {
   });
 
   // Monitor navigator properties
-  const navigatorProps = ['hardwareConcurrency', 'deviceMemory', 'platform', 'userAgent'];
+  const navigatorProps = [
+    'hardwareConcurrency',
+    'deviceMemory',
+    'platform',
+    'userAgent',
+  ];
   const navigatorValues: Record<string, unknown> = {};
 
   navigatorProps.forEach(prop => {
     if (prop in navigator) {
       navigatorValues[prop] = (navigator as Record<string, unknown>)[prop];
-      
+
       Object.defineProperty(navigator, prop, {
         get() {
           deviceAPICalls.push(`navigator.${prop}`);
@@ -278,11 +301,13 @@ pnpm build
 ### Level 2: Device API Detection Test
 
 **Test Sites:**
+
 - https://webkay.robinlinus.com/ (comprehensive device info)
 - https://deviceinfo.me/ (device fingerprinting)
 - https://fingerprintjs.com/demo (commercial fingerprinting)
 
 **Steps:**
+
 1. Reload extension in Chrome
 2. Visit https://webkay.robinlinus.com/
 3. Allow site to load completely
@@ -296,6 +321,7 @@ pnpm build
 ### Level 3: AI Analysis Verification
 
 **Steps:**
+
 1. Wait for AI analysis (3-5 seconds)
 2. Verify narrative mentions:
    - Device fingerprinting
@@ -306,6 +332,7 @@ pnpm build
 ### Level 4: False Positive Check
 
 **Test on legitimate sites:**
+
 - Responsive design sites (checking screen size)
 - Video conferencing (camera/microphone access)
 - Maps applications (geolocation)
@@ -359,21 +386,25 @@ pnpm build
 ## TROUBLESHOOTING
 
 **Issue: Property interception not working**
+
 - Check Object.defineProperty configurable: true
 - Verify original property descriptors exist
 - Some properties may be non-configurable (skip those)
 
 **Issue: Too many false positives**
+
 - Increase threshold from 3 to 5 APIs
 - Add whitelist for common legitimate combinations
 - Consider time window (3+ APIs in 5 seconds)
 
 **Issue: Not detecting on test sites**
+
 - Lower threshold temporarily to 2 for testing
 - Check console for API call logs
 - Verify property getters are being intercepted
 
 **Issue: Performance impact**
+
 - Property getters are called frequently
 - Consider throttling detection reporting
 - Cache property values to reduce overhead
@@ -383,21 +414,25 @@ pnpm build
 ## ADVANCED CONSIDERATIONS
 
 **Property Interception Challenges:**
+
 - Some properties are non-configurable
 - Getters may be called thousands of times
 - Need to balance detection vs performance
 
 **API Coverage:**
+
 - Current implementation covers ~80% of fingerprinting APIs
 - WebGL, AudioContext, WebRTC not included (future enhancement)
 - Font enumeration not included (complex to detect)
 
 **Threshold Tuning:**
+
 - 3 APIs = good balance for fingerprinting detection
 - Single API = often legitimate (responsive design)
 - 5+ APIs = definitely fingerprinting but may miss some
 
 **Performance Optimization:**
+
 - Property getters cached after first access
 - Detection reporting throttled
 - API call array cleared after reporting
@@ -436,6 +471,7 @@ After Phase 5 completion, validate entire system:
 ## PROJECT COMPLETION
 
 **All 5 Phases Complete:**
+
 - ✅ Phase 1: Canvas Fingerprinting Detection
 - ✅ Phase 2: Storage Access Detection
 - ✅ Phase 3: Mouse Tracking Detection
@@ -447,6 +483,7 @@ After Phase 5 completion, validate entire system:
 **Detection Coverage:** ~90% of common tracking methods
 
 **Future Enhancements:**
+
 - WebGL fingerprinting
 - AudioContext fingerprinting
 - Font enumeration detection

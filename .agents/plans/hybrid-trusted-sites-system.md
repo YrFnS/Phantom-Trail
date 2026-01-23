@@ -3,6 +3,7 @@
 ## Overview
 
 Implement a smart, hybrid approach to identifying trusted sites that combines:
+
 1. **Default Whitelist** - Pre-configured trusted sites (existing)
 2. **User-Configurable Whitelist** - Users can add their own trusted sites
 3. **Smart Context Detection** - Automatic detection of security contexts (login pages, banking, etc.)
@@ -51,6 +52,7 @@ Implement a smart, hybrid approach to identifying trusted sites that combines:
 ### Phase 1: Core Infrastructure [1h]
 
 #### Task 1.1: Extend Types
+
 **File**: `lib/types.ts`
 **Action**: Add user whitelist types
 
@@ -74,10 +76,12 @@ export interface SecurityContext {
 ```
 
 #### Task 1.2: Create Context Detector
+
 **File**: `lib/context-detector.ts` (NEW)
 **Action**: Implement smart context detection
 
 **Features**:
+
 - Detect login pages (URL patterns: /login, /signin, /auth, /sso)
 - Detect banking domains (keywords: bank, credit, financial)
 - Detect payment pages (stripe, paypal, checkout)
@@ -86,21 +90,24 @@ export interface SecurityContext {
 - Return confidence score
 
 **Logic**:
+
 ```typescript
 export class SecurityContextDetector {
-  static detectContext(url: string, pageInfo?: PageInfo): SecurityContext
-  static isLoginPage(url: string): boolean
-  static isBankingDomain(domain: string): boolean
-  static isPaymentPage(url: string): boolean
-  static hasAuthenticationIndicators(pageInfo?: PageInfo): boolean
+  static detectContext(url: string, pageInfo?: PageInfo): SecurityContext;
+  static isLoginPage(url: string): boolean;
+  static isBankingDomain(domain: string): boolean;
+  static isPaymentPage(url: string): boolean;
+  static hasAuthenticationIndicators(pageInfo?: PageInfo): boolean;
 }
 ```
 
 #### Task 1.3: Create User Whitelist Manager
+
 **File**: `lib/user-whitelist-manager.ts` (NEW)
 **Action**: Manage user-added trusted sites
 
 **Features**:
+
 - Add/remove user trusted sites
 - Store in chrome.storage.local
 - Validate domain format
@@ -108,25 +115,28 @@ export class SecurityContextDetector {
 - Export/import whitelist
 
 **API**:
+
 ```typescript
 export class UserWhitelistManager {
-  static async addTrustedSite(site: UserTrustedSite): Promise<void>
-  static async removeTrustedSite(domain: string): Promise<void>
-  static async getUserWhitelist(): Promise<UserTrustedSite[]>
-  static async isUserTrusted(domain: string): Promise<boolean>
-  static async clearTemporary(): Promise<void>
-  static async exportWhitelist(): Promise<string>
-  static async importWhitelist(json: string): Promise<void>
+  static async addTrustedSite(site: UserTrustedSite): Promise<void>;
+  static async removeTrustedSite(domain: string): Promise<void>;
+  static async getUserWhitelist(): Promise<UserTrustedSite[]>;
+  static async isUserTrusted(domain: string): Promise<boolean>;
+  static async clearTemporary(): Promise<void>;
+  static async exportWhitelist(): Promise<string>;
+  static async importWhitelist(json: string): Promise<void>;
 }
 ```
 
 ### Phase 2: Enhanced Trusted Sites Logic [30min]
 
 #### Task 2.1: Update Trusted Sites Module
+
 **File**: `lib/trusted-sites.ts`
 **Action**: Integrate all three layers
 
 **New Functions**:
+
 ```typescript
 // Main function - checks all three layers
 export async function isSiteTrusted(
@@ -137,23 +147,26 @@ export async function isSiteTrusted(
   trusted: boolean;
   source: 'default' | 'user' | 'context';
   reason: string;
-}>
+}>;
 
 // Layer 1: Default whitelist (existing)
-export function isDefaultTrusted(domain: string): TrustedSiteConfig | null
+export function isDefaultTrusted(domain: string): TrustedSiteConfig | null;
 
 // Layer 2: User whitelist (new)
-export async function isUserTrusted(domain: string): Promise<UserTrustedSite | null>
+export async function isUserTrusted(
+  domain: string
+): Promise<UserTrustedSite | null>;
 
 // Layer 3: Context detection (new)
 export function isContextTrusted(
   domain: string,
   method: InPageTrackingMethod,
   context: SecurityContext
-): boolean
+): boolean;
 ```
 
 **Context Trust Logic**:
+
 - High confidence login page + device-api/canvas → Trusted
 - Banking domain + high confidence → Trusted
 - Payment page + device-api → Trusted
@@ -162,10 +175,12 @@ export function isContextTrusted(
 ### Phase 3: Settings UI Integration [1h]
 
 #### Task 3.1: Create Trusted Sites Settings Component
+
 **File**: `components/Settings/TrustedSitesSettings.tsx` (NEW)
 **Action**: UI for managing user whitelist
 
 **Features**:
+
 - List of user-added trusted sites
 - Add new trusted site (domain input + reason)
 - Remove trusted site
@@ -175,6 +190,7 @@ export function isContextTrusted(
 - Show currently detected context
 
 **UI Layout**:
+
 ```
 ┌─────────────────────────────────────────┐
 │ Trusted Sites Management                │
@@ -202,20 +218,24 @@ export function isContextTrusted(
 ```
 
 #### Task 3.2: Add Dialog for Adding Sites
+
 **File**: `components/Settings/AddTrustedSiteDialog.tsx` (NEW)
 **Action**: Modal dialog for adding trusted sites
 
 **Fields**:
+
 - Domain (required, validated)
 - Reason (optional, text)
 - Allowed methods (checkboxes)
 - Temporary (checkbox - session only)
 
 #### Task 3.3: Update Settings Component
+
 **File**: `components/Settings/Settings.tsx`
 **Action**: Add new "Trusted Sites" tab
 
 **Changes**:
+
 - Add tab navigation: General | Trusted Sites
 - Import TrustedSitesSettings component
 - Add state management for tab switching
@@ -223,16 +243,17 @@ export function isContextTrusted(
 ### Phase 4: Content Script Integration [30min]
 
 #### Task 4.1: Update Content Script
+
 **File**: `entrypoints/content.ts`
 **Action**: Use hybrid trust check
 
 **Changes**:
+
 ```typescript
 // Before reporting fingerprinting:
-const context = SecurityContextDetector.detectContext(
-  window.location.href,
-  { hasPasswordField: document.querySelector('input[type="password"]') !== null }
-);
+const context = SecurityContextDetector.detectContext(window.location.href, {
+  hasPasswordField: document.querySelector('input[type="password"]') !== null,
+});
 
 const trustCheck = await isSiteTrusted(
   window.location.hostname,
@@ -250,10 +271,12 @@ if (trustCheck.trusted) {
 ```
 
 #### Task 4.2: Add Context Info to Events
+
 **File**: `lib/types.ts`
 **Action**: Add context info to TrackingEvent
 
 **Changes**:
+
 ```typescript
 export interface TrackingEvent {
   // ... existing fields
@@ -269,20 +292,24 @@ export interface TrackingEvent {
 ### Phase 5: UI Enhancements [30min]
 
 #### Task 5.1: Add Quick Trust Button
+
 **File**: `components/LiveNarrative/LiveNarrative.tsx`
 **Action**: Add "Trust This Site" button to alerts
 
 **Feature**:
+
 - Show button on fingerprinting alerts
 - Click → Opens dialog to add site to user whitelist
 - Pre-fills domain and detected method
 - Option for temporary (session-only) trust
 
 #### Task 5.2: Update Pattern Alert Display
+
 **File**: `components/LiveNarrative/LiveNarrative.tsx`
 **Action**: Show context information in alerts
 
 **Enhancement**:
+
 ```
 ⚠️ Pattern Detected
 Advanced fingerprinting techniques detected
@@ -295,26 +322,31 @@ Context: Login page detected
 ### Phase 6: Testing & Validation [30min]
 
 #### Task 6.1: Test Default Whitelist
+
 - Visit github.com → No warning ✓
 - Visit random site → Warning shown ✓
 
 #### Task 6.2: Test User Whitelist
+
 - Add custom site → Saves correctly ✓
 - Visit custom site → No warning ✓
 - Remove custom site → Warning returns ✓
 
 #### Task 6.3: Test Context Detection
+
 - Visit login page (not in whitelist) → Detects context ✓
 - Visit banking site → Detects context ✓
 - Visit regular page → No false positives ✓
 
 #### Task 6.4: Test UI
+
 - Settings UI loads ✓
 - Add/remove sites works ✓
 - Export/import works ✓
 - Quick trust button works ✓
 
 #### Task 6.5: Verify Build
+
 ```bash
 pnpm lint
 npx tsc --noEmit
@@ -344,6 +376,7 @@ entrypoints/
 ## Success Criteria
 
 ### Functional Requirements
+
 - ✅ Default whitelist works (existing sites)
 - ✅ Users can add custom trusted sites
 - ✅ Context detection identifies login/banking pages
@@ -353,6 +386,7 @@ entrypoints/
 - ✅ Export/import whitelist works
 
 ### Technical Requirements
+
 - ✅ TypeScript strict mode (0 errors)
 - ✅ ESLint passes (0 errors, 0 warnings)
 - ✅ Bundle size < 1MB
@@ -360,6 +394,7 @@ entrypoints/
 - ✅ Proper error handling
 
 ### User Experience
+
 - ✅ No false positives for common sites
 - ✅ Easy to add custom sites
 - ✅ Clear feedback on trust status

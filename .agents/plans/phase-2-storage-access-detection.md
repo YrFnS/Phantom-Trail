@@ -101,7 +101,11 @@ static analyzeStorageAccess(
 
 ```typescript
 // Add to tracking state at top
-const storageOperations: Array<{ type: string; key: string; timestamp: number }> = [];
+const storageOperations: Array<{
+  type: string;
+  key: string;
+  timestamp: number;
+}> = [];
 
 /**
  * Intercept localStorage/sessionStorage
@@ -231,6 +235,7 @@ pnpm build
 **Test Site:** https://panopticlick.eff.org/
 
 **Steps:**
+
 1. Reload extension in Chrome
 2. Visit https://panopticlick.eff.org/
 3. Click "Test Me" button
@@ -246,6 +251,7 @@ pnpm build
 ### Level 3: AI Analysis Verification
 
 **Steps:**
+
 1. Wait 3-5 seconds after detection
 2. Check for AI narrative in Live Feed
 3. Verify narrative mentions:
@@ -256,6 +262,7 @@ pnpm build
 ### Level 4: Performance Check
 
 **Steps:**
+
 1. Visit normal websites (news, blogs)
 2. Verify no false positives on legitimate storage use
 3. Check CPU usage remains <2%
@@ -293,15 +300,18 @@ pnpm build
 ## TROUBLESHOOTING
 
 **Issue: Too many false positives**
+
 - Increase STORAGE_ACCESS_THRESHOLD from 10 to 15
-- Add whitelist for common legitimate keys (_ga, _gid, etc.)
+- Add whitelist for common legitimate keys (\_ga, \_gid, etc.)
 
 **Issue: Not detecting on test sites**
+
 - Lower threshold temporarily to 5 for testing
 - Check console for storage operation logs
 - Verify checkStorageAccess is being called
 
 **Issue: Performance impact**
+
 - Verify throttling is working (60-second window)
 - Check storageOperations array isn't growing unbounded
 - Add cleanup for old operations
@@ -311,6 +321,7 @@ pnpm build
 ## NEXT STEPS
 
 After Phase 2 completion:
+
 - **Phase 3:** Mouse Tracking Detection
 - **Phase 4:** Form Monitoring
 - **Phase 5:** Device API Detection

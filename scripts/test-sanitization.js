@@ -64,7 +64,7 @@ let failed = 0;
 testCases.forEach(({ name, input, expected }) => {
   const result = sanitizeUrl(input);
   const success = result === expected;
-  
+
   if (success) {
     console.log(`✅ ${name}`);
     console.log(`   Input:    ${input}`);

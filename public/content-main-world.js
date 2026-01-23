@@ -1,6 +1,6 @@
 /* eslint-disable */
 // Canvas fingerprinting detector - injected into main world
-(function() {
+(function () {
   console.log('[Phantom Trail] Canvas detector loaded');
 
   const canvasOperations = [];
@@ -10,16 +10,18 @@
   const deviceAPICalls = [];
 
   function reportDetection(data) {
-    window.dispatchEvent(new CustomEvent('phantom-trail-detection', {
-      detail: data
-    }));
+    window.dispatchEvent(
+      new CustomEvent('phantom-trail-detection', {
+        detail: data,
+      })
+    );
   }
 
   function interceptCanvas() {
     const CanvasProto = HTMLCanvasElement.prototype;
     const originalGetContext = CanvasProto.getContext;
 
-    CanvasProto.getContext = function(...args) {
+    CanvasProto.getContext = function (...args) {
       canvasOperations.push(`getContext(${args[0]})`);
       const context = originalGetContext.apply(this, args);
 
@@ -27,27 +29,27 @@
         const canvasElement = this;
 
         const originalToDataURL = canvasElement.toDataURL.bind(canvasElement);
-        canvasElement.toDataURL = function(...dataArgs) {
+        canvasElement.toDataURL = function (...dataArgs) {
           canvasOperations.push('toDataURL');
           checkCanvasFingerprinting();
           return originalToDataURL(...dataArgs);
         };
 
         const originalGetImageData = context.getImageData.bind(context);
-        context.getImageData = function(...imageArgs) {
+        context.getImageData = function (...imageArgs) {
           canvasOperations.push('getImageData');
           checkCanvasFingerprinting();
           return originalGetImageData(...imageArgs);
         };
 
         const originalFillText = context.fillText.bind(context);
-        context.fillText = function(...textArgs) {
+        context.fillText = function (...textArgs) {
           canvasOperations.push('fillText');
           return originalFillText(...textArgs);
         };
 
         const originalMeasureText = context.measureText.bind(context);
-        context.measureText = function(...measureArgs) {
+        context.measureText = function (...measureArgs) {
           canvasOperations.push('measureText');
           return originalMeasureText(...measureArgs);
         };
@@ -62,7 +64,7 @@
       reportDetection({
         type: 'canvas-fingerprint',
         operations: [...canvasOperations],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
       canvasOperations.length = 0;
     }
@@ -79,7 +81,9 @@
       add(operation, key) {
         const now = Date.now();
         // Remove events outside window
-        this.events = this.events.filter(e => now - e.timestamp < this.windowSize);
+        this.events = this.events.filter(
+          e => now - e.timestamp < this.windowSize
+        );
         // Add new event
         this.events.push({ operation, key, timestamp: now });
       },
@@ -100,7 +104,7 @@
 
       markReported() {
         this.lastReport = Date.now();
-      }
+      },
     };
 
     ['localStorage', 'sessionStorage'].forEach(storageType => {
@@ -109,19 +113,19 @@
       const originalGetItem = storage.getItem;
       const originalRemoveItem = storage.removeItem;
 
-      storage.setItem = function(key, value) {
+      storage.setItem = function (key, value) {
         storageAccessWindow.add(`${storageType}.setItem`, key);
         checkStorageAccess();
         return originalSetItem.call(this, key, value);
       };
 
-      storage.getItem = function(key) {
+      storage.getItem = function (key) {
         storageAccessWindow.add(`${storageType}.getItem`, key);
         checkStorageAccess();
         return originalGetItem.call(this, key);
       };
 
-      storage.removeItem = function(key) {
+      storage.removeItem = function (key) {
         storageAccessWindow.add(`${storageType}.removeItem`, key);
         checkStorageAccess();
         return originalRemoveItem.call(this, key);
@@ -138,7 +142,7 @@
           operations: storageAccessWindow.events.slice(-20), // Last 20 only
           uniqueOperations: uniqueOps,
           frequency: Math.round(frequency),
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         storageAccessWindow.markReported();
@@ -165,7 +169,7 @@
                 eventCount: mouseEventCount.count,
                 duration,
                 eventsPerSecond: Math.round(eventsPerSecond),
-                timestamp: Date.now()
+                timestamp: Date.now(),
               });
             }
 
@@ -182,9 +186,9 @@
   function monitorFormFields() {
     document.addEventListener(
       'input',
-      (event) => {
+      event => {
         const target = event.target;
-        
+
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
           monitoredFields.add(target);
 
@@ -196,17 +200,17 @@
             if (monitoredFields.size > 0) {
               const fieldsToReport = monitoredFields;
               monitoredFields = new Set();
-              
+
               const fields = Array.from(fieldsToReport).map(field => ({
                 type: field.type || 'text',
                 name: field.name || field.id || 'unnamed',
-                monitored: true
+                monitored: true,
               }));
 
               reportDetection({
                 type: 'form-monitoring',
                 fields,
-                timestamp: Date.now()
+                timestamp: Date.now(),
               });
             }
             formMonitoringTimeout = null;
@@ -220,8 +224,16 @@
   function monitorDeviceAPIs() {
     const navigatorAPIs = [
       { obj: navigator, prop: 'getBattery', name: 'navigator.getBattery' },
-      { obj: navigator.geolocation, prop: 'getCurrentPosition', name: 'navigator.geolocation.getCurrentPosition' },
-      { obj: navigator.geolocation, prop: 'watchPosition', name: 'navigator.geolocation.watchPosition' },
+      {
+        obj: navigator.geolocation,
+        prop: 'getCurrentPosition',
+        name: 'navigator.geolocation.getCurrentPosition',
+      },
+      {
+        obj: navigator.geolocation,
+        prop: 'watchPosition',
+        name: 'navigator.geolocation.watchPosition',
+      },
     ];
 
     navigatorAPIs.forEach(({ obj, prop, name }) => {
@@ -258,7 +270,14 @@
       }
     }
 
-    const screenProps = ['width', 'height', 'colorDepth', 'pixelDepth', 'availWidth', 'availHeight'];
+    const screenProps = [
+      'width',
+      'height',
+      'colorDepth',
+      'pixelDepth',
+      'availWidth',
+      'availHeight',
+    ];
     const screenValues = {};
 
     screenProps.forEach(prop => {
@@ -266,14 +285,14 @@
         const descriptor = Object.getOwnPropertyDescriptor(screen, prop);
         if (descriptor && descriptor.get) {
           screenValues[prop] = descriptor.get.call(screen);
-          
+
           Object.defineProperty(screen, prop, {
             get() {
               deviceAPICalls.push(`screen.${prop}`);
               checkDeviceAPIs();
               return screenValues[prop];
             },
-            configurable: true
+            configurable: true,
           });
         }
       } catch (e) {
@@ -281,21 +300,26 @@
       }
     });
 
-    const navigatorProps = ['hardwareConcurrency', 'deviceMemory', 'platform', 'userAgent'];
+    const navigatorProps = [
+      'hardwareConcurrency',
+      'deviceMemory',
+      'platform',
+      'userAgent',
+    ];
     const navigatorValues = {};
 
     navigatorProps.forEach(prop => {
       try {
         if (prop in navigator) {
           navigatorValues[prop] = navigator[prop];
-          
+
           Object.defineProperty(navigator, prop, {
             get() {
               deviceAPICalls.push(`navigator.${prop}`);
               checkDeviceAPIs();
               return navigatorValues[prop];
             },
-            configurable: true
+            configurable: true,
           });
         }
       } catch (e) {
@@ -309,7 +333,7 @@
       reportDetection({
         type: 'device-api',
         apiCalls: [...deviceAPICalls],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
       deviceAPICalls.length = 0;
     }
@@ -317,16 +341,17 @@
 
   // WebRTC IP leak detection (CRITICAL)
   function monitorWebRTC() {
-    const originalRTCPeerConnection = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+    const originalRTCPeerConnection =
+      window.RTCPeerConnection || window.webkitRTCPeerConnection;
     if (!originalRTCPeerConnection) return;
 
-    window.RTCPeerConnection = function(...args) {
+    window.RTCPeerConnection = function (...args) {
       const pc = new originalRTCPeerConnection(...args);
-      
+
       reportDetection({
         type: 'webrtc-leak',
         description: 'WebRTC connection detected - may expose real IP address',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       return pc;
@@ -336,8 +361,14 @@
   // Font fingerprinting detection
   function monitorFontFingerprint() {
     const fontChecks = [];
-    const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
-    const originalOffsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
+    const originalOffsetWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'offsetWidth'
+    );
+    const originalOffsetHeight = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'offsetHeight'
+    );
 
     if (originalOffsetWidth && originalOffsetHeight) {
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
@@ -350,34 +381,35 @@
                 type: 'font-fingerprint',
                 fonts: [...new Set(fontChecks)].slice(0, 10),
                 count: fontChecks.length,
-                timestamp: Date.now()
+                timestamp: Date.now(),
               });
               fontChecks.length = 0;
             }
           }
           return value;
-        }
+        },
       });
     }
   }
 
   // Audio fingerprinting detection
   function monitorAudioFingerprint() {
-    const originalAudioContext = window.AudioContext || window.webkitAudioContext;
+    const originalAudioContext =
+      window.AudioContext || window.webkitAudioContext;
     if (!originalAudioContext) return;
 
     const audioOps = [];
-    window.AudioContext = function(...args) {
+    window.AudioContext = function (...args) {
       const ctx = new originalAudioContext(...args);
-      
+
       const originalCreateOscillator = ctx.createOscillator.bind(ctx);
-      ctx.createOscillator = function() {
+      ctx.createOscillator = function () {
         audioOps.push('createOscillator');
         if (audioOps.length >= 2) {
           reportDetection({
             type: 'audio-fingerprint',
             operations: [...audioOps],
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
           audioOps.length = 0;
         }
@@ -391,28 +423,28 @@
   // WebGL fingerprinting detection
   function monitorWebGLFingerprint() {
     const originalGetContext = HTMLCanvasElement.prototype.getContext;
-    
-    HTMLCanvasElement.prototype.getContext = function(type, ...args) {
+
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
       const ctx = originalGetContext.call(this, type, ...args);
-      
+
       if (ctx && (type === 'webgl' || type === 'webgl2')) {
         const originalGetParameter = ctx.getParameter.bind(ctx);
         const glCalls = [];
-        
-        ctx.getParameter = function(param) {
+
+        ctx.getParameter = function (param) {
           glCalls.push(param);
           if (glCalls.length >= 5) {
             reportDetection({
               type: 'webgl-fingerprint',
               parameters: glCalls.slice(0, 10),
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
             glCalls.length = 0;
           }
           return originalGetParameter(param);
         };
       }
-      
+
       return ctx;
     };
   }
@@ -421,10 +453,10 @@
   function monitorBatteryAPI() {
     if (navigator.getBattery) {
       const originalGetBattery = navigator.getBattery.bind(navigator);
-      navigator.getBattery = function() {
+      navigator.getBattery = function () {
         reportDetection({
           type: 'battery-api',
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
         return originalGetBattery();
       };
@@ -433,15 +465,19 @@
 
   // Sensor APIs monitoring
   function monitorSensorAPIs() {
-    const sensorEvents = ['devicemotion', 'deviceorientation', 'deviceorientationabsolute'];
+    const sensorEvents = [
+      'devicemotion',
+      'deviceorientation',
+      'deviceorientationabsolute',
+    ];
     sensorEvents.forEach(eventType => {
       const originalAddEventListener = window.addEventListener;
-      window.addEventListener = function(type, listener, options) {
+      window.addEventListener = function (type, listener, options) {
         if (sensorEvents.includes(type)) {
           reportDetection({
             type: 'sensor-api',
             sensor: type,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
         }
         return originalAddEventListener.call(this, type, listener, options);

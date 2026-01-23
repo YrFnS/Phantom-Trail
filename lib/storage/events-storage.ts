@@ -13,14 +13,14 @@ export class EventsStorage {
     try {
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
       let events = result[this.EVENTS_KEY] || [];
-      
+
       // Validate and repair corrupted data
       if (!Array.isArray(events)) {
         console.warn('Events storage corrupted, resetting to empty array');
         events = [];
         await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
       }
-      
+
       return events.slice(-limit);
     } catch (error) {
       console.error('Failed to get recent events:', error);
@@ -38,7 +38,7 @@ export class EventsStorage {
     try {
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
       let events = result[this.EVENTS_KEY] || [];
-      
+
       // Validate and repair corrupted data
       if (!Array.isArray(events)) {
         console.warn('Events storage corrupted, resetting to empty array');
@@ -46,7 +46,7 @@ export class EventsStorage {
         await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
         return [];
       }
-      
+
       return events.filter((event: TrackingEvent) => {
         const eventDate = new Date(event.timestamp);
         return eventDate >= startDate && eventDate <= endDate;
@@ -64,20 +64,20 @@ export class EventsStorage {
     try {
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
       let events = result[this.EVENTS_KEY] || [];
-      
+
       // Validate and repair corrupted data
       if (!Array.isArray(events)) {
         console.warn('Events storage corrupted, resetting to empty array');
         events = [];
       }
-      
+
       events.push(event);
-      
+
       // Keep only last 1000 events to prevent storage bloat
       if (events.length > 1000) {
         events.splice(0, events.length - 1000);
       }
-      
+
       await chrome.storage.local.set({
         [this.EVENTS_KEY]: events,
       });
@@ -94,10 +94,10 @@ export class EventsStorage {
     try {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
       let events = result[this.EVENTS_KEY] || [];
-      
+
       // Validate and repair corrupted data
       if (!Array.isArray(events)) {
         console.warn('Events storage corrupted, resetting to empty array');
@@ -105,17 +105,17 @@ export class EventsStorage {
         await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
         return 0;
       }
-      
+
       const originalCount = events.length;
-      
+
       const filteredEvents = events.filter((event: TrackingEvent) => {
         return new Date(event.timestamp) > thirtyDaysAgo;
       });
-      
+
       await chrome.storage.local.set({
         [this.EVENTS_KEY]: filteredEvents,
       });
-      
+
       return originalCount - filteredEvents.length;
     } catch (error) {
       console.error('Failed to cleanup old events:', error);
@@ -144,14 +144,14 @@ export class EventsStorage {
     try {
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
       let events = result[this.EVENTS_KEY] || [];
-      
+
       // Validate and repair corrupted data
       if (!Array.isArray(events)) {
         console.warn('Events storage corrupted, resetting to empty array');
         events = [];
         await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
       }
-      
+
       return events;
     } catch (error) {
       console.error('Failed to get tracking events:', error);

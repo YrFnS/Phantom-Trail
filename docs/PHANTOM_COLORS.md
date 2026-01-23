@@ -2,18 +2,19 @@
 
 ## Official Palette
 
-| Role | Color Name | Hex Code | Application |
-|------|-----------|----------|-------------|
-| **Background** | Void Black | `#050A0E` | The "Dark Web" canvas. Network Map background. |
-| **Primary** | Ghost Plasma | `#BC13FE` | The User node. Represents YOU in the map. |
-| **Secondary** | Tracker Cyan | `#00F0FF` | The Trackers. Lines connecting sites to third parties (data streams). |
-| **Alert (High)** | Expose Red | `#FF2A6D` | High Risk. Suspicious activity alerts. Vibrates against black. |
-| **Surface** | HUD Grey | `#161B22` | The Narrative Box. AI chat/log window background. |
-| **Text** | Terminal White | `#E6EDF3` | The Text. Crisp, readable white for "Plain English" explanations. |
+| Role             | Color Name     | Hex Code  | Application                                                           |
+| ---------------- | -------------- | --------- | --------------------------------------------------------------------- |
+| **Background**   | Void Black     | `#050A0E` | The "Dark Web" canvas. Network Map background.                        |
+| **Primary**      | Ghost Plasma   | `#BC13FE` | The User node. Represents YOU in the map.                             |
+| **Secondary**    | Tracker Cyan   | `#00F0FF` | The Trackers. Lines connecting sites to third parties (data streams). |
+| **Alert (High)** | Expose Red     | `#FF2A6D` | High Risk. Suspicious activity alerts. Vibrates against black.        |
+| **Surface**      | HUD Grey       | `#161B22` | The Narrative Box. AI chat/log window background.                     |
+| **Text**         | Terminal White | `#E6EDF3` | The Text. Crisp, readable white for "Plain English" explanations.     |
 
 ## Design Philosophy
 
 ### The 80/20 Rule (Trust Factor)
+
 **Critical for security tools to avoid "scareware" appearance:**
 
 - **80%**: Void Black + Terminal White (clean, professional)
@@ -24,9 +25,11 @@
 ## Feature-Specific Design
 
 ### 1. Visual Network Map
+
 **Concept:** Constellation in space
 
 **Execution:**
+
 ```
 Background: Void Black (#050A0E)
 Websites: Small white dots (Terminal White)
@@ -35,6 +38,7 @@ Hover effect: Lines glow Ghost Plasma (#BC13FE)
 ```
 
 **Implementation:**
+
 ```tsx
 // Network background
 className="bg-void"
@@ -51,9 +55,11 @@ filter: drop-shadow(0 0 8px #BC13FE)
 ```
 
 ### 2. Live AI Narrative (The HUD)
+
 **Concept:** Iron Man's JARVIS / Hacker Terminal
 
 **Execution:**
+
 ```
 Background: HUD Grey (#161B22)
 Border: Ghost Plasma (#BC13FE) at 30% opacity, 1px
@@ -63,21 +69,24 @@ Text: Terminal White (#E6EDF3)
 **DO NOT use standard white chat bubbles.** The AI should feel like it's "living" inside the browser.
 
 **Implementation:**
+
 ```tsx
 // AI narrative box
-className="bg-hud/50 border-l-2 border-plasma/30"
+className = 'bg-hud/50 border-l-2 border-plasma/30';
 
 // User messages
-className="bg-hud text-terminal border border-plasma/30"
+className = 'bg-hud text-terminal border border-plasma/30';
 
 // AI responses
-className="bg-dark-700/50 text-gray-200 border border-dark-600/50"
+className = 'bg-dark-700/50 text-gray-200 border border-dark-600/50';
 ```
 
 ### 3. Privacy Score Display
+
 **Concept:** Glowing metric in the void
 
 **Execution:**
+
 ```
 Background: Void Black (#050A0E)
 Border: Ghost Plasma (#BC13FE) at 30% opacity
@@ -86,6 +95,7 @@ Glow: 0 0 20px rgba(188, 19, 254, 0.4)
 ```
 
 **Implementation:**
+
 ```tsx
 <div className="bg-void border border-plasma/30 shadow-[0_0_20px_rgba(188,19,254,0.4)]">
   <div className="text-plasma drop-shadow-[0_0_10px_rgba(188,19,254,0.8)]">
@@ -95,9 +105,11 @@ Glow: 0 0 20px rgba(188, 19, 254, 0.4)
 ```
 
 ### 4. Buttons & Interactive Elements
+
 **Concept:** Minimal neon accents
 
 **Execution:**
+
 ```
 Default: HUD Grey background, subtle plasma border
 Hover: Border brightens, subtle glow appears
@@ -105,126 +117,158 @@ Active: Full plasma border with glow
 ```
 
 **Implementation:**
+
 ```tsx
 // Primary button
-className="bg-hud text-terminal border border-plasma/30 
+className="bg-hud text-terminal border border-plasma/30
            hover:border-plasma hover:shadow-[0_0_15px_rgba(188,19,254,0.4)]"
 
 // Navigation (active)
-className="bg-hud text-terminal border-l-2 border-plasma 
+className="bg-hud text-terminal border-l-2 border-plasma
            shadow-[0_0_15px_rgba(188,19,254,0.4)]"
 ```
 
 ## Color Usage Guidelines
 
 ### Void Black (#050A0E)
+
 **Use for:**
+
 - Main background
 - Network map canvas
 - Card backgrounds (with subtle borders)
 
 **Don't use for:**
+
 - Text (too dark, no contrast)
 - Small UI elements (gets lost)
 
 ### Ghost Plasma (#BC13FE)
+
 **Use for:**
+
 - User node in network map
 - Active state indicators
 - Primary action buttons (borders, not fills)
 - Glowing effects (sparingly)
 
 **Don't use for:**
+
 - Large filled areas (too intense)
 - Body text (poor readability)
 - More than 20% of UI
 
 ### Tracker Cyan (#00F0FF)
+
 **Use for:**
+
 - Data flow lines in network map
 - Connection indicators
 - Info alerts (non-critical)
 - Secondary highlights
 
 **Don't use for:**
+
 - Primary actions
 - Large text blocks
 - Backgrounds
 
 ### Expose Red (#FF2A6D)
+
 **Use for:**
+
 - High-risk alerts
 - Critical warnings
 - Dangerous actions
 - Suspicious activity indicators
 
 **Don't use for:**
+
 - Decorative elements
 - Non-critical UI
 - More than 5% of UI (causes alarm fatigue)
 
 ### HUD Grey (#161B22)
+
 **Use for:**
+
 - AI narrative box background
 - Card surfaces
 - Input fields
 - Secondary surfaces
 
 **Don't use for:**
+
 - Main background (too light)
 - Text (no contrast)
 
 ### Terminal White (#E6EDF3)
+
 **Use for:**
+
 - All body text
 - Headings
 - Labels
 - Primary content
 
 **Don't use for:**
+
 - Backgrounds (too bright)
 - Decorative elements
 
 ## Contrast Ratios (WCAG Compliance)
 
-| Foreground | Background | Ratio | Grade |
-|------------|------------|-------|-------|
+| Foreground               | Background           | Ratio  | Grade  |
+| ------------------------ | -------------------- | ------ | ------ |
 | Terminal White (#E6EDF3) | Void Black (#050A0E) | 16.2:1 | AAA ✅ |
-| Ghost Plasma (#BC13FE) | Void Black (#050A0E) | 6.8:1 | AA ✅ |
-| Tracker Cyan (#00F0FF) | Void Black (#050A0E) | 11.4:1 | AAA ✅ |
-| Expose Red (#FF2A6D) | Void Black (#050A0E) | 5.1:1 | AA ✅ |
+| Ghost Plasma (#BC13FE)   | Void Black (#050A0E) | 6.8:1  | AA ✅  |
+| Tracker Cyan (#00F0FF)   | Void Black (#050A0E) | 11.4:1 | AAA ✅ |
+| Expose Red (#FF2A6D)     | Void Black (#050A0E) | 5.1:1  | AA ✅  |
 
 All combinations meet **WCAG 2.1 Level AA** standards minimum.
 
 ## Glow Effects
 
 ### Subtle Glow (Default)
+
 ```css
 box-shadow: 0 0 10px rgba(188, 19, 254, 0.2);
 ```
+
 **Use for:** Resting state borders, subtle highlights
 
 ### Medium Glow (Hover)
+
 ```css
 box-shadow: 0 0 15px rgba(188, 19, 254, 0.4);
 ```
+
 **Use for:** Hover states, interactive elements
 
 ### Strong Glow (Active/Focus)
+
 ```css
 box-shadow: 0 0 20px rgba(188, 19, 254, 0.6);
 text-shadow: 0 0 10px rgba(188, 19, 254, 0.8);
 ```
+
 **Use for:** Active states, key metrics, focus indicators
 
 ### Pulsing Glow (Alerts)
+
 ```css
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 10px rgba(188, 19, 254, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(188, 19, 254, 0.6); }
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(188, 19, 254, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(188, 19, 254, 0.6);
+  }
 }
 animation: pulse-glow 2s ease-in-out infinite;
 ```
+
 **Use for:** Critical alerts, live activity indicators
 
 ## Tailwind Utilities
@@ -242,6 +286,7 @@ colors: {
 ```
 
 **Usage:**
+
 ```tsx
 <div className="bg-void text-terminal">
   <div className="bg-hud border border-plasma/30">
@@ -254,18 +299,21 @@ colors: {
 ## Visual Hierarchy
 
 ### Level 1: Background (80%)
+
 ```
 Void Black (#050A0E) - The canvas
 Terminal White (#E6EDF3) - The content
 ```
 
 ### Level 2: Structure (15%)
+
 ```
 HUD Grey (#161B22) - Surfaces, cards
 Subtle borders - Dark grey (#252b3d)
 ```
 
 ### Level 3: Highlights (5%)
+
 ```
 Ghost Plasma (#BC13FE) - Primary actions, user node
 Tracker Cyan (#00F0FF) - Data flows, connections
@@ -275,12 +323,14 @@ Expose Red (#FF2A6D) - Alerts, warnings
 ## Inspiration References
 
 **Visual Style:**
+
 - Tron (neon lines in darkness)
 - Cyberpunk 2077 UI (minimal neon accents)
 - Iron Man JARVIS (HUD interface)
 - Hacker terminals (green/cyan on black)
 
 **Color Psychology:**
+
 - **Void Black**: Mystery, depth, "dark web"
 - **Ghost Plasma**: Ethereal, user presence, phantom
 - **Tracker Cyan**: Data streams, digital flow
@@ -322,6 +372,7 @@ Expose Red (#FF2A6D) - Alerts, warnings
 ---
 
 **The Phantom Trail Aesthetic:**
+
 - Dark, mysterious void
 - Minimal neon accents (20% rule)
 - Data flows visualized as cyan streams

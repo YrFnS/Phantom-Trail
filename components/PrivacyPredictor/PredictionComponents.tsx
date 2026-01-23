@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { PrivacyPredictor, type PrivacyPrediction } from '../../lib/privacy-predictor';
+import {
+  PrivacyPredictor,
+  type PrivacyPrediction,
+} from '../../lib/privacy-predictor';
 
 interface PredictionTooltipProps {
   prediction: PrivacyPrediction;
@@ -12,7 +15,7 @@ export const PredictionTooltip: React.FC<PredictionTooltipProps> = ({
   prediction,
   isVisible,
   position,
-  onClose
+  onClose,
 }) => {
   if (!isVisible) return null;
 
@@ -33,13 +36,17 @@ export const PredictionTooltip: React.FC<PredictionTooltipProps> = ({
       className="fixed z-50 max-w-sm p-4 bg-white border border-gray-200 rounded-lg shadow-lg"
       style={{
         left: Math.min(position.x, window.innerWidth - 320),
-        top: Math.max(10, position.y - 100)
+        top: Math.max(10, position.y - 100),
       }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <div className={`flex items-center px-2 py-1 rounded-md border ${getScoreColor(prediction.predictedScore)}`}>
-          <span className="mr-1">{getScoreIcon(prediction.predictedScore)}</span>
+        <div
+          className={`flex items-center px-2 py-1 rounded-md border ${getScoreColor(prediction.predictedScore)}`}
+        >
+          <span className="mr-1">
+            {getScoreIcon(prediction.predictedScore)}
+          </span>
           <span className="font-semibold">
             {prediction.predictedGrade} ({prediction.predictedScore})
           </span>
@@ -92,7 +99,9 @@ export const PredictionTooltip: React.FC<PredictionTooltipProps> = ({
       {/* Risk Factors */}
       {prediction.riskFactors.length > 0 && (
         <div className="mb-3">
-          <div className="text-xs font-medium text-gray-700 mb-1">Top Risks</div>
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            Top Risks
+          </div>
           {prediction.riskFactors.slice(0, 2).map((factor, index) => (
             <div key={index} className="text-xs text-gray-600 mb-1">
               • {factor.description}
@@ -104,7 +113,9 @@ export const PredictionTooltip: React.FC<PredictionTooltipProps> = ({
       {/* Recommendations */}
       {prediction.recommendations.length > 0 && (
         <div className="mb-3">
-          <div className="text-xs font-medium text-gray-700 mb-1">Recommendations</div>
+          <div className="text-xs font-medium text-gray-700 mb-1">
+            Recommendations
+          </div>
           <div className="text-xs text-blue-600">
             {prediction.recommendations[0]}
           </div>
@@ -114,7 +125,7 @@ export const PredictionTooltip: React.FC<PredictionTooltipProps> = ({
       {/* Comparison */}
       {prediction.comparisonToAverage !== 0 && (
         <div className="text-xs text-gray-500">
-          {prediction.comparisonToAverage > 0 ? '↑' : '↓'} 
+          {prediction.comparisonToAverage > 0 ? '↑' : '↓'}
           {Math.abs(prediction.comparisonToAverage)} points vs average
         </div>
       )}
@@ -127,29 +138,33 @@ interface LinkPredictionIndicatorProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-export const LinkPredictionIndicator: React.FC<LinkPredictionIndicatorProps> = ({
-  prediction,
-  size = 'small'
-}) => {
+export const LinkPredictionIndicator: React.FC<
+  LinkPredictionIndicatorProps
+> = ({ prediction, size = 'small' }) => {
   const getIndicatorClass = (): string => {
-    const baseClass = 'inline-flex items-center justify-center rounded-full font-medium';
+    const baseClass =
+      'inline-flex items-center justify-center rounded-full font-medium';
     const sizeClass = {
       small: 'w-4 h-4 text-xs',
       medium: 'w-6 h-6 text-sm',
-      large: 'w-8 h-8 text-base'
+      large: 'w-8 h-8 text-base',
     }[size];
 
-    const colorClass = prediction.predictedScore >= 80 
-      ? 'bg-green-100 text-green-800'
-      : prediction.predictedScore >= 60
-      ? 'bg-yellow-100 text-yellow-800'
-      : 'bg-red-100 text-red-800';
+    const colorClass =
+      prediction.predictedScore >= 80
+        ? 'bg-green-100 text-green-800'
+        : prediction.predictedScore >= 60
+          ? 'bg-yellow-100 text-yellow-800'
+          : 'bg-red-100 text-red-800';
 
     return `${baseClass} ${sizeClass} ${colorClass}`;
   };
 
   return (
-    <span className={getIndicatorClass()} title={`Predicted privacy score: ${prediction.predictedScore}`}>
+    <span
+      className={getIndicatorClass()}
+      title={`Predicted privacy score: ${prediction.predictedScore}`}
+    >
       {prediction.predictedGrade}
     </span>
   );
@@ -162,7 +177,7 @@ interface PredictionSummaryProps {
 
 export const PredictionSummary: React.FC<PredictionSummaryProps> = ({
   predictions,
-  onPredictionClick
+  onPredictionClick,
 }) => {
   const [sortBy, setSortBy] = useState<'score' | 'confidence' | 'url'>('score');
 
@@ -202,7 +217,9 @@ export const PredictionSummary: React.FC<PredictionSummaryProps> = ({
         </h3>
         <select
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as 'score' | 'confidence' | 'url')}
+          onChange={e =>
+            setSortBy(e.target.value as 'score' | 'confidence' | 'url')
+          }
           className="px-3 py-1 text-sm border border-gray-300 rounded-md"
         >
           <option value="score">Sort by Risk</option>
@@ -230,9 +247,11 @@ export const PredictionSummary: React.FC<PredictionSummaryProps> = ({
                 </div>
               </div>
             </div>
-            
+
             <div className="text-right">
-              <div className={`font-semibold ${getScoreColor(prediction.predictedScore)}`}>
+              <div
+                className={`font-semibold ${getScoreColor(prediction.predictedScore)}`}
+              >
                 {prediction.predictedScore}
               </div>
               <div className="text-xs text-gray-500">
@@ -250,9 +269,12 @@ interface PredictionDashboardProps {
   className?: string;
 }
 
-export const PredictionDashboard: React.FC<PredictionDashboardProps> = ({ className = '' }) => {
+export const PredictionDashboard: React.FC<PredictionDashboardProps> = ({
+  className = '',
+}) => {
   const [predictions, setPredictions] = useState<PrivacyPrediction[]>([]);
-  const [selectedPrediction, setSelectedPrediction] = useState<PrivacyPrediction | null>(null);
+  const [selectedPrediction, setSelectedPrediction] =
+    useState<PrivacyPrediction | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const loadRecentPredictions = async () => {
@@ -263,10 +285,10 @@ export const PredictionDashboard: React.FC<PredictionDashboardProps> = ({ classN
       const sampleUrls = [
         'https://example.com',
         'https://news.example.com',
-        'https://shop.example.com'
+        'https://shop.example.com',
       ];
 
-      const predictionPromises = sampleUrls.map(url => 
+      const predictionPromises = sampleUrls.map(url =>
         PrivacyPredictor.predictPrivacyImpact(url)
       );
 
@@ -283,9 +305,13 @@ export const PredictionDashboard: React.FC<PredictionDashboardProps> = ({ classN
     loadRecentPredictions();
   }, []);
 
-  const averageScore = predictions.length > 0 
-    ? Math.round(predictions.reduce((sum, p) => sum + p.predictedScore, 0) / predictions.length)
-    : 0;
+  const averageScore =
+    predictions.length > 0
+      ? Math.round(
+          predictions.reduce((sum, p) => sum + p.predictedScore, 0) /
+            predictions.length
+        )
+      : 0;
 
   const highRiskCount = predictions.filter(p => p.predictedScore < 60).length;
 
@@ -294,7 +320,9 @@ export const PredictionDashboard: React.FC<PredictionDashboardProps> = ({ classN
       {/* Stats Overview */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{predictions.length}</div>
+          <div className="text-2xl font-bold text-gray-900">
+            {predictions.length}
+          </div>
           <div className="text-sm text-gray-500">Sites Analyzed</div>
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
@@ -333,23 +361,34 @@ export const PredictionDashboard: React.FC<PredictionDashboardProps> = ({ classN
                 ✕
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <div className="text-sm font-medium text-gray-700">URL</div>
-                <div className="text-sm text-gray-900 break-all">{selectedPrediction.url}</div>
-              </div>
-              
-              <div>
-                <div className="text-sm font-medium text-gray-700">Privacy Score</div>
-                <div className="flex items-center space-x-2">
-                  <LinkPredictionIndicator prediction={selectedPrediction} size="large" />
-                  <span className="text-lg font-semibold">{selectedPrediction.predictedScore}</span>
+                <div className="text-sm text-gray-900 break-all">
+                  {selectedPrediction.url}
                 </div>
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-700">Recommendations</div>
+                <div className="text-sm font-medium text-gray-700">
+                  Privacy Score
+                </div>
+                <div className="flex items-center space-x-2">
+                  <LinkPredictionIndicator
+                    prediction={selectedPrediction}
+                    size="large"
+                  />
+                  <span className="text-lg font-semibold">
+                    {selectedPrediction.predictedScore}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-sm font-medium text-gray-700">
+                  Recommendations
+                </div>
                 <ul className="text-sm text-gray-600 space-y-1">
                   {selectedPrediction.recommendations.map((rec, index) => (
                     <li key={index}>• {rec}</li>

@@ -33,10 +33,10 @@ export class EventPagination<T> {
 
     const offset = page * this.pageSize;
     const items = await loader(offset, this.pageSize);
-    
+
     // Cache the page
     this.pageCache.set(page, items);
-    
+
     // Limit cache size
     if (this.pageCache.size > this.maxPages) {
       const oldestPage = Math.min(...this.pageCache.keys());
@@ -58,15 +58,15 @@ export class EventPagination<T> {
   ): Promise<PaginatedData<T>> {
     this.currentPage = 0;
     this.pageCache.clear();
-    
+
     const items = await this.loadPage(0, loader);
-    
+
     return {
       items,
       currentPage: 0,
       totalPages: Math.ceil(this.totalItems / this.pageSize),
       hasMore: items.length === this.pageSize,
-      totalItems: this.totalItems
+      totalItems: this.totalItems,
     };
   }
 

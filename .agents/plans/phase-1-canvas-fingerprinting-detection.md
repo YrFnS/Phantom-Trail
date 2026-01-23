@@ -184,7 +184,8 @@ export class InPageDetector {
       suspiciousPatterns.some(pattern => op.includes(pattern))
     );
 
-    const detected = matchedOperations.length >= this.CANVAS_FINGERPRINT_THRESHOLD;
+    const detected =
+      matchedOperations.length >= this.CANVAS_FINGERPRINT_THRESHOLD;
 
     return {
       detected,
@@ -228,7 +229,7 @@ export default defineUnlistedScript(() => {
 
   function interceptCanvas() {
     const originalGetContext = HTMLCanvasElement.prototype.getContext;
-    
+
     HTMLCanvasElement.prototype.getContext = function (...args) {
       canvasOperations.push(`getContext(${args[0]})`);
 
@@ -286,7 +287,10 @@ export default defineUnlistedScript(() => {
   try {
     interceptCanvas();
   } catch (error) {
-    console.error('[Phantom Trail] Failed to initialize canvas detector:', error);
+    console.error(
+      '[Phantom Trail] Failed to initialize canvas detector:',
+      error
+    );
   }
 });
 ```
@@ -357,7 +361,8 @@ export default defineContentScript({
           };
 
           // Send to background
-          const response = await ContentMessaging.sendTrackingEvent(trackingEvent);
+          const response =
+            await ContentMessaging.sendTrackingEvent(trackingEvent);
 
           if (response.success) {
             console.log('[Phantom Trail] Canvas fingerprinting reported');
@@ -375,7 +380,7 @@ export default defineContentScript({
         keepInDom: true,
       });
 
-      ctx.addEventListener(script, 'phantom-trail-detection', (event) => {
+      ctx.addEventListener(script, 'phantom-trail-detection', event => {
         processDetection(event as CustomEvent);
       });
 
@@ -424,7 +429,10 @@ manifest: {
 **Add after existing chrome.webRequest listener:**
 
 ```typescript
-import type { ContentMessage, BackgroundResponse } from '../lib/content-messaging';
+import type {
+  ContentMessage,
+  BackgroundResponse,
+} from '../lib/content-messaging';
 
 // Add message listener
 chrome.runtime.onMessage.addListener(
@@ -524,6 +532,7 @@ pnpm build
 **Test Site:** https://browserleaks.com/canvas
 
 **Steps:**
+
 1. Load extension in Chrome
 2. Visit https://browserleaks.com/canvas
 3. Open extension popup
@@ -535,6 +544,7 @@ pnpm build
    - Details show API calls (getContext, toDataURL, etc.)
 
 **Expected Console Logs:**
+
 ```
 [Phantom Trail] Canvas detector loaded
 [Phantom Trail] Content script loaded
@@ -546,6 +556,7 @@ Canvas fingerprinting detected: canvas-fingerprint on browserleaks.com
 ### Level 4: AI Analysis Verification
 
 **Steps:**
+
 1. Wait 3-5 seconds after detection
 2. Check Live Feed for AI narrative
 3. Verify narrative mentions:
@@ -557,6 +568,7 @@ Canvas fingerprinting detected: canvas-fingerprint on browserleaks.com
 ### Level 5: Performance Check
 
 **Steps:**
+
 1. Open Chrome Task Manager (Shift+Esc)
 2. Find "Extension: Phantom Trail"
 3. Monitor CPU usage while browsing
@@ -603,21 +615,25 @@ Canvas fingerprinting detected: canvas-fingerprint on browserleaks.com
 ## TROUBLESHOOTING
 
 **Issue: "Failed to inject detector" error**
+
 - Check web_accessible_resources in manifest.json
 - Verify content-main-world.js exists in build output
 - Check CSP restrictions on test site
 
 **Issue: No detection events appearing**
+
 - Check browser console for "[Phantom Trail]" logs
 - Verify canvas operations threshold (need 3+ operations)
 - Check throttling (wait 3 seconds between detections)
 
 **Issue: High CPU usage**
+
 - Verify throttling is working (3-second delay)
 - Check for infinite loops in interception code
 - Profile with Chrome DevTools Performance tab
 
 **Issue: AI analysis not appearing**
+
 - Verify API key is set in settings
 - Check background script console for AI errors
 - Verify event.riskLevel is "high" or "critical"
@@ -627,6 +643,7 @@ Canvas fingerprinting detected: canvas-fingerprint on browserleaks.com
 ## NEXT STEPS
 
 After Phase 1 completion:
+
 - **Phase 2:** Storage Access Detection (localStorage/cookies)
 - **Phase 3:** Mouse Tracking Detection
 - **Phase 4:** Form Monitoring

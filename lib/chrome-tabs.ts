@@ -7,7 +7,10 @@ export class ChromeTabs {
    */
   static async getActiveTab(): Promise<chrome.tabs.Tab | null> {
     try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
       return tabs[0] || null;
     } catch (error) {
       console.error('[Chrome Tabs] Failed to get active tab:', error);
@@ -31,7 +34,7 @@ export class ChromeTabs {
    * Send message to tab
    */
   static async sendMessage<T = unknown>(
-    tabId: number, 
+    tabId: number,
     message: unknown
   ): Promise<T | null> {
     try {
@@ -45,7 +48,9 @@ export class ChromeTabs {
   /**
    * Query tabs
    */
-  static async queryTabs(queryInfo: chrome.tabs.QueryInfo): Promise<chrome.tabs.Tab[]> {
+  static async queryTabs(
+    queryInfo: chrome.tabs.QueryInfo
+  ): Promise<chrome.tabs.Tab[]> {
     try {
       return await chrome.tabs.query(queryInfo);
     } catch (error) {
@@ -57,7 +62,9 @@ export class ChromeTabs {
   /**
    * Create new tab
    */
-  static async createTab(createProperties: chrome.tabs.CreateProperties): Promise<chrome.tabs.Tab | null> {
+  static async createTab(
+    createProperties: chrome.tabs.CreateProperties
+  ): Promise<chrome.tabs.Tab | null> {
     try {
       return await chrome.tabs.create(createProperties);
     } catch (error) {

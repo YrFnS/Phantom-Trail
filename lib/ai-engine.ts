@@ -1,5 +1,11 @@
 import type { AIAnalysis, TrackingEvent } from './types';
-import { DataSanitizer, RateLimiter, AICache, AIClient, type APIError } from './ai';
+import {
+  DataSanitizer,
+  RateLimiter,
+  AICache,
+  AIClient,
+  type APIError,
+} from './ai';
 import { ErrorRecovery, type ErrorContext } from './error-recovery';
 import { CircuitBreaker } from './circuit-breaker';
 import { OfflineMode } from './offline-mode';
@@ -12,7 +18,7 @@ export class AIEngine {
   private static circuitBreaker = new CircuitBreaker({
     failureThreshold: 3,
     recoveryTimeout: 30000, // 30 seconds
-    halfOpenMaxCalls: 2
+    halfOpenMaxCalls: 2,
   });
 
   private static offlineMode = OfflineMode.getInstance();
@@ -20,12 +26,14 @@ export class AIEngine {
   /**
    * Analyze tracking events with AI and proper error handling
    */
-  static async analyzeEvents(events: TrackingEvent[]): Promise<AIAnalysis | null> {
+  static async analyzeEvents(
+    events: TrackingEvent[]
+  ): Promise<AIAnalysis | null> {
     const context: ErrorContext = {
       operation: 'analyzeEvents',
       timestamp: Date.now(),
       systemState: { eventsCount: events.length },
-      retryCount: 0
+      retryCount: 0,
     };
 
     try {
@@ -38,8 +46,11 @@ export class AIEngine {
       // Check rate limiting with detailed status
       const rateLimitStatus = await RateLimiter.getStatus();
       if (!rateLimitStatus.canMakeRequest) {
-        const waitTime = rateLimitStatus.retryAfter || (rateLimitStatus.resetTime - Date.now());
-        console.warn(`AI request rate limited. Wait ${Math.ceil(waitTime / 1000)}s`);
+        const waitTime =
+          rateLimitStatus.retryAfter || rateLimitStatus.resetTime - Date.now();
+        console.warn(
+          `AI request rate limited. Wait ${Math.ceil(waitTime / 1000)}s`
+        );
         return await this.offlineMode.handleAPIFailure(events);
       }
 
@@ -74,7 +85,10 @@ export class AIEngine {
       }
 
       // Handle error with recovery system
-      const recoveryResult = await ErrorRecovery.handleAPIError(apiError, context);
+      const recoveryResult = await ErrorRecovery.handleAPIError(
+        apiError,
+        context
+      );
 
       if (recoveryResult.success) {
         // Retry the operation if recovery was successful
@@ -100,26 +114,34 @@ export class AIEngine {
   /**
    * Generate event analysis (compatibility method)
    */
-  static async generateEventAnalysis(event: TrackingEvent): Promise<AIAnalysis | null> {
+  static async generateEventAnalysis(
+    event: TrackingEvent
+  ): Promise<AIAnalysis | null> {
     return this.analyzeEvent(event);
   }
 
   /**
    * Generate narrative from events (compatibility method)
    */
-  static async generateNarrative(events: TrackingEvent[]): Promise<AIAnalysis | null> {
+  static async generateNarrative(
+    events: TrackingEvent[]
+  ): Promise<AIAnalysis | null> {
     return this.analyzeEvents(events);
   }
 
   /**
    * Chat query handler with rate limit awareness
    */
-  static async chatQuery(_query: string, events?: TrackingEvent[]): Promise<string> {
+  static async chatQuery(
+    _query: string,
+    events?: TrackingEvent[]
+  ): Promise<string> {
     try {
       // Check rate limiting first
       const rateLimitStatus = await RateLimiter.getStatus();
       if (!rateLimitStatus.canMakeRequest) {
-        const waitTime = rateLimitStatus.retryAfter || (rateLimitStatus.resetTime - Date.now());
+        const waitTime =
+          rateLimitStatus.retryAfter || rateLimitStatus.resetTime - Date.now();
         const waitSeconds = Math.ceil(waitTime / 1000);
         return `I'm currently rate limited. Please wait ${waitSeconds} seconds before asking again.`;
       }
@@ -155,7 +177,7 @@ export class AIEngine {
       const hasKey = !!settings.openRouterApiKey;
       console.log('[AIEngine] isAvailable check:', {
         hasKey,
-        keyLength: settings.openRouterApiKey?.length || 0
+        keyLength: settings.openRouterApiKey?.length || 0,
       });
       return hasKey;
     } catch (error) {
@@ -174,7 +196,9 @@ export class AIEngine {
   /**
    * Wait for rate limit to reset (for UI components)
    */
-  static async waitForRateLimit(onProgress?: (timeRemaining: number) => void): Promise<void> {
+  static async waitForRateLimit(
+    onProgress?: (timeRemaining: number) => void
+  ): Promise<void> {
     return RateLimiter.waitForReset(onProgress);
   }
 
