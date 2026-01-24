@@ -4,6 +4,17 @@
 
 Every time you browse the web, dozens of companies silently track your clicks, read your behavior, and sell your data—but you never see it happening. Phantom Trail changes that by acting as your personal privacy coach, not only showing what's tracking you but guiding you through your privacy improvement journey with AI-powered insights and personalized recommendations.
 
+## ✨ Feature Highlights
+
+- 🎯 **6 Main Views**: Live Feed, Network Map, Stats Dashboard, AI Chat, Privacy Coach, Community Insights
+- 🔍 **62+ Trackers Detected**: Comprehensive coverage across 8 categories (fingerprinting, session recording, advertising, analytics, social media, and more)
+- 🛡️ **11 Detection Methods**: Canvas, WebRTC, font, audio, WebGL fingerprinting, storage access, mouse tracking, form monitoring, device APIs, and more
+- 📊 **Privacy Scoring**: Real-time A-F grades with risk-weighted algorithm and trend analysis
+- 🤖 **AI-Powered**: Natural language chat, personalized coaching, and smart recommendations
+- ⚙️ **8 Settings Tabs**: Complete customization for theme, notifications, export, trusted sites, shortcuts, P2P, and more
+- 🌐 **Community Features**: Anonymous peer-to-peer privacy insights and comparisons
+- 🔒 **Privacy-First**: GDPR/CCPA compliant with 30-day retention, data sanitization, and local-first processing
+
 ## 🎯 Core Features
 
 ### 🤖 AI-Powered Privacy Education
@@ -15,61 +26,85 @@ Every time you browse the web, dozens of companies silently track your clicks, r
 
 ### 🛡️ Comprehensive Protection Analysis
 
-- **Privacy Tool Detection**: Automatically detects installed privacy tools (uBlock Origin, Privacy Badger, etc.)
+- **Privacy Tool Detection**: Automatically detects installed privacy tools (uBlock Origin, Privacy Badger, Ghostery, etc.)
 - **Effectiveness Analysis**: Shows how well your current setup protects you with percentage scores
 - **Protection Gaps**: Identifies missed trackers and suggests improvements
-- **Tool Recommendations**: One-click install buttons for missing privacy tools
+- **Tool Recommendations**: Smart suggestions for missing privacy tools based on your browsing patterns
 
 ### 📊 Advanced Privacy Intelligence
 
 - **Risk Assessment**: AI scores each tracking event and alerts to suspicious activity
 - **Pattern Detection**: Identifies cross-site tracking patterns and behavioral profiling attempts
-- **Privacy Score**: Real-time privacy scoring with detailed breakdowns and improvement suggestions
-- **Trend Analysis**: Track your privacy improvements over time with visual charts
+- **Privacy Score**: Real-time privacy scoring (A-F grades) with detailed breakdowns and improvement suggestions
+- **Trend Analysis**: Track your privacy improvements over time with 7-day visual charts
+- **Privacy Comparison**: Compare current site privacy with similar websites and industry benchmarks
 
 ### 🌐 Visual Data Flow Mapping
 
 - **Network Graph**: See exactly where your data flows—from sites through ad networks to data brokers
 - **Real-time Visualization**: Watch tracking happen live with animated network connections
 - **Risk-based Coloring**: High-risk trackers highlighted in red, safe connections in green
-- **Interactive Exploration**: Click nodes to see detailed tracker information
+- **Interactive Exploration**: Click nodes to see detailed tracker information and relationships
 
 ### 🎯 Privacy Journey Tracking
 
 - **Personal Dashboard**: Track your privacy journey with score history and milestones
 - **Smart Goals**: AI creates personalized privacy improvement goals based on your browsing patterns
-- **Achievement System**: Unlock achievements as you improve your privacy setup
+- **Community Insights**: Anonymous peer-to-peer comparison with other privacy-conscious users
 - **Weekly Reports**: Get AI-generated summaries of your privacy progress and recommendations
 
-### 🔍 Advanced Tracking Detection
+### 🔍 Advanced Tracking Detection (62+ Trackers)
 
-- **In-Page Tracking**: Detects canvas fingerprinting, mouse tracking, form monitoring, and device API access
-- **Cross-Site Correlation**: Identifies when the same tracker follows you across multiple sites
-- **Behavioral Analysis**: Recognizes tracking patterns specific to banking, social media, and shopping sites
-- **Real-time Alerts**: Instant notifications for high-risk tracking events
+- **Network-Level Detection**: Monitors 62+ tracker domains across 8 categories:
+  - Fingerprinting (FingerprintJS, SEON, MaxMind, ThreatMetrix, iovation)
+  - Session Recording (FullStory, LogRocket, Smartlook, Lucky Orange, Mouseflow, Inspectlet)
+  - Social Media (LinkedIn, Pinterest, Snapchat, Reddit, Twitter, Instagram)
+  - Advertising (Criteo, Taboola, Outbrain, Quantcast, AppNexus, and more)
+  - Analytics (Amplitude, Heap, Pendo, Kissmetrics, Google Analytics, Mixpanel)
+  - Audience Measurement (comScore, Nielsen, ScorecardResearch)
+  - CDN Analytics (Cloudflare, Fastly, Akamai)
+  - Additional (Optimizely, VWO, Crazy Egg, Branch, AppsFlyer)
+
+- **In-Page Tracking Detection** (11 Methods):
+  - Canvas fingerprinting
+  - WebRTC IP leak detection (CRITICAL)
+  - Font fingerprinting
+  - Audio fingerprinting
+  - WebGL fingerprinting
+  - Storage access monitoring (localStorage, sessionStorage, IndexedDB)
+  - Mouse tracking and behavioral analysis
+  - Form monitoring (including password fields)
+  - Device API access (Battery, Sensors)
+  - Cross-site tracking correlation
+  - Real-time alerts for high-risk events
 
 ### 🎛️ Advanced Privacy Management
 
-- **Real-Time Notifications**: Proactive browser alerts for critical tracking events
-- **Privacy Score Trends**: Historical visualization showing privacy improvements over time
+- **Real-Time Notifications**: Proactive browser alerts for critical tracking events with customizable thresholds
+- **Privacy Score Trends**: 7-day historical visualization showing privacy improvements over time
 - **Website Privacy Comparison**: Compare privacy levels across different sites and categories
-- **Trusted Sites Management**: User-controlled whitelist for domains you trust
+- **Trusted Sites Management**: User-controlled whitelist with quick-trust button for domains you trust
 - **Enhanced AI Context**: Smarter AI analysis with improved contextual understanding
-- **Keyboard Shortcuts**: Quick access to privacy functions (Ctrl+Shift+P, Ctrl+Shift+A, Ctrl+Shift+E)
+- **Keyboard Shortcuts**: Quick access to privacy functions:
+  - `Ctrl+Shift+P` (Mac: `Cmd+Shift+P`) - Toggle popup
+  - `Ctrl+Shift+A` (Mac: `Cmd+Shift+A`) - Quick privacy analysis
+  - `Ctrl+Shift+E` (Mac: `Cmd+Shift+E`) - Export data
 
 ### 🎨 User Experience & Interface
 
-- **Dark/Light Theme Toggle**: Seamless theme switching with system preference detection
-- **Export Scheduling**: Automated privacy data exports with customizable schedules
-- **Privacy Score Badges**: Visual indicators showing site privacy levels in browser
-- **Cross-Device Sync**: Synchronize privacy data and settings across devices
+- **Dark/Light Theme Toggle**: Seamless theme switching with system preference detection and persistence
+- **Export Scheduling**: Automated privacy data exports with customizable schedules (CSV, JSON formats)
+- **Privacy Score Badges**: Visual indicators showing site privacy levels in browser toolbar
+- **Cross-Device Sync**: Synchronize privacy data and settings across devices (experimental)
 - **Privacy Impact Predictions**: AI-powered forecasting of privacy risks and improvements
+- **Rate Limiting**: Smart API rate limiting with visual indicators to prevent quota exhaustion
 
 ### 🌐 Community & Sharing Features
 
-- **Social Privacy Sharing**: Anonymous community insights and privacy comparisons
-- **Performance Optimization**: Advanced caching and efficient resource management
-- **Enhanced Error Recovery**: Robust error handling with automatic recovery mechanisms
+- **P2P Privacy Network**: Anonymous peer-to-peer privacy insights and community comparisons
+- **Performance Optimization**: Advanced caching, lazy loading, and efficient resource management
+- **Enhanced Error Recovery**: Robust error handling with automatic recovery mechanisms and circuit breakers
+- **GDPR/CCPA Compliance**: 30-day automatic data retention with full privacy policy documentation
 
 ## 🚀 Quick Start
 
@@ -334,11 +369,15 @@ Unlike traditional privacy tools that just block or detect, Phantom Trail:
 
 ## 🔒 Privacy & Security
 
-- **Local-first**: All data processing happens locally
-- **Optional AI**: Extension works without API key
-- **Minimal permissions**: Only necessary Chrome APIs
-- **No remote code**: Manifest V3 compliant
-- **User-controlled**: OpenRouter API key stored locally
+- **Local-first**: All data processing happens locally on your device
+- **Optional AI**: Extension works fully without API key (basic tracking detection)
+- **Data Sanitization**: URLs sanitized before AI processing (query params and hashes removed)
+- **30-Day Retention**: Automatic data cleanup after 30 days (GDPR/CCPA compliant)
+- **Minimal permissions**: Only necessary Chrome APIs requested
+- **No remote code**: Manifest V3 compliant (no eval, no remote scripts)
+- **User-controlled**: OpenRouter API key stored locally in chrome.storage
+- **Privacy Policy**: Full transparency about data collection and usage
+- **Right to Deletion**: Clear all data anytime from settings
 
 ## 🤝 Contributing
 
