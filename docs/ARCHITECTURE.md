@@ -98,16 +98,19 @@ phantom-trail/
 ### 1. Separation of Concerns
 
 **Entry Points** (`entrypoints/`)
+
 - Chrome extension-specific code only
 - No business logic
 - Delegates to `lib/` modules
 
 **Components** (`components/`)
+
 - React UI components
 - Presentation logic only
 - Uses custom hooks for state/data
 
 **Business Logic** (`lib/`)
+
 - Core functionality
 - Framework-agnostic
 - Testable in isolation
@@ -126,6 +129,7 @@ const tab = await getCurrentTab();
 ```
 
 **Benefits:**
+
 - Testability (can mock wrappers)
 - Consistency across codebase
 - Easier to migrate if Chrome APIs change
@@ -135,6 +139,7 @@ const tab = await getCurrentTab();
 Each module has ONE clear purpose:
 
 **Analyzers** (`lib/analyzers/`)
+
 - `PatternAnalyzer`: Tracking pattern analysis
 - `RiskAnalyzer`: Privacy risk assessment
 - `TrackerAnalyzer`: Individual tracker behavior
@@ -142,11 +147,13 @@ Each module has ONE clear purpose:
 - `TimelineAnalyzer`: Temporal tracking patterns
 
 **Comparison Services** (`lib/comparisons/`)
+
 - `CategoryComparisonService`: Category-based comparisons
 - `UserComparisonService`: User browsing pattern comparisons
 - `SiteComparisonService`: Similar site comparisons
 
 **Storage Wrappers** (`lib/storage/`)
+
 - Each wrapper handles ONE storage concern
 - Extends `BaseStorage` for consistency
 - Type-safe interfaces
@@ -159,19 +166,23 @@ Extract complex state logic into reusable hooks:
 // useAppData.ts - Data fetching
 export function useAppData() {
   const [events, setEvents] = useState<TrackingEvent[]>([]);
-  const [currentSiteScore, setCurrentSiteScore] = useState<PrivacyScore | null>(null);
+  const [currentSiteScore, setCurrentSiteScore] = useState<PrivacyScore | null>(
+    null
+  );
   // ... data fetching logic
   return { events, currentSiteScore, overallScore, currentDomain };
 }
 
 // Component usage
 function App() {
-  const { events, currentSiteScore, overallScore, currentDomain } = useAppData();
+  const { events, currentSiteScore, overallScore, currentDomain } =
+    useAppData();
   // ... render logic
 }
 ```
 
 **Benefits:**
+
 - Reusable across components
 - Easier to test
 - Cleaner component code
@@ -248,7 +259,7 @@ export class BaseStorage {
 // Specialized storage classes
 export class EventsStorage extends BaseStorage {
   private static readonly KEY = 'phantom_trail_events';
-  
+
   static async getRecentEvents(limit: number): Promise<TrackingEvent[]> {
     const events = await this.get<TrackingEvent[]>(this.KEY);
     return events?.slice(-limit) || [];
@@ -285,6 +296,7 @@ export { TimelineAnalyzer } from './timeline-analyzer';
 ```
 
 **Benefits:**
+
 - Clean imports: `import { PatternAnalyzer } from './analyzers'`
 - Easy to refactor internal structure
 - Clear public API
@@ -352,6 +364,7 @@ if (trimmedKey && trimmedKey.length < 10) {
 ### 2. Build Verification
 
 Every commit must pass:
+
 ```bash
 npx tsc --noEmit  # Type check
 pnpm lint         # Code quality
@@ -368,21 +381,25 @@ pnpm build        # Build verification
 ## Refactoring History
 
 ### Phase 1: Quick Wins (January 24, 2026)
+
 - Fixed `any` type usage in performance-monitor.ts
 - Removed empty DebugPanel folder
 
 ### Phase 2: Chrome API Isolation (January 24, 2026)
+
 - Created P2PStorage and PerformanceStorage wrappers
 - Refactored 7 component files to use storage wrappers
 - Isolated all Chrome API calls in `lib/` utilities
 
 ### Phase 3: Single Responsibility (January 24, 2026)
+
 - Split `ai-analysis-prompts.ts` (466 → 283 lines)
 - Split `privacy-comparison.ts` (531 → 144 lines)
 - Extracted `useAppData` hook from App.tsx (426 → 370 lines)
 - Extracted `useSettings` hook from Settings.tsx (409 → 334 lines)
 
 **Results:**
+
 - Architecture Score: 75% → 98%
 - SRP Score: 96% → 100%
 - 0 files over 500 lines
@@ -414,6 +431,7 @@ pnpm build        # Build verification
 ---
 
 **For more information:**
+
 - [User Guide](./USER_GUIDE.md)
 - [API Key Setup](./API_KEY_SETUP.md)
 - [Troubleshooting](./EXTENSION_TROUBLESHOOTING.md)

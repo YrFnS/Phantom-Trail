@@ -16,7 +16,11 @@ export class PredictionEngine {
    */
   private static async getHistoricalData(
     domain: string
-  ): Promise<{ score: number; events: TrackingEvent[]; lastVisit: number } | null> {
+  ): Promise<{
+    score: number;
+    events: TrackingEvent[];
+    lastVisit: number;
+  } | null> {
     try {
       const allEvents = await EventsStorage.getTrackingEvents();
 
@@ -25,10 +29,11 @@ export class PredictionEngine {
       const domainEvents = allEvents.filter(event => {
         const eventDomain = new URL(event.url).hostname;
         return (
-          eventDomain === domain ||
-          eventDomain.endsWith(`.${domain}`) ||
-          domain.endsWith(`.${eventDomain}`)
-        ) && event.timestamp > sevenDaysAgo;
+          (eventDomain === domain ||
+            eventDomain.endsWith(`.${domain}`) ||
+            domain.endsWith(`.${eventDomain}`)) &&
+          event.timestamp > sevenDaysAgo
+        );
       });
 
       if (domainEvents.length === 0) {
@@ -45,7 +50,10 @@ export class PredictionEngine {
         lastVisit: Math.max(...domainEvents.map(e => e.timestamp)),
       };
     } catch (error) {
-      console.error('[Privacy Predictor] Failed to get historical data:', error);
+      console.error(
+        '[Privacy Predictor] Failed to get historical data:',
+        error
+      );
       return null;
     }
   }
@@ -210,7 +218,9 @@ export class PredictionEngine {
 
     if (score < 40) {
       recommendations.push('High tracking detected on previous visits');
-      recommendations.push('Consider using privacy tools or avoiding this site');
+      recommendations.push(
+        'Consider using privacy tools or avoiding this site'
+      );
     } else if (score < 70) {
       recommendations.push(`${trackerCount} trackers detected previously`);
       recommendations.push('Moderate privacy risks observed');
@@ -252,7 +262,8 @@ export class PredictionEngine {
     prediction: PrivacyPrediction,
     context: PageContext
   ): string {
-    const { predictedScore, predictedGrade, isHistorical, historicalData } = prediction;
+    const { predictedScore, predictedGrade, isHistorical, historicalData } =
+      prediction;
 
     // Show different messages for historical vs predicted data
     if (isHistorical && historicalData) {

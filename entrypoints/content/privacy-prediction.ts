@@ -78,11 +78,13 @@ function showPrivacyTooltip(
 
   const tooltip = document.createElement('div');
   tooltip.className = 'phantom-trail-tooltip';
-  
+
   // Different icon and title for historical vs predicted data
   const icon = prediction.isHistorical ? '✓' : '🛡️';
-  const title = prediction.isHistorical ? 'Historical Data' : 'Privacy Prediction';
-  
+  const title = prediction.isHistorical
+    ? 'Historical Data'
+    : 'Privacy Prediction';
+
   tooltip.innerHTML = `
     <div class="phantom-trail-tooltip-content">
       <div class="phantom-trail-tooltip-header">

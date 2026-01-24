@@ -240,8 +240,6 @@ export class AIAnalysisPrompts {
     return coachingKeywords.some(keyword => lowerQuery.includes(keyword));
   }
 
-
-
   // Helper methods
   private static matchesPatterns(query: string, patterns: string[]): boolean {
     return patterns.some(pattern => query.includes(pattern));
@@ -267,8 +265,6 @@ export class AIAnalysisPrompts {
     return 7 * 24 * 60 * 60 * 1000; // Default to 1 week
   }
 
-
-
   private static async getRecentEvents(
     timeframe: number
   ): Promise<TrackingEvent[]> {
@@ -278,6 +274,4 @@ export class AIAnalysisPrompts {
       (event: TrackingEvent) => event.timestamp >= cutoff
     );
   }
-
-
 }
