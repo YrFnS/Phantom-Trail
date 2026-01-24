@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { P2PStorage } from '../../lib/storage/p2p-storage';
 import { P2PSettings } from '../../lib/types';
 
 interface P2PSettingsComponentProps {
@@ -23,10 +24,8 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
 
   const loadSettings = async () => {
     try {
-      const result = await chrome.storage.local.get(['p2pSettings']);
-      if (result.p2pSettings) {
-        setSettings(result.p2pSettings);
-      }
+      const p2pSettings = await P2PStorage.getSettings();
+      setSettings(p2pSettings);
     } catch (error) {
       console.error('Failed to load P2P settings:', error);
     }
@@ -41,7 +40,7 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
       const newSettings = { ...settings, [key]: value };
       setSettings(newSettings);
 
-      await chrome.storage.local.set({ p2pSettings: newSettings });
+      await P2PStorage.saveSettings(newSettings);
       onSettingsChange?.(newSettings);
     } catch (error) {
       console.error('Failed to update P2P settings:', error);

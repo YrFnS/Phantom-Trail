@@ -101,21 +101,6 @@ export function Settings({ onClose }: SettingsProps) {
           : 'none',
       });
 
-      // Also verify directly with chrome.storage.local
-      try {
-        const directCheck = await chrome.storage.local.get(
-          'phantom_trail_settings'
-        );
-        console.log('[Settings] Direct chrome.storage check:', {
-          hasSettings: !!directCheck.phantom_trail_settings,
-          hasApiKey: !!directCheck.phantom_trail_settings?.openRouterApiKey,
-          apiKeyLength:
-            directCheck.phantom_trail_settings?.openRouterApiKey?.length || 0,
-        });
-      } catch (e) {
-        console.warn('[Settings] Direct storage check failed:', e);
-      }
-
       // Check if key was actually saved when we expected it to be
       if (trimmedKey && !verified.openRouterApiKey) {
         console.error(

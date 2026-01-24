@@ -4,6 +4,7 @@ import {
   BadgeSettings,
   BadgeStyle,
 } from '../../lib/badge-manager';
+import { ChromeTabs } from '../../lib/chrome-tabs';
 
 export function BadgeSettingsComponent() {
   const [settings, setSettings] = useState<BadgeSettings>({
@@ -36,17 +37,14 @@ export function BadgeSettingsComponent() {
       await BadgeManager.saveBadgeSettings(settings);
 
       // Update current tab badge immediately to show changes
-      const tabs = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      if (tabs[0]?.id) {
+      const activeTab = await ChromeTabs.getActiveTab();
+      if (activeTab?.id) {
         if (settings.enabled) {
           // Force badge update by clearing and setting again
-          await BadgeManager.clearBadge(tabs[0].id);
+          await BadgeManager.clearBadge(activeTab.id);
           // Badge will be updated by the background script on next tracking event
         } else {
-          await BadgeManager.clearBadge(tabs[0].id);
+          await BadgeManager.clearBadge(activeTab.id);
         }
       }
     } catch (error) {

@@ -5,6 +5,7 @@ import {
   CommunityComparison,
   P2PSettings,
 } from '../../lib/types';
+import { P2PStorage } from '../../lib/storage/p2p-storage';
 
 interface CommunityInsightsProps {
   userScore: number;
@@ -111,15 +112,7 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
 
   const loadP2PSettings = useCallback(async () => {
     try {
-      const result = await chrome.storage.local.get(['p2pSettings']);
-      const settings: P2PSettings = result.p2pSettings || {
-        joinPrivacyNetwork: false,
-        shareAnonymousData: false,
-        shareRegionalData: false,
-        maxConnections: 10,
-        autoReconnect: true,
-      };
-
+      const settings = await P2PStorage.getSettings();
       setIsEnabled(settings.joinPrivacyNetwork);
     } catch (error) {
       console.error('Failed to load P2P settings:', error);
@@ -152,7 +145,7 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
         autoReconnect: true,
       };
 
-      await chrome.storage.local.set({ p2pSettings: settings });
+      await P2PStorage.saveSettings(settings);
       await network.initializeNetwork();
 
       setIsEnabled(true);
@@ -175,7 +168,7 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
         autoReconnect: true,
       };
 
-      await chrome.storage.local.set({ p2pSettings: settings });
+      await P2PStorage.saveSettings(settings);
       await network.disconnectFromNetwork();
 
       setIsEnabled(false);

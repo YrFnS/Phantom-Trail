@@ -4,6 +4,7 @@ import {
   type PerformanceReport,
   type PerformanceMode,
 } from '../../lib/performance-monitor';
+import { PerformanceStorage } from '../../lib/storage/performance-storage';
 import { Card, CardHeader, CardContent } from '../ui';
 
 interface PerformanceSettingsProps {
@@ -25,10 +26,8 @@ export function PerformanceSettings({
         setReport(performanceReport);
 
         // Load saved performance mode
-        const savedMode = await chrome.storage.local.get(['performanceMode']);
-        if (savedMode.performanceMode) {
-          setMode(savedMode.performanceMode);
-        }
+        const savedMode = await PerformanceStorage.getMode();
+        setMode(savedMode);
       } catch (error) {
         console.error('Failed to load performance data:', error);
       } finally {
@@ -45,7 +44,7 @@ export function PerformanceSettings({
 
   const handleModeChange = async (newMode: PerformanceMode) => {
     setMode(newMode);
-    await chrome.storage.local.set({ performanceMode: newMode });
+    await PerformanceStorage.saveMode(newMode);
 
     // Apply optimizations based on mode
     const monitor = PerformanceMonitor.getInstance();

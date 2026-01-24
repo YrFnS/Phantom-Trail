@@ -5,6 +5,7 @@ import {
   type ServiceAlternative,
 } from '../../lib/privacy-recommendations';
 import type { TrackingEvent } from '../../lib/types';
+import { ChromeTabs } from '../../lib/chrome-tabs';
 
 interface PrivacyActionsProps {
   events: TrackingEvent[];
@@ -68,7 +69,7 @@ export const PrivacyActions: React.FC<PrivacyActionsProps> = ({
 
   const handleActionClick = (actionId: string, url?: string) => {
     if (url) {
-      chrome.tabs.create({ url });
+      ChromeTabs.createTab({ url });
     }
     setExpandedAction(expandedAction === actionId ? null : actionId);
   };
@@ -230,7 +231,7 @@ export const PrivacyActions: React.FC<PrivacyActionsProps> = ({
                     {alt.alternative}
                   </span>
                   <button
-                    onClick={() => chrome.tabs.create({ url: alt.url })}
+                    onClick={() => ChromeTabs.createTab({ url: alt.url })}
                     className="text-xs px-2 py-1 bg-[var(--accent-secondary)] text-white rounded hover:opacity-80 transition-opacity"
                   >
                     Try It

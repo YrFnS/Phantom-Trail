@@ -4,6 +4,7 @@ import {
   type PrivacyToolsStatus as ToolsStatus,
 } from '../../lib/privacy-tool-detector';
 import type { TrackingEvent } from '../../lib/types';
+import { ChromeTabs } from '../../lib/chrome-tabs';
 
 interface PrivacyToolsStatusProps {
   events: TrackingEvent[];
@@ -137,7 +138,7 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
                 <button
                   onClick={() =>
                     tool.installUrl &&
-                    chrome.tabs.create({ url: tool.installUrl })
+                    ChromeTabs.createTab({ url: tool.installUrl })
                   }
                   className="text-xs px-2 py-1 bg-[var(--accent-primary)] text-white rounded hover:opacity-80 transition-opacity"
                 >
