@@ -1,16 +1,12 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
-import { EventsStorage } from '../../lib/storage/events-storage';
-import { calculatePrivacyScore } from '../../lib/privacy-score';
+import { useAppData } from '../../lib/hooks';
 import { ExportButton } from '../../components/ExportButton';
 import { RateLimitStatus } from '../../components/RateLimitStatus';
 import { Settings } from '../../components/Settings';
 import { QuickTrustButton } from '../../components/TrustedSites';
 import { ThemeToggle } from '../../components/ui';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
-import type {
-  TrackingEvent,
-  PrivacyScore as PrivacyScoreType,
-} from '../../lib/types';
+import type { PrivacyScore as PrivacyScoreType } from '../../lib/types';
 
 // Lazy load heavy components to reduce initial bundle size
 const LiveNarrative = lazy(() =>
@@ -72,61 +68,13 @@ function App() {
   const [activeView, setActiveView] = useState<
     'narrative' | 'network' | 'chat' | 'dashboard' | 'coach' | 'community'
   >('narrative');
-  const [events, setEvents] = useState<TrackingEvent[]>([]);
-  const [currentSiteScore, setCurrentSiteScore] =
-    useState<PrivacyScoreType | null>(null);
-  const [overallScore, setOverallScore] = useState<PrivacyScoreType | null>(
-    null
-  );
-  const [currentDomain, setCurrentDomain] = useState<string>('');
 
-  // Load recent events and calculate both privacy scores
+  // Use custom hook for data management
+  const { events, currentSiteScore, overallScore, currentDomain } =
+    useAppData();
+
+  // Listen for tab switch events from child components
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const recentEvents = await EventsStorage.getRecentEvents(100);
-        setEvents(recentEvents);
-
-        // Get current domain from active tab
-        let domain = '';
-        let isHttps = false;
-        try {
-          const tabs = await chrome.tabs.query({
-            active: true,
-            currentWindow: true,
-          });
-          const activeTab = tabs[0];
-          if (activeTab?.url) {
-            domain = new URL(activeTab.url).hostname;
-            isHttps = activeTab.url.startsWith('https:');
-          }
-        } catch (tabError) {
-          console.warn('Failed to get active tab:', tabError);
-          // Continue with empty domain - extension still works
-        }
-        setCurrentDomain(domain);
-
-        // Calculate privacy score for current domain events
-        const domainEvents = recentEvents.filter(
-          event => event.domain === domain || event.url.includes(domain)
-        );
-        const currentScore = calculatePrivacyScore(domainEvents, isHttps);
-        setCurrentSiteScore(currentScore);
-
-        // Calculate overall privacy score for all recent events
-        const allScore = calculatePrivacyScore(recentEvents, true); // Assume HTTPS for overall
-        setOverallScore(allScore);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-      }
-    };
-
-    loadData();
-
-    // Refresh data every 5 seconds
-    const interval = setInterval(loadData, 5000);
-
-    // Listen for tab switch events from child components
     const handleTabSwitch = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
       if (customEvent.detail === 'actions') {
@@ -135,11 +83,7 @@ function App() {
     };
 
     window.addEventListener('switchTab', handleTabSwitch);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('switchTab', handleTabSwitch);
-    };
+    return () => window.removeEventListener('switchTab', handleTabSwitch);
   }, []);
 
   if (showSettings) {
