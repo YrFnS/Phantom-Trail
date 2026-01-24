@@ -26,6 +26,17 @@ export interface PerformanceMetrics {
   timestamp: number;
 }
 
+// Browser memory API interfaces
+interface PerformanceMemory {
+  totalJSHeapSize?: number;
+  usedJSHeapSize?: number;
+  jsHeapSizeLimit?: number;
+}
+
+interface PerformanceWithMemory extends Performance {
+  memory?: PerformanceMemory;
+}
+
 export interface OptimizationSettings {
   enableVirtualScrolling: boolean;
   eventBatchSize: number;
@@ -130,11 +141,11 @@ export class PerformanceMonitor {
 
   async measureMemoryUsage(): Promise<MemoryMetrics> {
     try {
-      let memoryInfo: any = {};
+      let memoryInfo: PerformanceMemory = {};
 
       // Try to get memory info from performance API
       if (typeof window !== 'undefined' && 'performance' in window) {
-        const perf = window.performance as any;
+        const perf = window.performance as PerformanceWithMemory;
         memoryInfo = perf.memory || {};
       }
 
