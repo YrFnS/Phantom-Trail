@@ -5,7 +5,7 @@ import {
   WebsiteAnalyzer,
   TimelineAnalyzer,
 } from './analyzers';
-import { AIEngine } from './ai-engine';
+import { aiEngine } from './ai-engine';
 import { PrivacyCoach } from './ai-coaching';
 import { PrivacyInsights } from './privacy-insights';
 import type { TrackingEvent } from './types';
@@ -209,7 +209,7 @@ export class AIAnalysisPrompts {
     }
 
     // Use AI engine for natural language response
-    const response = await AIEngine.chatQuery(personalizedPrompt, recentEvents);
+    const response = await aiEngine.chatQuery(personalizedPrompt, recentEvents);
     return response;
   }
 

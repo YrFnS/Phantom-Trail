@@ -10,25 +10,57 @@ import { ErrorRecovery, type ErrorContext } from './error-recovery';
 import { CircuitBreaker } from './circuit-breaker';
 import { OfflineMode } from './offline-mode';
 import { SettingsStorage } from './storage/settings-storage';
+import { TIMEOUTS, LIMITS } from './constants';
 
 /**
- * Main AI engine orchestrating all AI functionality with enhanced error handling
+ * Dependencies that can be injected for testing
+ */
+export interface AIEngineDeps {
+  circuitBreaker?: CircuitBreaker;
+  offlineMode?: OfflineMode;
+  settingsStorage?: typeof SettingsStorage;
+  rateLimiter?: typeof RateLimiter;
+  aiClient?: typeof AIClient;
+  aiCache?: typeof AICache;
+  dataSanitizer?: typeof DataSanitizer;
+  errorRecovery?: typeof ErrorRecovery;
+}
+
+/**
+ * Main AI engine orchestrating all AI functionality with enhanced error handling.
+ * Now uses instance-based pattern with dependency injection for testability.
  */
 export class AIEngine {
-  private static circuitBreaker = new CircuitBreaker({
-    failureThreshold: 3,
-    recoveryTimeout: 30000, // 30 seconds
-    halfOpenMaxCalls: 2,
-  });
+  private circuitBreaker: CircuitBreaker;
+  private offlineMode: OfflineMode;
+  private settingsStorage: typeof SettingsStorage;
+  private rateLimiter: typeof RateLimiter;
+  private aiClient: typeof AIClient;
+  private aiCache: typeof AICache;
+  private dataSanitizer: typeof DataSanitizer;
+  private errorRecovery: typeof ErrorRecovery;
 
-  private static offlineMode = OfflineMode.getInstance();
+  constructor(deps: AIEngineDeps = {}) {
+    this.circuitBreaker =
+      deps.circuitBreaker ??
+      new CircuitBreaker({
+        failureThreshold: LIMITS.FAILURE_THRESHOLD,
+        recoveryTimeout: TIMEOUTS.RECOVERY,
+        halfOpenMaxCalls: LIMITS.HALF_OPEN_MAX_CALLS,
+      });
+    this.offlineMode = deps.offlineMode ?? OfflineMode.getInstance();
+    this.settingsStorage = deps.settingsStorage ?? SettingsStorage;
+    this.rateLimiter = deps.rateLimiter ?? RateLimiter;
+    this.aiClient = deps.aiClient ?? AIClient;
+    this.aiCache = deps.aiCache ?? AICache;
+    this.dataSanitizer = deps.dataSanitizer ?? DataSanitizer;
+    this.errorRecovery = deps.errorRecovery ?? ErrorRecovery;
+  }
 
   /**
    * Analyze tracking events with AI and proper error handling
    */
-  static async analyzeEvents(
-    events: TrackingEvent[]
-  ): Promise<AIAnalysis | null> {
+  async analyzeEvents(events: TrackingEvent[]): Promise<AIAnalysis | null> {
     const context: ErrorContext = {
       operation: 'analyzeEvents',
       timestamp: Date.now(),
@@ -44,7 +76,7 @@ export class AIEngine {
       }
 
       // Check rate limiting with detailed status
-      const rateLimitStatus = await RateLimiter.getStatus();
+      const rateLimitStatus = await this.rateLimiter.getStatus();
       if (!rateLimitStatus.canMakeRequest) {
         const waitTime =
           rateLimitStatus.retryAfter || rateLimitStatus.resetTime - Date.now();
@@ -55,21 +87,21 @@ export class AIEngine {
       }
 
       // Sanitize events before processing
-      const sanitizedEvents = DataSanitizer.sanitizeEvents(events);
+      const sanitizedEvents = this.dataSanitizer.sanitizeEvents(events);
 
       // Check cache first
-      const cached = await AICache.getCached(sanitizedEvents);
+      const cached = await this.aiCache.getCached(sanitizedEvents);
       if (cached) {
         return cached;
       }
 
       // Make AI request with circuit breaker protection
       const analysis = await this.circuitBreaker.execute(async () => {
-        return await AIClient.makeRequest(sanitizedEvents);
+        return await this.aiClient.makeRequest(sanitizedEvents);
       });
 
       // Cache the result
-      await AICache.store(sanitizedEvents, analysis);
+      await this.aiCache.store(sanitizedEvents, analysis);
 
       // Cache for offline mode
       await this.offlineMode.cacheAnalysis(sanitizedEvents, analysis);
@@ -80,12 +112,12 @@ export class AIEngine {
 
       if (apiError.isRateLimit) {
         console.warn('AI request rate limited by API');
-        await RateLimiter.recordRateLimit();
+        await this.rateLimiter.recordRateLimit();
         return await this.offlineMode.handleAPIFailure(events);
       }
 
       // Handle error with recovery system
-      const recoveryResult = await ErrorRecovery.handleAPIError(
+      const recoveryResult = await this.errorRecovery.handleAPIError(
         apiError,
         context
       );
@@ -93,7 +125,7 @@ export class AIEngine {
       if (recoveryResult.success) {
         // Retry the operation if recovery was successful
         context.retryCount++;
-        if (context.retryCount < 3) {
+        if (context.retryCount < LIMITS.MAX_RETRIES) {
           return await this.analyzeEvents(events);
         }
       }
@@ -107,14 +139,14 @@ export class AIEngine {
   /**
    * Quick analysis for single event
    */
-  static async analyzeEvent(event: TrackingEvent): Promise<AIAnalysis | null> {
+  async analyzeEvent(event: TrackingEvent): Promise<AIAnalysis | null> {
     return this.analyzeEvents([event]);
   }
 
   /**
    * Generate event analysis (compatibility method)
    */
-  static async generateEventAnalysis(
+  async generateEventAnalysis(
     event: TrackingEvent
   ): Promise<AIAnalysis | null> {
     return this.analyzeEvent(event);
@@ -123,22 +155,17 @@ export class AIEngine {
   /**
    * Generate narrative from events (compatibility method)
    */
-  static async generateNarrative(
-    events: TrackingEvent[]
-  ): Promise<AIAnalysis | null> {
+  async generateNarrative(events: TrackingEvent[]): Promise<AIAnalysis | null> {
     return this.analyzeEvents(events);
   }
 
   /**
    * Chat query handler with rate limit awareness
    */
-  static async chatQuery(
-    _query: string,
-    events?: TrackingEvent[]
-  ): Promise<string> {
+  async chatQuery(_query: string, events?: TrackingEvent[]): Promise<string> {
     try {
       // Check rate limiting first
-      const rateLimitStatus = await RateLimiter.getStatus();
+      const rateLimitStatus = await this.rateLimiter.getStatus();
       if (!rateLimitStatus.canMakeRequest) {
         const waitTime =
           rateLimitStatus.retryAfter || rateLimitStatus.resetTime - Date.now();
@@ -158,7 +185,8 @@ export class AIEngine {
       const apiError = error as APIError;
 
       if (apiError.isRateLimit) {
-        const waitTime = apiError.retryAfter || 60000; // Default 1 minute
+        const waitTime =
+          apiError.retryAfter || TIMEOUTS.RATE_LIMIT_WINDOW; // Default 1 minute
         const waitSeconds = Math.ceil(waitTime / 1000);
         return `I'm currently rate limited. Please wait ${waitSeconds} seconds before asking again.`;
       }
@@ -171,9 +199,9 @@ export class AIEngine {
   /**
    * Check if AI is available (has API key)
    */
-  static async isAvailable(): Promise<boolean> {
+  async isAvailable(): Promise<boolean> {
     try {
-      const settings = await SettingsStorage.getSettings();
+      const settings = await this.settingsStorage.getSettings();
       const hasKey = !!settings.openRouterApiKey;
       console.log('[AIEngine] isAvailable check:', {
         hasKey,
@@ -189,30 +217,52 @@ export class AIEngine {
   /**
    * Get current rate limit status for UI display
    */
-  static async getRateLimitStatus() {
-    return RateLimiter.getStatus();
+  async getRateLimitStatus() {
+    return this.rateLimiter.getStatus();
   }
 
   /**
    * Wait for rate limit to reset (for UI components)
    */
-  static async waitForRateLimit(
+  async waitForRateLimit(
     onProgress?: (timeRemaining: number) => void
   ): Promise<void> {
-    return RateLimiter.waitForReset(onProgress);
+    return this.rateLimiter.waitForReset(onProgress);
   }
 
   /**
    * Reset rate limiting (for debugging)
    */
-  static async resetRateLimit(): Promise<void> {
-    return RateLimiter.resetRateLimit();
+  async resetRateLimit(): Promise<void> {
+    return this.rateLimiter.resetRateLimit();
   }
 
   /**
    * Get debug information about rate limiting
    */
-  static async getDebugInfo() {
-    return RateLimiter.getDebugInfo();
+  async getDebugInfo() {
+    return this.rateLimiter.getDebugInfo();
   }
 }
+
+// Default singleton instance for backward compatibility
+export const aiEngine = new AIEngine();
+
+// Static method wrappers for backward compatibility
+// These can be deprecated in future versions
+export const AIEngineStatic = {
+  analyzeEvents: (events: TrackingEvent[]) => aiEngine.analyzeEvents(events),
+  analyzeEvent: (event: TrackingEvent) => aiEngine.analyzeEvent(event),
+  generateEventAnalysis: (event: TrackingEvent) =>
+    aiEngine.generateEventAnalysis(event),
+  generateNarrative: (events: TrackingEvent[]) =>
+    aiEngine.generateNarrative(events),
+  chatQuery: (query: string, events?: TrackingEvent[]) =>
+    aiEngine.chatQuery(query, events),
+  isAvailable: () => aiEngine.isAvailable(),
+  getRateLimitStatus: () => aiEngine.getRateLimitStatus(),
+  waitForRateLimit: (onProgress?: (timeRemaining: number) => void) =>
+    aiEngine.waitForRateLimit(onProgress),
+  resetRateLimit: () => aiEngine.resetRateLimit(),
+  getDebugInfo: () => aiEngine.getDebugInfo(),
+};

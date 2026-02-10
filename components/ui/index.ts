@@ -4,3 +4,4 @@ export { Button } from './Button';
 export { Badge } from './Badge';
 export { LoadingSpinner } from './LoadingSpinner';
 export { ShortcutHint } from './ShortcutHint';
+export { NavButton, NAV_ITEMS, type ViewType, type NavItem } from './NavButton';

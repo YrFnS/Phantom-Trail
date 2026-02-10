@@ -3,7 +3,7 @@
  * AI-powered personalized privacy recommendations based on user behavior
  */
 
-import { AIEngine } from './ai-engine';
+import { aiEngine } from './ai-engine';
 import type { TrackingEvent } from './types';
 
 import { BaseStorage } from './storage/base-storage';
@@ -37,10 +37,10 @@ export interface CompletedAction {
 
 export interface BehaviorPattern {
   pattern:
-    | 'high_risk_sites'
-    | 'social_heavy'
-    | 'shopping_frequent'
-    | 'banking_insecure';
+  | 'high_risk_sites'
+  | 'social_heavy'
+  | 'shopping_frequent'
+  | 'banking_insecure';
   frequency: number;
   riskLevel: 'low' | 'medium' | 'high';
   recommendation: string;
@@ -235,7 +235,7 @@ export class PrivacyCoach {
     events: TrackingEvent[]
   ): Promise<CoachingInsight[]> {
     try {
-      const response = await AIEngine.analyzeEvents(events);
+      const response = await aiEngine.analyzeEvents(events);
       if (response?.narrative) {
         return this.parseAIInsights(response.narrative);
       }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AIEngine } from '../../lib/ai-engine';
+import { aiEngine } from '../../lib/ai-engine';
 import type { RateLimitStatus as RateLimitStatusType } from '../../lib/ai';
 
 interface RateLimitStatusProps {
@@ -21,7 +21,7 @@ export function RateLimitStatus({
       if (!mounted) return;
 
       try {
-        const rateLimitStatus = await AIEngine.getRateLimitStatus();
+        const rateLimitStatus = await aiEngine.getRateLimitStatus();
         if (!mounted) return;
 
         setStatus(rateLimitStatus);
@@ -70,13 +70,12 @@ export function RateLimitStatus({
     <div className={`flex items-center gap-2 ${className}`}>
       {/* Status Indicator */}
       <div
-        className={`w-2 h-2 rounded-full ${
-          isLimited
+        className={`w-2 h-2 rounded-full ${isLimited
             ? 'bg-red-400 animate-pulse'
             : isLowRequests
               ? 'bg-yellow-400'
               : 'bg-green-400'
-        }`}
+          }`}
       />
 
       {/* Status Text */}

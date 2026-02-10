@@ -29,7 +29,6 @@
   },
   "homepage": "https://github.com/YrFnS/Phantom-Trail#readme",
   "dependencies": {
-    "@types/react-dom": "^19.2.3",
     "chart.js": "^4.4.6",
     "chartjs-adapter-date-fns": "^3.0.0",
     "cytoscape": "^3.33.1",
@@ -39,7 +38,7 @@
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.3",
     "tailwindcss": "^3.4.0",
-    "typescript": "^5.9.3",
+    "trystero": "^0.22.0",
     "vis-network": "^9.1.9",
     "wxt": "^0.20.13",
     "zustand": "^5.0.2"
@@ -49,6 +48,7 @@
     "@types/chrome": "^0.0.277",
     "@types/jest": "^30.0.0",
     "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
     "@wxt-dev/module-react": "^1.1.1",
@@ -57,6 +57,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.1.0",
     "prettier": "^3.4.2",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "typescript": "^5.9.3"
   }
 }

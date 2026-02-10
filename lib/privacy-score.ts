@@ -1,5 +1,6 @@
 import type { TrackingEvent } from './types';
 import { TrustedSitesManager } from './trusted-sites-manager';
+import { EventsStorage } from './storage/events-storage';
 
 export interface PrivacyScore {
   score: number;
@@ -308,20 +309,68 @@ export function getPrivacyTrend(
   return 'stable';
 }
 
-// Main PrivacyScoreCalculator class for compatibility
+/**
+ * Real P2P-based Privacy Score Calculator
+ * No longer uses fake data!
+ */
 export class PrivacyScoreCalculator {
-  static async calculateDomainScore(): Promise<{
+  // Cache to prevent spamming the network
+  private static scoreCache: Map<string, { score: number; timestamp: number }> =
+    new Map();
+  private static CACHE_TTL = 300000; // 5 minutes
+
+  static async calculateDomainScore(domain?: string): Promise<{
     score: number;
     grade: string;
     color: string;
   }> {
-    // Simple stub implementation
-    const score = Math.floor(Math.random() * 100);
-    const grade =
-      score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : 'D';
-    const color = score >= 80 ? 'green' : score >= 60 ? 'yellow' : 'red';
+    // If no domain provided, return standard default (e.g. for Home page)
+    if (!domain) {
+      return { score: 100, grade: 'A', color: 'green' };
+    }
 
-    return { score, grade, color };
+    // 1. Check Cache
+    const cached = this.scoreCache.get(domain);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      const { grade, color } = getGradeAndColor(cached.score);
+      return { score: cached.score, grade, color };
+    }
+
+    let communityScore: number | null = null;
+    let localScore: number = 75; // Default baseline if no data
+
+    try {
+      // 2. Ask P2P Network
+      const { P2PPrivacyNetwork } = await import('./p2p-privacy-network');
+      const network = P2PPrivacyNetwork.getInstance();
+
+      // Wait for P2P connection or fallback quickly
+      if (network.isNetworkActive() && network.getConnectedPeerCount() > 0) { // Fix: use property/method correctly
+        communityScore = await network.askReputation(domain);
+      } else {
+        // If local score is available in EventsStorage, use that
+        const events = await EventsStorage.getRecentEvents(100);
+        const domainEvents = events.filter(e => e.domain === domain);
+        if (domainEvents.length > 0) {
+          const calculated = calculatePrivacyScore(domainEvents);
+          localScore = calculated.score;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to get P2P score:', e);
+    }
+
+    // 3. Calculate Final Score
+    // If we have community score, use it (weighted 50/50 with local if available? or just use it?)
+    // For "Domain Reputation" (what others think), community score is king.
+    // If we have no community score, we use local score.
+    const finalScore = communityScore !== null ? communityScore : localScore;
+
+    // Cache the result
+    this.scoreCache.set(domain, { score: finalScore, timestamp: Date.now() });
+
+    const { grade, color } = getGradeAndColor(finalScore);
+    return { score: finalScore, grade, color };
   }
 }
 

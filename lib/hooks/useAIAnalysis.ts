@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AIEngine } from '../../lib/ai-engine';
+import { aiEngine } from '../../lib/ai-engine';
 import type { TrackingEvent, AIAnalysis } from '../../lib/types';
 import { AnalysisCache } from '../../components/LiveNarrative/LiveNarrative.cache';
 import type { EventAnalysis } from '../../components/LiveNarrative/LiveNarrative.types';
@@ -35,7 +35,7 @@ export function useAIAnalysis(events: TrackingEvent[]) {
       }
 
       // Generate new analysis
-      const aiAnalysis = await AIEngine.analyzeEvents(recentEvents);
+      const aiAnalysis = await aiEngine.analyzeEvents(recentEvents);
 
       if (aiAnalysis && recentEvents[0]) {
         // Create EventAnalysis from AIAnalysis
