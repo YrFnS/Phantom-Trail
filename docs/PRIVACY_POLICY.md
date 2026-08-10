@@ -1,188 +1,144 @@
-# Privacy Policy
+# Privacy and Data Disclosure
 
-**Last Updated**: January 17, 2026  
-**Effective Date**: January 17, 2026
+**Status:** Experimental development disclosure  
+**Last updated:** August 10, 2026
 
-## Overview
+This document describes the behavior visible in the current Phantom Trail source. It is not a certification of GDPR, CCPA, or any other legal compliance, and it is not legal advice.
 
-Phantom Trail is a privacy-focused Chrome extension that helps you understand and control web tracking. We are committed to protecting your privacy and being transparent about our data practices.
+## Project status
 
-## Data We Collect
+Phantom Trail is an experimental Chrome extension. It does not currently operate a project-owned backend for storing user browsing data, but optional features can send data to third-party services or connected peers.
 
-### Locally Stored Data (On Your Device)
+The extension has not completed an independent privacy, security, or legal review.
 
-Phantom Trail stores the following data **locally on your device only**:
+## Data stored in the browser
 
-1. **Tracking Events** (30-day retention)
-   - Website URLs (sanitized - no query parameters or hash fragments)
-   - Tracker domains detected
-   - Tracker types and risk levels
-   - Timestamps of detection
-   - In-page tracking methods detected
+The prototype can store the following in Chrome extension storage:
 
-2. **User Settings**
-   - AI feature enable/disable preference
-   - Selected AI model
-   - Trusted sites list (sites you've marked as trusted)
+### Tracking events
 
-3. **OpenRouter API Key** (Optional)
-   - If you enable AI features, your API key is stored locally
-   - Never transmitted to our servers
-   - Only sent directly to OpenRouter.ai for AI analysis
+A tracking event can include:
 
-### Data We Do NOT Collect
+- A full URL
+- A domain
+- Timestamp
+- Tracker type and risk label
+- Human-readable description
+- In-page signal method
+- API-call or frequency details
 
-- ❌ We do NOT collect any personal information
-- ❌ We do NOT track your browsing history
-- ❌ We do NOT sell your data to third parties
-- ❌ We do NOT send data to our servers (we don't have servers)
-- ❌ We do NOT use analytics or tracking on the extension itself
+Depending on the event source, a URL may include paths, query parameters, or fragments. The current network monitor stores the requested resource URL, while in-page events can store the current page URL.
 
-## How We Use Your Data
+The event store is capped at 1,000 records. Cleanup code removes events older than 30 days when its scheduled alarm runs.
 
-### Local Processing
+### Settings and feature data
 
-All tracking detection happens **locally in your browser**. No data leaves your device except:
+The extension may also store:
 
-### AI Features (Optional)
+- Extension and notification settings
+- OpenRouter API key
+- Trusted-site configuration
+- Badge and theme preferences
+- Privacy goals and coaching data
+- Trend snapshots and reports
+- Export schedules and history
+- Sync settings and device identifiers
+- P2P settings
+- Cached AI responses and recovery state
 
-If you enable AI features and provide an OpenRouter API key:
+Chrome extension storage is managed by the browser. Phantom Trail does not claim that every stored value is independently encrypted by the extension.
 
-- **What is sent**: Sanitized tracking events (URLs without query params/hash)
-- **Where it goes**: Directly to OpenRouter.ai (third-party AI provider)
-- **Why**: To generate plain-English explanations of tracking activity
-- **Your control**: You can disable AI features at any time
+## Data that can leave the browser
 
-### Data Sanitization
+### OpenRouter AI
 
-Before sending any data to OpenRouter for AI analysis, we:
+When a user supplies an OpenRouter API key and an AI code path runs:
 
-- Remove query parameters from URLs (session tokens, user IDs)
-- Remove hash fragments (tracking IDs)
-- Limit API call details to 5 entries
-- Keep only essential tracking information
+- The API key is sent to OpenRouter for authentication.
+- Event objects are sanitized before AI processing.
+- The current prompt is primarily a summary of tracker domains, counts, types, and risk levels.
+- OpenRouter processes the request under its own terms and privacy practices.
 
-**Example**:
+Phantom Trail does not proxy these requests through a project-owned server.
 
-```
-Original URL: https://bank.com/account?session=secret123&user_id=456
-Sent to AI:   https://bank.com/account
-```
+### Peer-to-peer network
 
-## Data Retention
+When the experimental community network is enabled, Phantom Trail can share aggregate fields with connected peers, including:
 
-### Automatic Deletion
+- Privacy score and grade
+- Tracker count
+- Risk distribution
+- Website categories
+- Rounded timestamp
+- Optional broad region
 
-- **Tracking events**: Automatically deleted after **30 days**
-- **User settings**: Retained until you uninstall the extension
-- **Trusted sites**: Retained until you remove them or uninstall
+Peer data is self-reported and unauthenticated. Connected peers must be treated as untrusted. The Trystero transport may rely on third-party signaling infrastructure even though Phantom Trail does not operate a central application server.
 
-### Manual Deletion
+### Chrome sync
 
-You can delete your data at any time:
+When cross-device sync is enabled, selected settings or feature data can be written to `chrome.storage.sync` and handled by the user’s browser account provider. The current sync implementation is experimental and has known data-shape and key inconsistencies.
 
-1. Open Phantom Trail settings
-2. Click "Clear All Data"
-3. All tracking events and settings will be permanently deleted
+### Exports and downloads
 
-## Third-Party Services
+CSV and JSON exports can contain raw stored tracking events, including URLs. The current PDF option produces a plain-text report. Scheduled downloads use Chrome’s downloads API.
 
-### OpenRouter.ai (Optional)
+Users are responsible for protecting exported files.
 
-If you enable AI features:
+## Requested permissions
 
-- **Service**: AI-powered tracking analysis
-- **Data shared**: Sanitized tracking events (see "Data Sanitization" above)
-- **Privacy policy**: https://openrouter.ai/privacy
-- **Your control**: Disable AI features to stop data sharing
+The current manifest requests:
 
-### No Other Third Parties
+- `webRequest` to observe requests
+- `storage` to persist events and settings
+- `activeTab` and `tabs` to read active-tab information and communicate with pages
+- `alarms` for cleanup and scheduled tasks
+- `notifications` for browser alerts
+- `downloads` for exports
+- `management` to inspect installed extension names and enabled state
+- `<all_urls>` host access to run on websites and inspect requests
 
-Phantom Trail does not integrate with any other third-party services.
+These permissions are broad and are scheduled for minimization before any production release.
 
-## Your Rights (GDPR/CCPA)
+## Retention and deletion
 
-### Right to Access
+- Tracking-event cleanup targets data older than 30 days.
+- The event store keeps at most 1,000 records.
+- Other settings and feature data can remain until cleared or the extension is removed.
+- Uninstalling the extension is the most complete current way to remove its extension-local storage.
+- Export data before deletion if you need a copy.
 
-All your data is stored locally on your device. You can view it anytime in the extension.
+Scheduled cleanup depends on the extension alarm and service-worker lifecycle; it should not be treated as an absolute retention guarantee until runtime tests verify it.
 
-### Right to Deletion
+## What the project does not currently claim
 
-You can delete all data at any time through the extension settings.
+Phantom Trail does not claim that:
 
-### Right to Data Portability
+- A detected signal proves personal data collection or sale.
+- A privacy grade is independently validated.
+- Community data is representative or trustworthy.
+- Installed privacy tools’ blocking effectiveness is measured.
+- The extension is GDPR or CCPA compliant.
+- The extension prevents tracking or secures the browser.
 
-You can export your tracking data as CSV or JSON from the extension.
+## Security limitations
 
-### Right to Opt-Out
+- Broad permissions increase the impact of defects.
+- Stored URLs can contain sensitive information.
+- API keys are stored in extension-local storage.
+- P2P messages are unauthenticated.
+- Optional third-party services have their own security and privacy risks.
+- The project has not completed an independent security audit.
 
-- AI features are **opt-in** (disabled by default)
-- You can disable AI features at any time
-- You can add sites to your trusted list to stop tracking detection
+Do not use the prototype for sensitive browsing without understanding these limitations.
 
-## Data Security
+## Project-operated data collection
 
-### Local Storage
+The current repository does not include a project-owned analytics backend or a mechanism for selling user data. This statement does not cover OpenRouter, browser sync providers, Trystero infrastructure, websites visited by the user, or connected peers.
 
-- All data stored using Chrome's secure storage APIs
-- Data encrypted by Chrome's built-in encryption
-- Only accessible by Phantom Trail extension
+## Contact and source review
 
-### API Key Security
+- Repository: https://github.com/YrFnS/Phantom-Trail
+- Issues: https://github.com/YrFnS/Phantom-Trail/issues
+- Capability status: [PROJECT_STATUS.md](PROJECT_STATUS.md)
 
-- Your OpenRouter API key is stored locally only
-- Never logged or transmitted to anyone except OpenRouter
-- Stored using Chrome's secure storage
-
-### No Remote Servers
-
-- We don't operate any servers
-- No data is sent to us
-- No risk of data breaches on our end
-
-## Children's Privacy
-
-Phantom Trail does not knowingly collect data from children under 13. The extension is designed for general audiences and does not target children.
-
-## Changes to This Policy
-
-We may update this privacy policy from time to time. Changes will be reflected in the "Last Updated" date above. Continued use of the extension after changes constitutes acceptance of the updated policy.
-
-## Contact Us
-
-If you have questions about this privacy policy or Phantom Trail's data practices:
-
-- **GitHub Issues**: https://github.com/yourusername/phantom-trail/issues
-- **Email**: privacy@phantom-trail.example.com
-
-## Compliance
-
-### GDPR (EU General Data Protection Regulation)
-
-Phantom Trail complies with GDPR principles:
-
-- **Lawfulness**: Processing based on legitimate interest (privacy protection)
-- **Data minimization**: Only essential data collected
-- **Purpose limitation**: Data used only for tracking detection
-- **Storage limitation**: 30-day automatic deletion
-- **Integrity and confidentiality**: Secure local storage
-
-### CCPA (California Consumer Privacy Act)
-
-Phantom Trail complies with CCPA requirements:
-
-- **Right to know**: All data visible in extension
-- **Right to delete**: Manual deletion available
-- **Right to opt-out**: AI features are opt-in
-- **No sale of data**: We never sell user data
-
-## Open Source
-
-Phantom Trail is open source. You can review our code to verify our privacy practices:
-
-- **Repository**: https://github.com/yourusername/phantom-trail
-- **License**: MIT License
-
----
-
-**Summary**: Phantom Trail is privacy-first. All data stays on your device. AI features are optional and use sanitized data. You control your data completely.
+The source code is the authoritative reference when this disclosure and runtime behavior differ. Please report discrepancies as issues.
