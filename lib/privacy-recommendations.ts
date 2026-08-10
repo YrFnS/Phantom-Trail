@@ -1,6 +1,9 @@
 /**
- * Privacy Recommendations Engine
- * Provides actionable privacy advice based on detected tracking
+ * Prototype suggestion rules.
+ *
+ * Suggestions are generated from heuristic event labels and static domain
+ * strings. They are not endorsements, measured impact estimates, or proof that
+ * a particular action is necessary or effective for the user.
  */
 
 import type { TrackingEvent, TrackerType } from './types';
@@ -31,7 +34,7 @@ export interface ServiceAlternative {
 export interface InstalledTool {
   name: string;
   detected: boolean;
-  effectiveness: number; // 0-100
+  effectiveness: number;
   recommendation?: string;
 }
 
@@ -40,36 +43,41 @@ export class PrivacyRecommendations {
     {
       original: 'google.com',
       alternative: 'DuckDuckGo',
-      description: 'Privacy-focused search engine',
-      privacyBenefit: 'No search tracking or personalized ads',
+      description: 'Alternative search provider listed by the prototype',
+      privacyBenefit:
+        'Review the provider policy and independent assessments before switching',
       url: 'https://duckduckgo.com',
     },
     {
       original: 'gmail.com',
-      alternative: 'ProtonMail',
-      description: 'End-to-end encrypted email',
-      privacyBenefit: 'Emails are encrypted and not scanned for ads',
-      url: 'https://protonmail.com',
+      alternative: 'Proton Mail',
+      description: 'Alternative email provider listed by the prototype',
+      privacyBenefit:
+        'Review encryption scope, metadata handling, account recovery, and provider policy',
+      url: 'https://proton.me/mail',
     },
     {
       original: 'youtube.com',
       alternative: 'Invidious',
-      description: 'Privacy-friendly YouTube frontend',
-      privacyBenefit: 'Watch YouTube without Google tracking',
+      description: 'Third-party YouTube frontend listed by the prototype',
+      privacyBenefit:
+        'Availability, instance operators, logging, and privacy behavior vary by instance',
       url: 'https://invidious.io',
     },
     {
       original: 'facebook.com',
       alternative: 'Signal',
-      description: 'Private messaging app',
-      privacyBenefit: 'End-to-end encrypted messaging without data collection',
+      description: 'Messaging service listed as a possible alternative use case',
+      privacyBenefit:
+        'It is not a direct replacement for every social-network feature; review its policy and threat model',
       url: 'https://signal.org',
     },
     {
       original: 'twitter.com',
       alternative: 'Mastodon',
-      description: 'Decentralized social network',
-      privacyBenefit: 'No algorithmic timeline or advertising tracking',
+      description: 'Federated social platform listed by the prototype',
+      privacyBenefit:
+        'Privacy and moderation practices depend on the selected server operator',
       url: 'https://joinmastodon.org',
     },
   ];
@@ -80,304 +88,222 @@ export class PrivacyRecommendations {
   > = {
     advertising: [
       {
-        id: 'install-ublock',
-        title: 'Install uBlock Origin',
-        description: 'Block advertising trackers automatically',
+        id: 'review-content-blocker',
+        title: 'Review Content-Blocking Options',
+        description:
+          'Compare browser controls and reputable content blockers for your browser and needs',
         actionType: 'extension',
         difficulty: 'easy',
         impact: 'high',
-        url: 'https://ublockorigin.com',
+        url: 'https://github.com/gorhill/uBlock',
         steps: [
-          'Visit Chrome Web Store',
-          'Search for uBlock Origin',
-          'Click Add to Chrome',
+          'Confirm the official publisher and supported browser',
+          'Review requested permissions and current project documentation',
+          'Test behavior on sites you use and keep the extension updated',
         ],
       },
       {
-        id: 'disable-ad-personalization',
-        title: 'Disable Ad Personalization',
-        description: 'Turn off personalized ads in Google settings',
+        id: 'review-ad-settings',
+        title: 'Review Advertising Preferences',
+        description:
+          'Review account and browser advertising controls; these controls may not stop all tracking',
         actionType: 'browser_setting',
         difficulty: 'easy',
         impact: 'medium',
         url: 'https://adssettings.google.com',
-        steps: [
-          'Visit Google Ad Settings',
-          'Turn off Ad Personalization',
-          'Delete advertising ID',
-        ],
       },
     ],
     analytics: [
       {
-        id: 'enable-dnt',
-        title: 'Enable Do Not Track',
-        description: 'Tell websites not to track your browsing',
+        id: 'review-browser-controls',
+        title: 'Review Browser Privacy Controls',
+        description:
+          'Check cookie, site-data, tracking-protection, and permission settings available in the browser',
         actionType: 'browser_setting',
         difficulty: 'easy',
-        impact: 'low',
-        steps: [
-          'Open Chrome Settings',
-          'Go to Privacy and Security',
-          'Enable "Send Do Not Track request"',
-        ],
+        impact: 'medium',
       },
       {
-        id: 'use-private-browsing',
-        title: 'Use Incognito Mode',
-        description: 'Browse without saving history or cookies',
+        id: 'understand-private-browsing',
+        title: 'Review Private-Browsing Limits',
+        description:
+          'Private windows reduce local history persistence but do not make browsing anonymous or prevent websites and networks from observing activity',
         actionType: 'behavior',
         difficulty: 'easy',
-        impact: 'medium',
-        steps: [
-          'Press Ctrl+Shift+N',
-          'Browse in incognito window',
-          'Close when done',
-        ],
+        impact: 'low',
       },
     ],
     social: [
       {
-        id: 'review-social-privacy',
-        title: 'Review Social Media Privacy Settings',
-        description: 'Limit data sharing with third-party websites',
+        id: 'review-social-settings',
+        title: 'Review Platform Privacy Settings',
+        description:
+          'Check data-sharing, advertising, visibility, connected-app, and off-platform activity controls',
         actionType: 'browser_setting',
         difficulty: 'medium',
-        impact: 'high',
-        steps: [
-          'Visit Facebook Privacy Settings',
-          'Disable "Apps, Websites and Games"',
-          'Limit ad data usage',
-        ],
+        impact: 'medium',
       },
       {
-        id: 'use-social-alternatives',
-        title: 'Consider Privacy-Focused Alternatives',
-        description: 'Switch to platforms that respect your privacy',
+        id: 'review-social-alternatives',
+        title: 'Compare Alternative Services',
+        description:
+          'Compare features, operators, policies, metadata handling, and migration costs before changing services',
         actionType: 'alternative_service',
         difficulty: 'medium',
-        impact: 'high',
+        impact: 'medium',
       },
     ],
     fingerprinting: [
       {
-        id: 'enable-fingerprint-protection',
-        title: 'Enable Fingerprinting Protection',
-        description: 'Use browser features to prevent fingerprinting',
+        id: 'review-fingerprinting-controls',
+        title: 'Review Fingerprinting Protections',
+        description:
+          'Compare built-in browser protections and their compatibility trade-offs; the recorded signal is not proof that a fingerprint was retained',
         actionType: 'browser_setting',
         difficulty: 'medium',
-        impact: 'high',
-        steps: [
-          'Install Firefox',
-          'Enable Enhanced Tracking Protection',
-          'Set to Strict mode',
-        ],
-      },
-      {
-        id: 'use-privacy-browser',
-        title: 'Switch to Privacy-Focused Browser',
-        description: 'Use Brave or Firefox for better fingerprint protection',
-        actionType: 'alternative_service',
-        difficulty: 'medium',
-        impact: 'high',
-        url: 'https://brave.com',
+        impact: 'medium',
       },
     ],
     cryptomining: [
       {
-        id: 'install-mining-blocker',
-        title: 'Install Anti-Mining Extension',
-        description: 'Block cryptocurrency mining scripts',
-        actionType: 'extension',
-        difficulty: 'easy',
-        impact: 'high',
-        url: 'https://github.com/keraf/NoCoin',
-        steps: [
-          'Install NoCoin extension',
-          'Enable mining protection',
-          'Monitor CPU usage',
-        ],
+        id: 'review-resource-usage',
+        title: 'Review Unexpected Resource Usage',
+        description:
+          'Check browser task-manager and system resource usage before concluding that mining occurred',
+        actionType: 'behavior',
+        difficulty: 'medium',
+        impact: 'medium',
       },
     ],
     unknown: [
       {
-        id: 'general-privacy-checkup',
-        title: 'Perform Privacy Checkup',
-        description: 'Review and improve your overall privacy settings',
-        actionType: 'browser_setting',
+        id: 'review-recorded-evidence',
+        title: 'Review the Recorded Evidence',
+        description:
+          'Inspect the event URL, detector, and context before changing settings or installing software',
+        actionType: 'behavior',
         difficulty: 'easy',
-        impact: 'medium',
-        url: 'https://myaccount.google.com/privacycheckup',
-        steps: [
-          'Visit Google Privacy Checkup',
-          'Review each section',
-          'Apply recommended settings',
-        ],
+        impact: 'low',
       },
     ],
   };
 
-  /**
-   * Get personalized privacy actions based on detected tracking events
-   */
   static async getPersonalizedActions(
     events: TrackingEvent[]
   ): Promise<PrivacyAction[]> {
-    if (events.length === 0) {
-      return [];
-    }
+    if (events.length === 0) return [];
 
     const actions: PrivacyAction[] = [];
-    const trackerTypes = new Set<TrackerType>();
-    const highRiskDomains = new Set<string>();
+    const trackerTypes = new Set(events.map(event => event.trackerType));
 
-    // Analyze events to determine recommendations
-    for (const event of events) {
-      trackerTypes.add(event.trackerType);
-
-      if (event.riskLevel === 'high' || event.riskLevel === 'critical') {
-        highRiskDomains.add(event.domain);
-      }
-    }
-
-    // Add actions based on detected tracker types
     for (const trackerType of trackerTypes) {
-      const typeActions = this.TRACKER_ACTIONS[trackerType] || [];
-      actions.push(...typeActions);
+      actions.push(...(this.TRACKER_ACTIONS[trackerType] || []));
     }
 
-    // Prioritize high-impact, easy actions
-    const prioritizedActions = actions
+    const impactOrder = { high: 3, medium: 2, low: 1 };
+    const difficultyOrder = { easy: 3, medium: 2, advanced: 1 };
+
+    return actions
       .filter(
-        (action, index, self) =>
-          self.findIndex(a => a.id === action.id) === index // Remove duplicates
+        (action, index, all) =>
+          all.findIndex(candidate => candidate.id === action.id) === index
       )
-      .sort((a, b) => {
-        // Sort by impact (high first), then difficulty (easy first)
-        const impactOrder = { high: 3, medium: 2, low: 1 };
-        const difficultyOrder = { easy: 3, medium: 2, advanced: 1 };
-
-        const impactDiff = impactOrder[b.impact] - impactOrder[a.impact];
-        if (impactDiff !== 0) return impactDiff;
-
-        return difficultyOrder[b.difficulty] - difficultyOrder[a.difficulty];
+      .sort((first, second) => {
+        const impactDifference =
+          impactOrder[second.impact] - impactOrder[first.impact];
+        return impactDifference !== 0
+          ? impactDifference
+          : difficultyOrder[second.difficulty] -
+              difficultyOrder[first.difficulty];
       })
-      .slice(0, 5); // Limit to top 5 recommendations
-
-    return prioritizedActions;
+      .slice(0, 5);
   }
 
-  /**
-   * Get privacy-friendly alternatives for tracked services
-   */
   static async suggestAlternatives(
     domain: string
   ): Promise<ServiceAlternative[]> {
     return this.SERVICE_ALTERNATIVES.filter(
-      alt => domain.includes(alt.original) || alt.original.includes(domain)
+      alternative =>
+        domain.includes(alternative.original) ||
+        alternative.original.includes(domain)
     );
   }
 
   /**
-   * Detect installed privacy tools (basic detection)
+   * Discover only supported extension names and enabled state.
+   * Effectiveness remains zero because blocked requests are not measured.
    */
   static async detectUserTools(): Promise<InstalledTool[]> {
     const tools: InstalledTool[] = [
-      {
-        name: 'uBlock Origin',
-        detected: false,
-        effectiveness: 0,
-        recommendation:
-          'Install uBlock Origin for comprehensive ad and tracker blocking',
-      },
-      {
-        name: 'Privacy Badger',
-        detected: false,
-        effectiveness: 0,
-        recommendation: 'Add Privacy Badger for intelligent tracker blocking',
-      },
+      { name: 'uBlock Origin', detected: false, effectiveness: 0 },
+      { name: 'Privacy Badger', detected: false, effectiveness: 0 },
       {
         name: 'DuckDuckGo Privacy Essentials',
         detected: false,
         effectiveness: 0,
-        recommendation:
-          'Install DuckDuckGo extension for search and tracker protection',
       },
     ];
 
-    // Basic detection via extension APIs (limited in content script context)
     try {
-      // This is a simplified detection - in practice, we'd need more sophisticated methods
       const extensions = (await chrome.management?.getAll?.()) || [];
-
       for (const tool of tools) {
-        const found = extensions.find(ext =>
-          ext.name.toLowerCase().includes(tool.name.toLowerCase())
+        const found = extensions.find(extension =>
+          extension.name.toLowerCase().includes(tool.name.toLowerCase())
         );
-
-        if (found && found.enabled) {
-          tool.detected = true;
-          tool.effectiveness = 85; // Estimated effectiveness
-          tool.recommendation = `${tool.name} is active and protecting your privacy`;
-        }
+        tool.detected = Boolean(found?.enabled);
+        tool.recommendation = found?.enabled
+          ? `${tool.name} appears enabled; Phantom Trail does not measure its blocking results`
+          : `${tool.name} was not found as an enabled extension; review official sources before installing anything`;
       }
     } catch {
-      // Extension detection not available in this context
-      console.log('Extension detection not available');
+      for (const tool of tools) {
+        tool.recommendation =
+          'Installed-extension discovery was unavailable in this context';
+      }
     }
 
     return tools;
   }
 
-  /**
-   * Get contextual recommendations based on current website
-   */
   static async getContextualRecommendations(
     domain: string,
     events: TrackingEvent[]
   ): Promise<PrivacyAction[]> {
     const actions: PrivacyAction[] = [];
 
-    // Banking/financial sites
     if (this.isBankingDomain(domain)) {
       actions.push({
-        id: 'banking-privacy',
-        title: 'Use Dedicated Browser for Banking',
+        id: 'banking-review',
+        title: 'Review Sensitive-Site Practices',
         description:
-          'Use a separate browser or incognito mode for financial sites',
+          'Confirm the domain, use current browser and operating-system updates, and review account-security guidance from the institution',
         actionType: 'behavior',
         difficulty: 'easy',
         impact: 'high',
-        steps: [
-          'Open incognito/private window',
-          'Navigate to banking site',
-          'Close window when done',
-        ],
       });
     }
 
-    // Social media sites
     if (this.isSocialMediaDomain(domain)) {
       actions.push({
-        id: 'social-privacy-settings',
-        title: 'Review Privacy Settings',
-        description: 'Limit data sharing and ad targeting on this platform',
+        id: 'social-settings-review',
+        title: 'Review Platform Controls',
+        description:
+          'The hostname matched a social-platform rule; review account controls without assuming the recorded events describe all platform behavior',
         actionType: 'browser_setting',
         difficulty: 'medium',
-        impact: 'high',
+        impact: 'medium',
       });
     }
 
-    // High tracker count
     if (events.length > 10) {
       actions.push({
-        id: 'avoid-site',
-        title: 'Consider Alternative Website',
+        id: 'review-signal-volume',
+        title: 'Review the Signal Volume',
         description:
-          'This site has excessive tracking - look for privacy-friendly alternatives',
+          'More than ten heuristic events were recorded. Check duplicates, attribution, and false positives before deciding whether to use an alternative service.',
         actionType: 'behavior',
         difficulty: 'easy',
-        impact: 'medium',
+        impact: 'low',
       });
     }
 
@@ -385,18 +311,14 @@ export class PrivacyRecommendations {
   }
 
   private static isBankingDomain(domain: string): boolean {
-    const bankingKeywords = ['bank', 'credit', 'financial', 'paypal', 'stripe'];
-    return bankingKeywords.some(keyword => domain.includes(keyword));
+    return ['bank', 'credit', 'financial', 'paypal', 'stripe'].some(token =>
+      domain.includes(token)
+    );
   }
 
   private static isSocialMediaDomain(domain: string): boolean {
-    const socialKeywords = [
-      'facebook',
-      'twitter',
-      'instagram',
-      'linkedin',
-      'tiktok',
-    ];
-    return socialKeywords.some(keyword => domain.includes(keyword));
+    return ['facebook', 'twitter', 'instagram', 'linkedin', 'tiktok'].some(
+      token => domain.includes(token)
+    );
   }
 }
