@@ -108,8 +108,9 @@ export function calculatePrivacyScore(
 export async function calculatePrivacyScoreWithTrust(
   events: TrackingEvent[],
   isHttps: boolean = true,
-  _domain?: string
+  legacyDomain?: string
 ): Promise<PrivacyScore> {
+  void legacyDomain;
   return calculatePrivacyScore(events, isHttps);
 }
 
@@ -188,7 +189,7 @@ function generateReviewNotes(
 
   if (breakdown.excessiveTrackingPenalty) {
     notes.push(
-      `More than ten detector events were counted. Check duplicate requests and repeated instrumentation before interpreting the volume.`
+      'More than ten detector events were counted. Check duplicate requests and repeated instrumentation before interpreting the volume.'
     );
   }
 
