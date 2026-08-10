@@ -11,13 +11,15 @@ export function RateLimitStatus({
   className = '',
   showDetails = false,
 }: RateLimitStatusProps) {
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [status, setStatus] = useState<RateLimitStatusType | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
   useEffect(() => {
     let mounted = true;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
-    const updateStatus = async () => {
+    const updateRateLimitStatus = async () => {
       if (!mounted) return;
 
       try {
@@ -40,18 +42,30 @@ export function RateLimitStatus({
       }
     };
 
-    updateStatus();
-    const interval = setInterval(updateStatus, 1000);
+    const initialize = async () => {
+      try {
+        const available = await aiEngine.isAvailable();
+        if (!mounted) return;
+
+        setIsAvailable(available);
+        if (!available) return;
+
+        await updateRateLimitStatus();
+        interval = setInterval(updateRateLimitStatus, 1000);
+      } catch (error) {
+        if (!mounted) return;
+        setIsAvailable(false);
+        console.error('Failed to check AI availability:', error);
+      }
+    };
+
+    void initialize();
 
     return () => {
       mounted = false;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
   }, []);
-
-  if (!status) {
-    return null;
-  }
 
   const formatTime = (ms: number): string => {
     const seconds = Math.ceil(ms / 1000);
@@ -63,44 +77,69 @@ export function RateLimitStatus({
     return `${minutes}m ${remainingSeconds}s`;
   };
 
+  if (isAvailable === null) {
+    return null;
+  }
+
+  if (!isAvailable) {
+    return (
+      <div className={`flex items-center gap-2 ${className}`}>
+        <div className="w-2 h-2 rounded-full bg-[var(--text-muted)]" />
+        <div className="text-xs text-[var(--text-secondary)]">
+          AI not configured
+        </div>
+        {showDetails && (
+          <div className="text-[10px] text-[var(--text-muted)]">
+            OpenRouter key required
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!status) {
+    return null;
+  }
+
   const isLimited = !status.canMakeRequest;
   const isLowRequests = status.requestsRemaining <= 3;
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {/* Status Indicator */}
       <div
-        className={`w-2 h-2 rounded-full ${isLimited
+        className={`w-2 h-2 rounded-full ${
+          isLimited
             ? 'bg-red-400 animate-pulse'
             : isLowRequests
               ? 'bg-yellow-400'
               : 'bg-green-400'
-          }`}
+        }`}
       />
 
-      {/* Status Text */}
       <div className="text-xs">
         {isLimited ? (
           <span className="text-red-400">
-            AI Limited {timeRemaining > 0 && `(${formatTime(timeRemaining)})`}
+            AI rate limited{' '}
+            {timeRemaining > 0 && `(${formatTime(timeRemaining)})`}
           </span>
         ) : (
           <span
             className={isLowRequests ? 'text-yellow-400' : 'text-green-400'}
           >
-            AI Ready ({status.requestsRemaining} left)
+            AI API available ({status.requestsRemaining} left)
           </span>
         )}
       </div>
 
-      {/* Detailed Status */}
       {showDetails && (
         <div className="text-[10px] text-gray-500">
           {isLimited
             ? timeRemaining > 0
               ? `Retry in ${formatTime(timeRemaining)}`
-              : 'Checking availability...'
-            : `Resets ${formatTime(Math.max(0, status.resetTime - Date.now()))}`}
+              : 'Checking API availability...'
+            : `Rate window resets ${formatTime(
+                Math.max(0, status.resetTime - Date.now())
+              )}`}
         </div>
       )}
     </div>
