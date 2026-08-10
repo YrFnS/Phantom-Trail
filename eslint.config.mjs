@@ -7,7 +7,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 export default [
   js.configs.recommended,
   {
-    files: ['**/*.{ts,tsx,js,jsx}'],
+    files: ['**/*.{ts,tsx,mts,mtsx,js,jsx}'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -18,7 +18,6 @@ export default [
         },
       },
       globals: {
-        // Browser globals
         window: 'readonly',
         document: 'readonly',
         console: 'readonly',
@@ -33,11 +32,7 @@ export default [
         Event: 'readonly',
         CustomEvent: 'readonly',
         Blob: 'readonly',
-        
-        // Chrome extension globals
         chrome: 'readonly',
-        
-        // WebRTC globals for P2P functionality
         RTCPeerConnection: 'readonly',
         RTCDataChannel: 'readonly',
         RTCConfiguration: 'readonly',
@@ -45,8 +40,6 @@ export default [
         RTCDataChannelInit: 'readonly',
         RTCIceConnectionState: 'readonly',
         RTCDataChannelState: 'readonly',
-        
-        // DOM types (for TypeScript)
         HTMLElement: 'readonly',
         HTMLDivElement: 'readonly',
         HTMLSpanElement: 'readonly',
@@ -68,8 +61,6 @@ export default [
         HTMLTableHeaderCellElement: 'readonly',
         HTMLParagraphElement: 'readonly',
         HTMLHeadingElement: 'readonly',
-        
-        // Node.js globals (for build scripts)
         process: 'readonly',
         Buffer: 'readonly',
         __dirname: 'readonly',
@@ -78,7 +69,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': typescript,
-      react: react,
+      react,
       'react-hooks': reactHooks,
     },
     rules: {
@@ -86,9 +77,9 @@ export default [
       ...react.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': 'error',
-      '@typescript-eslint/no-explicit-any': 'warn', // Changed to warn for type definitions
-      '@typescript-eslint/triple-slash-reference': 'off', // Allow for WXT generated files
-      '@typescript-eslint/ban-ts-comment': 'warn', // Allow for WXT generated files
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/triple-slash-reference': 'off',
+      '@typescript-eslint/ban-ts-comment': 'warn',
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
       'react/no-unescaped-entities': 'warn',
@@ -101,24 +92,22 @@ export default [
     },
   },
   {
-    // Separate config for advanced feature files (temporary relaxed rules)
     files: [
-      'lib/sync-manager.ts', 
-      'lib/conflict-resolver.ts', 
-      'lib/storage-manager.ts', 
+      'lib/sync-manager.ts',
+      'lib/conflict-resolver.ts',
+      'lib/storage-manager.ts',
       'lib/privacy-predictor.ts',
       'lib/cache-optimizer.ts',
       'lib/performance-monitor.ts',
-      'lib/performance/**/*.ts'
+      'lib/performance/**/*.ts',
     ],
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off', // Temporarily allow any types in advanced feature files
-      '@typescript-eslint/no-unused-vars': 'off', // Allow unused vars in experimental files
-      'no-undef': 'off', // Allow undefined globals (browser APIs)
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-undef': 'off',
     },
   },
   {
-    // Separate config for type definition files
     files: ['**/*.d.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
@@ -130,11 +119,16 @@ export default [
     },
   },
   {
-    // Separate config for test files
-    files: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
+    files: [
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.test.mts',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      '**/*.spec.mts',
+    ],
     languageOptions: {
       globals: {
-        // Jest globals
         describe: 'readonly',
         test: 'readonly',
         it: 'readonly',
@@ -148,12 +142,11 @@ export default [
       },
     },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off', // Allow any in tests
-      '@typescript-eslint/no-unused-vars': 'off', // Allow unused vars in tests
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
   {
-    // Separate config for WXT generated files
     files: ['.wxt/**/*'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
