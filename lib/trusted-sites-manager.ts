@@ -1,9 +1,15 @@
 import { BaseStorage } from './storage/base-storage';
 
+/**
+ * Legacy values retained for storage compatibility.
+ *
+ * In version 0.1.0 these values are personal annotation metadata only. They do
+ * not change detector behavior or scores.
+ */
 export enum TrustLevel {
-  FULL_TRUST = 'full', // No monitoring, always green score
-  PARTIAL_TRUST = 'partial', // Reduced monitoring, adjusted scoring
-  CONDITIONAL = 'conditional', // Trust with specific conditions
+  FULL_TRUST = 'full',
+  PARTIAL_TRUST = 'partial',
+  CONDITIONAL = 'conditional',
 }
 
 export interface TrustCondition {
@@ -39,6 +45,12 @@ export interface TrustedSitesStorage {
   suggestions: TrustSuggestion[];
 }
 
+/**
+ * Stores user-created site annotations.
+ *
+ * The historical class name is preserved to avoid breaking imports. A personal
+ * annotation is not evidence that a site is safe, private, or trustworthy.
+ */
 export class TrustedSitesManager {
   private static readonly STORAGE_KEY = 'trustedSites';
 
@@ -47,10 +59,14 @@ export class TrustedSitesManager {
     trustLevel: TrustLevel = TrustLevel.PARTIAL_TRUST,
     reason?: string
   ): Promise<void> {
-    const data = await this.getTrustedSitesData();
+    const normalizedDomain = domain.trim().toLowerCase();
+    if (!normalizedDomain) {
+      throw new Error('A domain is required');
+    }
 
-    data.sites[domain] = {
-      domain,
+    const data = await this.getTrustedSitesData();
+    data.sites[normalizedDomain] = {
+      domain: normalizedDomain,
       trustLevel,
       dateAdded: Date.now(),
       reason,
@@ -86,137 +102,60 @@ export class TrustedSitesManager {
     level: TrustLevel
   ): Promise<void> {
     const data = await this.getTrustedSitesData();
-    if (data.sites[domain]) {
-      data.sites[domain].trustLevel = level;
-      data.sites[domain].lastVerified = Date.now();
-      await BaseStorage.set(this.STORAGE_KEY, data);
-    }
+    const site = data.sites[domain];
+    if (!site) return;
+
+    site.trustLevel = level;
+    site.lastVerified = Date.now();
+    await BaseStorage.set(this.STORAGE_KEY, data);
   }
 
+  /**
+   * Personal annotations must not change an evidence-derived score.
+   */
   static async adjustScoreForTrust(
     baseScore: number,
-    domain: string
+    _domain: string
   ): Promise<number> {
-    const trustedSite = await this.getTrustedSite(domain);
-    if (!trustedSite) return baseScore;
-
-    switch (trustedSite.trustLevel) {
-      case TrustLevel.FULL_TRUST:
-        return Math.max(baseScore, 85); // Minimum B+ score
-      case TrustLevel.PARTIAL_TRUST:
-        return Math.min(baseScore + 15, 100); // Boost score by 15 points
-      case TrustLevel.CONDITIONAL:
-        return this.evaluateConditions(baseScore, trustedSite);
-      default:
-        return baseScore;
-    }
+    return baseScore;
   }
 
+  /**
+   * Personal annotations must not suppress detector output.
+   */
   static async shouldMonitorTracker(
-    domain: string,
-    trackerRiskLevel: 'low' | 'medium' | 'high' | 'critical'
+    _domain: string,
+    _trackerRiskLevel: 'low' | 'medium' | 'high' | 'critical'
   ): Promise<boolean> {
-    const trustedSite = await this.getTrustedSite(domain);
-    if (!trustedSite) return true;
-
-    switch (trustedSite.trustLevel) {
-      case TrustLevel.FULL_TRUST:
-        return false; // Skip all monitoring
-      case TrustLevel.PARTIAL_TRUST:
-        return trackerRiskLevel === 'critical'; // Only monitor critical risks
-      case TrustLevel.CONDITIONAL:
-        return this.shouldMonitorWithConditions(trustedSite, trackerRiskLevel);
-      default:
-        return true;
-    }
-  }
-
-  private static evaluateConditions(
-    baseScore: number,
-    trustedSite: TrustedSite
-  ): number {
-    if (!trustedSite.conditions) return baseScore;
-
-    // Simple condition evaluation - can be expanded
-    let adjustedScore = baseScore;
-    for (const condition of trustedSite.conditions) {
-      if (condition.type === 'max_trackers') {
-        adjustedScore += 5; // Small boost for conditional trust
-      }
-    }
-    return Math.min(adjustedScore, 100);
-  }
-
-  private static shouldMonitorWithConditions(
-    trustedSite: TrustedSite,
-    riskLevel: string
-  ): boolean {
-    if (!trustedSite.conditions) return true;
-
-    // Check conditions - if any condition suggests monitoring, do it
-    for (const condition of trustedSite.conditions) {
-      if (condition.type === 'allowed_types' && riskLevel === 'critical') {
-        return true;
-      }
-    }
-    return false;
+    return true;
   }
 
   private static async getTrustedSitesData(): Promise<TrustedSitesStorage> {
     const data = await BaseStorage.get<TrustedSitesStorage>(this.STORAGE_KEY);
+    if (data) return data;
 
-    if (!data) {
-      const defaultData: TrustedSitesStorage = {
-        sites: {},
-        settings: {
-          autoSuggestTrust: true,
-          verificationInterval: 30, // days
-          defaultTrustLevel: TrustLevel.PARTIAL_TRUST,
-          inheritSubdomains: true,
-        },
-        suggestions: [],
-      };
-      await BaseStorage.set(this.STORAGE_KEY, defaultData);
-      return defaultData;
-    }
-
-    return data;
+    const defaultData: TrustedSitesStorage = {
+      sites: {},
+      settings: {
+        autoSuggestTrust: false,
+        verificationInterval: 30,
+        defaultTrustLevel: TrustLevel.PARTIAL_TRUST,
+        inheritSubdomains: false,
+      },
+      suggestions: [],
+    };
+    await BaseStorage.set(this.STORAGE_KEY, defaultData);
+    return defaultData;
   }
 
+  /**
+   * Automatic safety/reputation suggestions are disabled until a documented and
+   * validated source exists.
+   */
   static async generateTrustSuggestions(
-    domain: string
+    _domain: string
   ): Promise<TrustSuggestion[]> {
-    const suggestions: TrustSuggestion[] = [];
-
-    // Check if it's a reputable domain
-    if (this.isReputableDomain(domain)) {
-      suggestions.push({
-        type: 'reputable',
-        confidence: 0.9,
-        reason: 'This is a well-known, reputable website',
-        domain,
-      });
-    }
-
-    return suggestions;
-  }
-
-  private static isReputableDomain(domain: string): boolean {
-    const reputableDomains = [
-      'github.com',
-      'stackoverflow.com',
-      'wikipedia.org',
-      'google.com',
-      'microsoft.com',
-      'apple.com',
-      'amazon.com',
-      'netflix.com',
-      'spotify.com',
-    ];
-
-    return reputableDomains.some(
-      reputable => domain === reputable || domain.endsWith(`.${reputable}`)
-    );
+    return [];
   }
 
   static async addTrustSuggestion(suggestion: TrustSuggestion): Promise<void> {
