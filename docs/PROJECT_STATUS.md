@@ -3,7 +3,7 @@
 **Version:** 0.1.0  
 **Assessment date:** August 10, 2026  
 **Release posture:** Experimental prototype  
-**P0 status:** In progress pending Chrome runtime and final human-review gates
+**P0 status:** In progress pending final human and external-copy gates
 
 This matrix separates source presence from validated product behavior.
 “Implemented” means code exists for the stated narrow behavior; it does not mean
@@ -14,15 +14,15 @@ the capability is accurate, complete, secure, or production-ready.
 | Capability | Status | Current reality |
 | --- | --- | --- |
 | Extension shell | Implemented | WXT/Manifest V3 extension with a React popup and six main views. |
-| Request observation | Partial | `webRequest` events are observed, but page attribution and third-party-resource attribution are not modeled reliably. |
+| Request observation | Partial | `webRequest` events are observed, but page attribution and third-party-resource attribution are not modeled reliably. Non-HTTP(S) extension resources are excluded from stored network events. |
 | Tracker catalog | Implemented data / experimental detection | 56 manually listed domain entries across analytics, advertising, social, fingerprinting, and cryptomining categories. Broad path/query rules can create false positives. |
 | In-page instrumentation | Experimental | Eleven signal types are instrumented. Normal browser API use can trigger them; a signal is not proof of tracking. |
 | Event storage | Implemented | Local event storage, a 1,000-record cap, and cleanup code for records older than 30 days. Stored URLs are not minimized before storage. |
 | Signal feed | Implemented | Displays recorded event objects with explicit evidence limitations. Accuracy depends on detector quality. |
 | Relationship graph | Partial | Visualizes links inferred from stored event URLs. It is not a verified data-flow or ownership map. |
 | Heuristic score | Experimental / unvalidated | Hand-written penalties produce A–F labels. No independent calibration, benchmark, or consistent unknown state. |
-| Toolbar badge | Partial / opt-in | Can display the heuristic grade or score. It defaults off and is labeled as non-authoritative. |
-| OpenRouter event summary | Partial / opt-in | Requires both an explicit AI toggle and a stored API key. Summarizes sanitized recent-event data. |
+| Toolbar badge | Partial / opt-in | Can display the heuristic grade or score. It defaults off, is labeled non-authoritative, and run #131 verified that disabling clears existing per-tab text. |
+| OpenRouter event summary | Partial / opt-in | Requires both an explicit AI toggle and a stored API key. Summarizes sanitized recent-event data. Live provider behavior was not exercised in P0. |
 | Signal Q&A | Partial | Keyword-routed local analyzers exist. The general OpenRouter path summarizes events rather than reliably answering the question wording. |
 | Coaching and goals | Prototype | Generates goals, history, and suggestions from heuristic event data. UI copy states that these are not behavior or safety measurements. |
 | Privacy-tool discovery | Partial | Supported extension names and enabled state can be read through `management`; actual blocked requests and effectiveness are not measured. |
@@ -34,13 +34,14 @@ the capability is accurate, complete, secure, or production-ready.
 | Personal site annotations | Implemented | Users can save domain labels and notes. They cannot boost a score, suppress monitoring, inherit to subdomains, or establish safety. |
 | Cross-device sync | Experimental / incomplete | Chrome sync code exists with known storage-key, data-shape, conflict, and application inconsistencies. |
 | Link estimates | Experimental / opt-in | Uses URL/hostname rules and prior recorded events. Defaults off and is explicitly not a destination audit. |
-| P2P transport | Experimental / opt-in | Trystero transport and peer messages exist. Peer identity, data authenticity, reputation integrity, and representativeness are not established. |
+| P2P transport | Experimental / opt-in | Run #131 verified initialization and join/leave state after fixing Trystero action names. No successful peer exchange or authenticity property is claimed. |
 | Community benchmarks | Not established | Fabricated adoption percentages, percentiles, and hard-coded distributions are removed. Received samples remain unverified. |
 | Category comparison | Hidden synthetic prototype | Category averages and distributions are hard-coded and not sourced from a documented dataset. The dashboard does not present them as benchmarks. |
 | GDPR/CCPA compliance | Not assessed | Retention and deletion-related code exists, but no legal or independent compliance review has occurred. |
 | Security review | Not completed | No independent extension-security audit or permission-minimization gate. |
 | Performance targets | Unverified | CPU, memory, bundle, and page-load claims have not been reproduced through a documented benchmark. |
 | Build CI | Established | `validate.yml` checks lockfile consistency, install, type-check, lint, production build, manifest metadata, ZIP creation, and artifact upload. |
+| Runtime smoke evidence | Established / bounded | The exact run #131 artifact completed an isolated Chromium fixture with zero detected defects and zero runtime errors. This is not an accuracy, security, performance, or privacy benchmark. |
 | Behavioral test suite | Not established | No complete unit, detector-accuracy, browser integration, runtime permission, performance, or privacy regression suite. |
 
 ## P0 — Truthfulness baseline
@@ -80,40 +81,67 @@ values, or incomplete modules as measured product facts.
 - Hide incomplete automatic notification and scheduled-export controls.
 - Disclose that CSV/JSON exports can include full stored URLs and that the
   legacy report path creates text rather than PDF.
+- Exclude non-HTTP(S) extension assets from network-event storage.
+- Replace certainty-heavy network-event descriptions with evidence-bounded URL
+  and hostname rule-match descriptions.
+- Fix P2P initialization by keeping Trystero action names within its 12-byte
+  limit and surface initialization failure instead of remaining indefinitely at
+  “Connecting”.
+- Clear global and per-tab action badges when the badge feature is disabled.
 - Add a deterministic GitHub Actions build gate in
   `.github/workflows/validate.yml`.
 - Remove temporary duplicate and self-modifying workflows so CI remains
   read-only and deterministic.
+- Record exact-artifact Chromium evidence in
+  [P0-RUNTIME-EVIDENCE.md](P0-RUNTIME-EVIDENCE.md).
 
 ### Evidence available
 
-The validation workflow is designed to provide evidence for:
+Validate run #131 passed on tested head
+`838d036752d558e02b9fad084c6a8952c5b19297` and produced artifact
+`9076926716`.
 
-- committed lockfile consistency;
-- frozen-lockfile dependency installation;
-- TypeScript type checking;
-- ESLint;
-- production Chrome build;
-- generated manifest name/version checks;
-- ZIP packaging; and
-- build artifact upload.
+The exact unpacked artifact was loaded in an isolated Chromium profile and
+exercised with a deterministic local fixture. The run verified:
 
-A successful CI run is build evidence only. It does not validate runtime
-behavior, detector accuracy, product claims, or privacy/security properties.
+- service-worker startup and generated manifest metadata;
+- content-script and main-world signal capture;
+- request observation and local event storage;
+- zero unqualified network “detected” descriptions;
+- zero self-events from `chrome-extension://` assets;
+- all six packaged popup views and relevant settings screens;
+- conservative feature defaults;
+- local AI-off query behavior and AI consent persistence;
+- personal site annotation storage;
+- badge off/on/off behavior;
+- P2P initialization and join/leave lifecycle;
+- CSV, JSON, and plain-text downloads; and
+- policy restoration after the isolated run.
+
+The fixture completed with zero detected defects and zero runtime errors. See
+[P0 Runtime Evidence](P0-RUNTIME-EVIDENCE.md) for the scope and limitations.
+
+This evidence does not validate detector accuracy, score quality, website
+privacy, performance, security, legal compliance, live OpenRouter behavior, or
+a real peer-to-peer sample exchange.
 
 ### Still required before P0 can be closed
 
-- Require the validation workflow to pass on the final P0 branch head.
-- Load the final artifact as an unpacked extension in Chrome.
-- Complete a human review of every popup view and settings screen.
-- Exercise AI-off, AI-on, P2P-off, P2P-on, badge-off, annotation, export, and
-  clear-data flows.
-- Confirm that no GitHub release description, external listing, demo, or store
-  copy repeats the removed claims.
-- Record runtime notes or screenshots in pull request #1.
+- Require the validation workflow to pass on the final P0 documentation head.
+- Complete a human review of the actual toolbar browser-action popup in a normal,
+  unmanaged Chrome installation.
+- Human-review the captured views and real-event wording rather than relying
+  only on automation.
+- Confirm that no GitHub Release description, external listing, demo, submission
+  page, or store copy repeats the removed claims.
+- Decide whether live OpenRouter verification belongs in P0 or should remain a
+  later feature-completion gate.
+- Decide whether to add a visible clear-data workflow or continue documenting
+  uninstall as the most complete current deletion path.
+- Record any final human findings in pull request #1.
 
-P0 must remain open and the pull request must remain draft until these runtime
-and human-review gates are complete.
+P0 must remain open and the pull request must remain draft until these human and
+external-copy gates are complete.
 
 ## Next phases
 
