@@ -150,8 +150,7 @@ export function qualifyEvidenceEvent(
     sourceFactor;
   const highQuality =
     detector.confidence === 'high' &&
-    context.attributionConfidence === 'high' &&
-    (context.source === 'main-world-api' || context.partyConfidence === 'high');
+    context.attributionConfidence === 'high';
 
   return {
     candidate: {
