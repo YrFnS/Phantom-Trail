@@ -4,44 +4,47 @@ import { ExportButton } from '../../components/ExportButton';
 import { RateLimitStatus } from '../../components/RateLimitStatus';
 import { Settings } from '../../components/Settings';
 import { QuickTrustButton } from '../../components/TrustedSites';
-import { ThemeToggle, NavButton, NAV_ITEMS, type ViewType } from '../../components/ui';
+import {
+  ThemeToggle,
+  NavButton,
+  NAV_ITEMS,
+  type ViewType,
+} from '../../components/ui';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { LogoIcon, SettingsIcon } from '../../components/icons';
 import type { PrivacyScore as PrivacyScoreType } from '../../lib/types';
 
-// Lazy load heavy components to reduce initial bundle size
 const LiveNarrative = lazy(() =>
-  import('../../components/LiveNarrative').then(m => ({
-    default: m.LiveNarrative,
+  import('../../components/LiveNarrative').then(module => ({
+    default: module.LiveNarrative,
   }))
 );
 const NetworkGraph = lazy(() =>
-  import('../../components/NetworkGraph').then(m => ({
-    default: m.NetworkGraph,
+  import('../../components/NetworkGraph').then(module => ({
+    default: module.NetworkGraph,
   }))
 );
 const ChatInterface = lazy(() =>
-  import('../../components/ChatInterface').then(m => ({
-    default: m.ChatInterface,
+  import('../../components/ChatInterface').then(module => ({
+    default: module.ChatInterface,
   }))
 );
 const RiskDashboard = lazy(() =>
-  import('../../components/RiskDashboard').then(m => ({
-    default: m.RiskDashboard,
+  import('../../components/RiskDashboard').then(module => ({
+    default: module.RiskDashboard,
   }))
 );
 const PrivacyCoachDashboard = lazy(() =>
-  import('../../components/PrivacyCoach').then(m => ({
-    default: m.PrivacyCoachDashboard,
+  import('../../components/PrivacyCoach').then(module => ({
+    default: module.PrivacyCoachDashboard,
   }))
 );
 const CommunityInsights = lazy(() =>
-  import('../../components/CommunityInsights').then(m => ({
-    default: m.CommunityInsights,
+  import('../../components/CommunityInsights').then(module => ({
+    default: module.CommunityInsights,
   }))
 );
 
-// Loading component for lazy-loaded components
 const ComponentLoader = () => (
   <div className="flex items-center justify-center h-32">
     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-plasma"></div>
@@ -68,16 +71,14 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState<ViewType>('narrative');
 
-  // Use custom hook for data management
   const { events, currentSiteScore, overallScore, currentDomain } =
     useAppData();
 
-  // Listen for tab switch events from child components
   useEffect(() => {
     const handleTabSwitch = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
       if (customEvent.detail === 'actions') {
-        setActiveView('dashboard'); // Dashboard contains Privacy Actions
+        setActiveView('dashboard');
       }
     };
 
@@ -93,10 +94,24 @@ function App() {
     );
   }
 
+  const hasCurrentSignals =
+    (currentSiteScore?.breakdown.totalTrackers ?? 0) > 0;
+  const hasRecentSignals = events.length > 0;
+
+  const communityScore = hasCurrentSignals
+    ? currentSiteScore?.score || 0
+    : hasRecentSignals
+      ? overallScore?.score || 0
+      : 0;
+  const communityGrade = hasCurrentSignals
+    ? currentSiteScore?.grade || '—'
+    : hasRecentSignals
+      ? overallScore?.grade || '—'
+      : '—';
+
   return (
     <div className="extension-popup relative bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="relative z-10">
-        {/* Compact header */}
         <header className="px-4 pt-3 pb-2 border-b border-[var(--border-primary)]">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -107,8 +122,8 @@ function App() {
                 <h1 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">
                   Phantom Trail
                 </h1>
-                <p className="text-[10px] text-[var(--text-secondary)]">
-                  Privacy Monitor
+                <p className="text-[10px] text-[var(--warning)]">
+                  Experimental Signal Monitor
                 </p>
               </div>
             </div>
@@ -128,30 +143,32 @@ function App() {
             </div>
           </div>
 
-          {/* Score display */}
           {currentSiteScore && (
             <div className="mb-2">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wide">
-                  Current Site
+                  Current site heuristic
                 </span>
                 <span
-                  className={`text-xl font-bold ${currentSiteScore.color === 'green'
-                      ? 'text-[var(--success)]'
-                      : currentSiteScore.color === 'yellow'
-                        ? 'text-[var(--warning)]'
-                        : currentSiteScore.color === 'orange'
+                  className={`text-xl font-bold ${
+                    !hasCurrentSignals
+                      ? 'text-[var(--text-secondary)]'
+                      : currentSiteScore.color === 'green'
+                        ? 'text-[var(--success)]'
+                        : currentSiteScore.color === 'yellow'
                           ? 'text-[var(--warning)]'
-                          : 'text-[var(--error)]'
-                    }`}
+                          : currentSiteScore.color === 'orange'
+                            ? 'text-[var(--warning)]'
+                            : 'text-[var(--error)]'
+                  }`}
                 >
-                  {currentSiteScore.grade}
+                  {hasCurrentSignals ? currentSiteScore.grade : '—'}
                 </span>
               </div>
               <div className="text-[10px] text-[var(--text-secondary)] truncate flex items-center justify-between">
                 <span>
                   {currentDomain || 'Unknown'} •{' '}
-                  {currentSiteScore.breakdown.totalTrackers} trackers
+                  {currentSiteScore.breakdown.totalTrackers} recorded signals
                 </span>
                 {currentDomain && (
                   <QuickTrustButton
@@ -164,30 +181,38 @@ function App() {
             </div>
           )}
 
-          {overallScore && (
-            <div className="flex items-center justify-between text-[10px] text-[var(--text-secondary)]">
-              <div>
-                Recent Activity:{' '}
-                <span
-                  className={`font-medium ${overallScore.color === 'green'
-                      ? 'text-[var(--success)]'
-                      : overallScore.color === 'yellow'
-                        ? 'text-[var(--warning)]'
-                        : overallScore.color === 'orange'
+          <div className="flex items-center justify-between text-[10px] text-[var(--text-secondary)]">
+            <div>
+              {hasRecentSignals && overallScore ? (
+                <>
+                  Recent heuristic:{' '}
+                  <span
+                    className={`font-medium ${
+                      overallScore.color === 'green'
+                        ? 'text-[var(--success)]'
+                        : overallScore.color === 'yellow'
                           ? 'text-[var(--warning)]'
-                          : 'text-[var(--error)]'
+                          : overallScore.color === 'orange'
+                            ? 'text-[var(--warning)]'
+                            : 'text-[var(--error)]'
                     }`}
-                >
-                  {overallScore.grade} ({overallScore.score})
-                </span>{' '}
-                • {events.length} events
-              </div>
-              <RateLimitStatus className="ml-2" />
+                  >
+                    {overallScore.grade} ({overallScore.score})
+                  </span>{' '}
+                  • {events.length} events
+                </>
+              ) : (
+                'No recent signals recorded'
+              )}
             </div>
-          )}
+            <RateLimitStatus className="ml-2" />
+          </div>
+
+          <p className="text-[9px] text-[var(--warning)] mt-1">
+            Grades are experimental and are not verified privacy ratings.
+          </p>
         </header>
 
-        {/* Side tab navigation */}
         <div className="flex h-[calc(100vh-120px)] max-h-[480px]">
           <nav className="w-16 border-r border-[var(--border-primary)] flex flex-col py-2 gap-1">
             {NAV_ITEMS.map(item => (
@@ -200,7 +225,6 @@ function App() {
             ))}
           </nav>
 
-          {/* Content area */}
           <main className="flex-1 overflow-y-auto p-3">
             <div className="animate-fade-in">
               <ErrorBoundary>
@@ -214,12 +238,8 @@ function App() {
                   {activeView === 'coach' && <PrivacyCoachDashboard />}
                   {activeView === 'community' && (
                     <CommunityInsights
-                      userScore={
-                        currentSiteScore?.score || overallScore?.score || 100
-                      }
-                      userGrade={
-                        currentSiteScore?.grade || overallScore?.grade || 'A'
-                      }
+                      userScore={communityScore}
+                      userGrade={communityGrade}
                     />
                   )}
                 </Suspense>
