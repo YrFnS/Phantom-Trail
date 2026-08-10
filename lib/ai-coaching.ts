@@ -31,8 +31,8 @@ export interface ProgressReport {
 
 export interface WeeklyCoachingReport {
   summary: {
-    averageScore: number;
-    scoreChange: number;
+    averageScore: number | null;
+    scoreChange: number | null;
     goalsProgress: number;
     newAchievements: string[];
   };
@@ -55,6 +55,11 @@ export interface UserPreferences {
   notificationFrequency: 'daily' | 'weekly' | 'monthly';
 }
 
+/**
+ * Compatibility coaching API.
+ * P2 prevents this legacy module from turning N/A into a score or claiming
+ * measured privacy progress. Automatic goal generation remains deferred to P4.
+ */
 export class PrivacyCoach {
   private static readonly GOALS_STORAGE_KEY = 'privacyGoals';
   private static readonly PREFERENCES_STORAGE_KEY = 'coachingPreferences';
@@ -65,76 +70,32 @@ export class PrivacyCoach {
   }
 
   static async createPrivacyGoals(
-    userPreferences: UserPreferences
+    _userPreferences: UserPreferences
   ): Promise<PrivacyGoal[]> {
     const insights = await this.generatePersonalizedInsights();
+
+    // Automatic score-optimization goals are intentionally disabled. An N/A
+    // result cannot produce a target, and an estimated index is not a verified
+    // measure of privacy improvement.
     const goals: PrivacyGoal[] = [];
-    const now = Date.now();
-    const twoWeeksFromNow = new Date(now + 14 * 24 * 60 * 60 * 1000);
-
-    // Score improvement goal
-    if (insights.browsingPattern.averagePrivacyScore < 85) {
-      goals.push({
-        id: `score-improvement-${now}`,
-        type: 'score_improvement',
-        target: Math.min(insights.browsingPattern.averagePrivacyScore + 15, 95),
-        current: insights.browsingPattern.averagePrivacyScore,
-        deadline: twoWeeksFromNow,
-        description: `Improve privacy score to ${Math.min(insights.browsingPattern.averagePrivacyScore + 15, 95)}`,
-        suggestions: insights.recommendations.slice(0, 3).map(r => r.title),
-        createdAt: now,
-      });
-    }
-
-    // Tracker reduction goal
-    if (insights.browsingPattern.totalEvents > 50) {
-      const reductionTarget = Math.floor(
-        insights.browsingPattern.totalEvents * 0.7
-      );
-      goals.push({
-        id: `tracker-reduction-${now}`,
-        type: 'tracker_reduction',
-        target: reductionTarget,
-        current: insights.browsingPattern.totalEvents,
-        deadline: twoWeeksFromNow,
-        description: `Reduce weekly tracker encounters to ${reductionTarget}`,
-        suggestions: [
-          'Install an ad blocker',
-          'Use privacy-focused browser settings',
-          'Avoid high-tracking websites',
-        ],
-        createdAt: now,
-      });
-    }
-
-    // Category-specific goals based on user preferences
-    if (
-      userPreferences.focusAreas.includes('social_media') &&
-      insights.browsingPattern.mostVisitedCategories.includes('Social Media')
-    ) {
-      goals.push({
-        id: `social-media-privacy-${now}`,
-        type: 'category_avoidance',
-        target: 5, // Max 5 social media tracking events per week
-        current: insights.browsingPattern.totalEvents, // Simplified for demo
-        deadline: twoWeeksFromNow,
-        description: 'Improve privacy on social media platforms',
-        suggestions: [
-          'Use social media containers',
-          'Adjust privacy settings',
-          'Limit social media browsing time',
-        ],
-        createdAt: now,
-      });
-    }
-
     await BaseStorage.set(this.GOALS_STORAGE_KEY, goals);
+
+    if (insights.browsingPattern.scoreStatus === 'insufficient-evidence') {
+      console.log(
+        '[Phantom Trail] No automatic coaching goals: evidence index is N/A'
+      );
+    } else {
+      console.log(
+        '[Phantom Trail] Automatic score goals remain disabled for experimental evidence indices'
+      );
+    }
     return goals;
   }
 
   static async getPrivacyGoals(): Promise<PrivacyGoal[]> {
-    const goals = await BaseStorage.get<PrivacyGoal[]>(this.GOALS_STORAGE_KEY);
-    return goals || [];
+    return (
+      (await BaseStorage.get<PrivacyGoal[]>(this.GOALS_STORAGE_KEY)) || []
+    );
   }
 
   static async updateGoalProgress(
@@ -142,83 +103,78 @@ export class PrivacyCoach {
     newCurrent: number
   ): Promise<void> {
     const goals = await this.getPrivacyGoals();
-    const goalIndex = goals.findIndex(g => g.id === goalId);
+    const goalIndex = goals.findIndex(goal => goal.id === goalId);
+    if (goalIndex === -1) return;
 
-    if (goalIndex !== -1) {
-      goals[goalIndex].current = newCurrent;
-
-      // Check if goal is completed
-      if (
-        goals[goalIndex].type === 'score_improvement' &&
-        newCurrent >= goals[goalIndex].target
-      ) {
-        goals[goalIndex].completed = true;
-      } else if (
-        goals[goalIndex].type === 'tracker_reduction' &&
-        newCurrent <= goals[goalIndex].target
-      ) {
-        goals[goalIndex].completed = true;
-      }
-
-      await BaseStorage.set(this.GOALS_STORAGE_KEY, goals);
+    goals[goalIndex].current = newCurrent;
+    if (
+      goals[goalIndex].type === 'score_improvement' &&
+      newCurrent >= goals[goalIndex].target
+    ) {
+      goals[goalIndex].completed = true;
+    } else if (
+      goals[goalIndex].type === 'tracker_reduction' &&
+      newCurrent <= goals[goalIndex].target
+    ) {
+      goals[goalIndex].completed = true;
     }
+    await BaseStorage.set(this.GOALS_STORAGE_KEY, goals);
   }
 
   static async trackProgress(goals: PrivacyGoal[]): Promise<ProgressReport> {
     const insights = await this.generatePersonalizedInsights();
     const now = Date.now();
-
     const goalsProgress = goals.map(goal => {
       let progressPercentage = 0;
-      let onTrack = true;
 
-      if (goal.type === 'score_improvement') {
+      if (
+        goal.type === 'score_improvement' &&
+        insights.browsingPattern.averagePrivacyScore !== null
+      ) {
         const totalImprovement = goal.target - goal.current;
         const currentImprovement =
           insights.browsingPattern.averagePrivacyScore - goal.current;
-        progressPercentage = Math.min(
-          (currentImprovement / totalImprovement) * 100,
-          100
-        );
+        progressPercentage =
+          totalImprovement > 0
+            ? Math.min((currentImprovement / totalImprovement) * 100, 100)
+            : 0;
       } else if (goal.type === 'tracker_reduction') {
         const totalReduction = goal.current - goal.target;
         const currentReduction =
-          goal.current - insights.browsingPattern.totalEvents;
-        progressPercentage = Math.min(
-          (currentReduction / totalReduction) * 100,
-          100
-        );
+          goal.current - insights.browsingPattern.totalOccurrences;
+        progressPercentage =
+          totalReduction > 0
+            ? Math.min((currentReduction / totalReduction) * 100, 100)
+            : 0;
       }
 
       const daysRemaining = Math.ceil(
         (goal.deadline.getTime() - now) / (24 * 60 * 60 * 1000)
       );
-      onTrack = progressPercentage >= 100 - (daysRemaining / 14) * 100;
-
+      const boundedProgress = Math.max(0, progressPercentage);
       return {
         goal,
-        progressPercentage: Math.max(0, progressPercentage),
-        onTrack,
+        progressPercentage: boundedProgress,
+        onTrack: boundedProgress >= 100 - (Math.max(0, daysRemaining) / 14) * 100,
         daysRemaining: Math.max(0, daysRemaining),
       };
     });
-
     const overallProgress =
       goalsProgress.length > 0
-        ? goalsProgress.reduce((sum, gp) => sum + gp.progressPercentage, 0) /
-          goalsProgress.length
+        ? goalsProgress.reduce(
+            (total, entry) => total + entry.progressPercentage,
+            0
+          ) / goalsProgress.length
         : 0;
-
-    const motivationalMessage = this.generateMotivationalMessage(
-      overallProgress,
-      insights
-    );
 
     return {
       goalsProgress,
       overallProgress,
-      newAchievements: insights.achievements,
-      motivationalMessage,
+      newAchievements: [],
+      motivationalMessage: this.generateMotivationalMessage(
+        overallProgress,
+        insights
+      ),
     };
   }
 
@@ -232,39 +188,40 @@ export class PrivacyCoach {
         averageScore: insights.browsingPattern.averagePrivacyScore,
         scoreChange: insights.privacyTrends.scoreChange,
         goalsProgress: progress.overallProgress,
-        newAchievements: insights.achievements.map(a => a.title),
+        newAchievements: [],
       },
       insights: {
         patterns: [
-          `Most active during ${insights.browsingPattern.timePatterns.peakHours.join(', ')}:00`,
-          `Primary categories: ${insights.browsingPattern.mostVisitedCategories.join(', ')}`,
-          `Privacy trend: ${insights.privacyTrends.trendDirection}`,
+          `Peak recorded-signal hours: ${
+            insights.browsingPattern.timePatterns.peakRecordedHours.join(', ') ||
+            'none'
+          }`,
+          `Observed page categories: ${
+            insights.browsingPattern.observedPageCategories.join(', ') || 'none'
+          }`,
+          `Evidence-index trend: ${insights.privacyTrends.trendDirection}`,
         ],
-        improvements: insights.browsingPattern.strengths,
-        concerns: insights.browsingPattern.riskiestHabits,
+        improvements: insights.browsingPattern.reviewAreas,
+        concerns: insights.browsingPattern.signalPatterns,
       },
       nextWeekFocus: {
         primaryGoal:
-          goals.length > 0
-            ? goals[0].description
-            : 'Set your first privacy goal',
-        actionItems: insights.recommendations.slice(0, 3).map(r => r.title),
-        toolSuggestions: insights.recommendations
-          .filter(r => r.type === 'tool_suggestion')
-          .map(r => r.title),
+          goals[0]?.description ||
+          'Review evidence coverage and detector contributions',
+        actionItems: insights.recommendations.slice(0, 3).map(item => item.title),
+        toolSuggestions: [],
       },
     };
   }
 
   static async getUserPreferences(): Promise<UserPreferences> {
-    const prefs = await BaseStorage.get<UserPreferences>(
-      this.PREFERENCES_STORAGE_KEY
-    );
     return (
-      prefs || {
+      (await BaseStorage.get<UserPreferences>(
+        this.PREFERENCES_STORAGE_KEY
+      )) || {
         privacyLevel: 'intermediate',
         focusAreas: [],
-        coachingStyle: 'encouraging',
+        coachingStyle: 'educational',
         notificationFrequency: 'weekly',
       }
     );
@@ -280,46 +237,52 @@ export class PrivacyCoach {
     query: string,
     insights: PersonalizedInsights
   ): string {
-    const context = `
-You are a privacy coach helping a user who:
-- Has an average privacy score of ${insights.browsingPattern.averagePrivacyScore}/100
-- Primarily visits ${insights.browsingPattern.mostVisitedCategories.join(', ')} sites
-- Current privacy trend: ${insights.privacyTrends.trendDirection}
-- Main strengths: ${insights.browsingPattern.strengths.join(', ')}
-- Areas for improvement: ${insights.browsingPattern.improvementAreas.join(', ')}
-- Recent achievements: ${insights.achievements.map(a => a.title).join(', ') || 'None yet'}
+    const scoreText =
+      insights.browsingPattern.averagePrivacyScore === null
+        ? 'N/A (insufficient score-qualified evidence)'
+        : `${insights.browsingPattern.averagePrivacyScore}/100, ${insights.browsingPattern.scoreConfidence} evidence-coverage confidence`;
+
+    return `
+You are summarizing experimental detector evidence. Do not infer total browsing
+behavior, identity, intent, website safety, legal compliance, data collection,
+sharing, or sale.
+
+Recorded context:
+- Evidence index: ${scoreText}
+- Evidence units: ${insights.browsingPattern.evidenceUnits}
+- Stored rows: ${insights.browsingPattern.totalEvents}
+- Aggregated occurrences: ${insights.browsingPattern.totalOccurrences}
+- Observed page-category labels: ${insights.browsingPattern.observedPageCategories.join(', ') || 'none'}
+- Evidence-index trend: ${insights.privacyTrends.trendDirection}
+- Review areas: ${insights.browsingPattern.reviewAreas.join(', ') || 'none'}
+- Evidence notes: ${insights.browsingPattern.evidenceNotes.join(' | ') || 'none'}
 
 User question: ${query}
 
-Provide personalized advice considering their specific patterns and progress.
-Be encouraging about their achievements and specific about actionable next steps.
-Keep responses concise and focused on privacy improvement.
+Answer only from the recorded fields. State uncertainty and explain that N/A is
+not favorable and model bands are not privacy or safety ratings.
 `;
-
-    return context;
   }
 
   private static generateMotivationalMessage(
     progress: number,
     insights: PersonalizedInsights
   ): string {
-    if (progress >= 80) {
-      return "🎉 Excellent progress! You're crushing your privacy goals!";
-    } else if (progress >= 60) {
-      return "💪 Great work! You're making solid progress on your privacy journey.";
-    } else if (progress >= 40) {
-      return '📈 Good start! Keep building those privacy habits.';
-    } else if (insights.privacyTrends.trendDirection === 'improving') {
-      return '🌱 Your privacy is improving! Small steps lead to big changes.';
-    } else {
-      return "🎯 Every privacy step counts! Let's focus on one goal at a time.";
+    if (insights.browsingPattern.scoreStatus === 'insufficient-evidence') {
+      return 'The evidence index is N/A. Review coverage and exclusions before setting any numeric goal.';
     }
+    if (progress >= 80) {
+      return 'Most manually stored goal progress is complete. Verify the underlying evidence rather than optimizing the index alone.';
+    }
+    if (progress > 0) {
+      return 'Recorded goal progress changed. This does not establish a real-world privacy improvement.';
+    }
+    return 'Focus on understanding evidence routes and uncertainty instead of chasing a model band.';
   }
 
   static async celebrateAchievement(
     achievement: PrivacyAchievement
   ): Promise<void> {
-    // Store achievement for display
     const achievements =
       (await BaseStorage.get<PrivacyAchievement[]>(
         this.ACHIEVEMENTS_STORAGE_KEY
