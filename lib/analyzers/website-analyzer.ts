@@ -6,94 +6,75 @@ import {
 import type { TrackingEvent } from '../types';
 
 /**
- * Specialized analyzer for website privacy audits
+ * Formats recorded detector signals associated with a supplied URL-host label.
+ * The historical analyzer API name is retained for compatibility.
  */
 export class WebsiteAnalyzer {
-  /**
-   * Audit a specific website's privacy practices
-   */
   static async analyze(websiteUrl: string): Promise<AnalysisResult> {
     return await TrackingAnalysis.auditWebsite(websiteUrl);
   }
 
-  /**
-   * Format website analysis results into readable text
-   */
   static formatResponse(result: AnalysisResult): string {
-    let response = `# Website Privacy Audit\n\n`;
+    let response = `# Recorded Website-Signal Summary\n\n`;
+    response += `> This is a summary of stored heuristic events, not a live website audit, safety verdict, or verified account of data sharing.\n\n`;
     response += `${result.summary}\n\n`;
     response += this.formatWebsiteData(result.data as WebsiteData | null);
 
     if (result.recommendations.length > 0) {
-      response += `\n## Recommendations\n`;
-      result.recommendations.forEach((rec: string, i: number) => {
-        response += `${i + 1}. ${rec}\n`;
+      response += `\n## Review Notes\n`;
+      result.recommendations.forEach((recommendation: string, index: number) => {
+        response += `${index + 1}. ${recommendation}\n`;
       });
     }
 
     return response;
   }
 
-  /**
-   * Format website data into readable sections
-   */
   private static formatWebsiteData(data: WebsiteData | null): string {
-    if (!data) return 'No data available for this website.';
+    if (!data) {
+      return 'No stored detector signals were available for this URL-host label. No privacy conclusion can be drawn.\n';
+    }
 
-    let output = `## Privacy Score: ${data.privacyScore.score}/100 (${data.privacyScore.grade})\n\n`;
+    let output = `## Experimental Heuristic: ${data.privacyScore.score}/100 (${data.privacyScore.grade})\n\n`;
+    output += `## Recorded Event-Domain Labels (${data.uniqueTrackers.length})\n`;
 
-    output += `## Trackers Detected (${data.uniqueTrackers.length} total)\n`;
+    const labels = ['critical', 'high', 'medium', 'low'] as const;
+    labels.forEach(label => {
+      const events = data.trackersByRisk[label];
+      if (events.length === 0) return;
 
-    ['critical', 'high', 'medium', 'low'].forEach(risk => {
-      const trackers = data.trackersByRisk[risk];
-      if (trackers.length > 0) {
-        output += `### ${risk.charAt(0).toUpperCase() + risk.slice(1)} Risk (${trackers.length})\n`;
-        const uniqueDomains = [
-          ...new Set(trackers.map((t: TrackingEvent) => t.domain)),
-        ] as string[];
-        uniqueDomains.slice(0, 5).forEach((domain: string) => {
-          const name = this.getTrackerDisplayName(domain);
-          output += `- ${name}\n`;
-        });
-      }
+      output += `### ${label.charAt(0).toUpperCase() + label.slice(1)} Prototype Label (${events.length} signals)\n`;
+      const uniqueDomains = Array.from(
+        new Set(events.map((event: TrackingEvent) => event.domain))
+      );
+      uniqueDomains.slice(0, 5).forEach(domain => {
+        output += `- ${this.getCatalogDisplayName(domain)}\n`;
+      });
     });
 
-    output += `\n## Privacy Issues\n`;
-    output += `- **Third-party tracking:** ${data.thirdPartyPercentage}% of trackers\n`;
-    output += `- **Total events:** ${data.totalEvents}\n`;
+    output += `\n## Attribution-Limited Counts\n`;
+    output += `- **Event-domain labels differing from the page host:** ${data.thirdPartyPercentage}%\n`;
+    output += `- **Total recorded detector signals:** ${data.totalEvents}\n`;
+    output += `\nThe different-domain percentage uses a simple hostname comparison and does not prove third-party tracking, ownership, or data transfer.\n`;
 
     return output;
   }
 
-  /**
-   * Extract website URL from natural language query
-   */
   static extractWebsiteUrl(query: string): string | undefined {
-    // Look for URL patterns
     const urlMatch = query.match(/(https?:\/\/[^\s]+)/);
-    if (urlMatch) {
-      return urlMatch[0];
-    }
+    if (urlMatch) return urlMatch[0];
 
-    // Look for domain patterns and assume https
     const domainMatch = query.match(/([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}/);
-    if (domainMatch) {
-      return `https://${domainMatch[0]}`;
-    }
-
-    return undefined;
+    return domainMatch ? `https://${domainMatch[0]}` : undefined;
   }
 
-  /**
-   * Get display name for common trackers
-   */
-  private static getTrackerDisplayName(domain: string): string {
+  private static getCatalogDisplayName(domain: string): string {
     const names: Record<string, string> = {
-      'google-analytics.com': 'Google Analytics',
-      'doubleclick.net': 'Google DoubleClick',
-      'facebook.com': 'Facebook Pixel',
-      'googletagmanager.com': 'Google Tag Manager',
-      'googlesyndication.com': 'Google AdSense',
+      'google-analytics.com': 'Google Analytics catalog label',
+      'doubleclick.net': 'Google DoubleClick catalog label',
+      'facebook.com': 'Facebook catalog label',
+      'googletagmanager.com': 'Google Tag Manager catalog label',
+      'googlesyndication.com': 'Google AdSense catalog label',
     };
     return names[domain] || domain;
   }
