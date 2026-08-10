@@ -1,7 +1,6 @@
 import type { AnalysisResult, TrackerData, TimelineData } from './types';
 import { calculatePrivacyScore } from '../privacy-score';
 import { AnalysisHelpers } from './helpers';
-import type { TrackingEvent } from '../types';
 import {
   eventMatchesPageDomain,
   getEventOccurrenceCount,
@@ -36,9 +35,7 @@ export class SpecializedAnalyzers {
       };
     }
 
-    const pages = new Set(
-      trackerEvents.map(getPageDomain).filter(Boolean)
-    );
+    const pages = new Set(trackerEvents.map(getPageDomain).filter(Boolean));
     const trackingMethods = new Set(
       trackerEvents
         .map(event => event.inPageTracking?.method)
