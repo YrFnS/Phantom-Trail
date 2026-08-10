@@ -11,9 +11,10 @@
     "build": "wxt build",
     "zip": "wxt zip",
     "type-check": "tsc --noEmit",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
-    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "validate": "pnpm type-check && pnpm lint && pnpm build",
     "fix-deps": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\fix-dependencies.ps1"
   },
   "repository": {
@@ -29,6 +30,7 @@
   "author": "",
   "license": "MIT",
   "type": "commonjs",
+  "packageManager": "pnpm@10.34.0",
   "bugs": {
     "url": "https://github.com/YrFnS/Phantom-Trail/issues"
   },
