@@ -1,6 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useStorage } from '../../lib/hooks/useStorage';
-import type { TrackingEvent } from '../../lib/types';
+import { calculatePrivacyScore } from '../../lib/privacy-score';
+import type { RiskLevel, TrackingEvent } from '../../lib/types';
+import {
+  eventMatchesPageDomain,
+  getDisplayDomain,
+  getEventOccurrenceCount,
+  getResourceDomain,
+  normalizeDomain,
+} from '../../lib/event-attribution.mts';
 import type {
   RiskDistribution,
   TrackerSummary,
@@ -8,60 +16,60 @@ import type {
   DashboardState,
 } from './RiskDashboard.types';
 
-/**
- * Hook for calculating experimental signal metrics from recorded events.
- */
-export function useRiskMetrics(): DashboardState {
+export function useRiskMetrics(currentDomain?: string): DashboardState {
   const [events, , eventsLoading] = useStorage<TrackingEvent[]>(
     'phantom_trail_events',
     []
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const normalizedDomain = normalizeDomain(currentDomain);
 
   const metrics = useMemo(() => {
-    if (!events.length) return null;
-
     try {
-      const recentEvents = events.slice(-100);
+      const recentEvents = events.slice(-500);
+      const scopedEvents = normalizedDomain
+        ? recentEvents.filter(event =>
+            eventMatchesPageDomain(event, normalizedDomain)
+          )
+        : recentEvents;
+      const evidenceScore = calculatePrivacyScore(scopedEvents, true, {
+        scope: normalizedDomain ? 'page' : 'dataset',
+        pageDomain: normalizedDomain || undefined,
+      });
 
       return {
-        overallRiskScore: calculateOverallRiskScore(recentEvents),
-        totalEvents: recentEvents.length,
-        riskDistribution: calculateRiskDistribution(recentEvents),
-        topTrackers: calculateTopTrackers(recentEvents),
-        riskTrend: calculateRiskTrend(recentEvents),
+        evidenceScore,
+        totalRows: scopedEvents.length,
+        totalOccurrences: scopedEvents.reduce(
+          (total, event) => total + getEventOccurrenceCount(event),
+          0
+        ),
+        riskDistribution: calculateRiskDistribution(scopedEvents),
+        topTrackers: calculateTopTrackers(scopedEvents),
+        riskTrend: calculateRiskTrend(scopedEvents, normalizedDomain),
       };
-    } catch (err) {
-      console.error('Error calculating signal metrics:', err);
+    } catch (calculationError) {
+      console.error('Error calculating evidence dashboard metrics:', calculationError);
       return null;
     }
-  }, [events]);
+  }, [events, normalizedDomain]);
 
   const recommendations = useMemo(() => {
     if (!metrics) return [];
 
-    const recs: string[] = [];
-
-    if (metrics.overallRiskScore > 70) {
-      recs.push(
-        'The heuristic signal score is high. Review the underlying events before choosing privacy controls.'
-      );
-    }
-
+    const notes = [...metrics.evidenceScore.recommendations];
     if (metrics.riskDistribution.critical > 0) {
-      recs.push(
-        'Critical-risk signals were recorded. Review their evidence before entering sensitive information.'
+      notes.push(
+        'Critical-labeled occurrences exist in the observed rows. Some may be excluded from scoring; inspect their evidence and attribution.'
       );
     }
-
     if (metrics.topTrackers.length > 5) {
-      recs.push(
-        'Several recorded domains appear in recent events. This does not by itself prove cross-site data sharing.'
+      notes.push(
+        'Several resource-domain labels appear in recent evidence. This does not prove common ownership or data sharing.'
       );
     }
-
-    return recs;
+    return Array.from(new Set(notes)).slice(0, 5);
   }, [metrics]);
 
   useEffect(() => {
@@ -77,72 +85,89 @@ export function useRiskMetrics(): DashboardState {
   };
 }
 
-/**
- * Calculate an experimental weighted signal score (0-100).
- */
-function calculateOverallRiskScore(events: TrackingEvent[]): number {
-  if (!events.length) return 0;
+function calculateRiskDistribution(
+  events: TrackingEvent[]
+): RiskDistribution {
+  const distribution: RiskDistribution = {
+    low: 0,
+    medium: 0,
+    high: 0,
+    critical: 0,
+  };
 
-  const riskWeights = { low: 1, medium: 3, high: 7, critical: 10 };
-  const totalWeight = events.reduce(
-    (sum, event) => sum + riskWeights[event.riskLevel],
-    0
-  );
-
-  const maxPossibleWeight = events.length * riskWeights.critical;
-  return Math.round((totalWeight / maxPossibleWeight) * 100);
-}
-
-function calculateRiskDistribution(events: TrackingEvent[]): RiskDistribution {
-  const distribution = { low: 0, medium: 0, high: 0, critical: 0 };
-
-  events.forEach(event => {
-    distribution[event.riskLevel]++;
-  });
-
+  for (const event of events) {
+    distribution[event.riskLevel] += getEventOccurrenceCount(event);
+  }
   return distribution;
 }
 
 function calculateTopTrackers(events: TrackingEvent[]): TrackerSummary[] {
   const trackerMap = new Map<string, TrackerSummary>();
 
-  events.forEach(event => {
-    const existing = trackerMap.get(event.domain);
+  for (const event of events) {
+    const domain = getResourceDomain(event) || getDisplayDomain(event);
+    if (!domain) continue;
+    const existing = trackerMap.get(domain);
+    const occurrences = getEventOccurrenceCount(event);
+
     if (existing) {
-      existing.count++;
+      existing.count += occurrences;
+      existing.riskLevel = maxRiskLevel(existing.riskLevel, event.riskLevel);
     } else {
-      trackerMap.set(event.domain, {
-        domain: event.domain,
-        count: 1,
+      trackerMap.set(domain, {
+        domain,
+        count: occurrences,
         riskLevel: event.riskLevel,
         category: event.trackerType,
       });
     }
-  });
+  }
 
   return Array.from(trackerMap.values())
-    .sort((a, b) => b.count - a.count)
+    .sort((first, second) => second.count - first.count)
     .slice(0, 5);
 }
 
-function calculateRiskTrend(events: TrackingEvent[]): RiskTrendPoint[] {
+function calculateRiskTrend(
+  events: TrackingEvent[],
+  pageDomain: string
+): RiskTrendPoint[] {
   const now = Date.now();
   const hourMs = 60 * 60 * 1000;
   const points: RiskTrendPoint[] = [];
 
-  for (let i = 11; i >= 0; i--) {
-    const timestamp = now - i * hourMs;
-    const hourEvents = events.filter(
-      event =>
-        event.timestamp >= timestamp - hourMs && event.timestamp < timestamp
-    );
+  for (let index = 11; index >= 0; index -= 1) {
+    const end = now - index * hourMs;
+    const start = end - hourMs;
+    const hourEvents = events.filter(event => {
+      const timestamp = event.lastSeenAt || event.timestamp;
+      return timestamp >= start && timestamp < end;
+    });
+    const score = calculatePrivacyScore(hourEvents, true, {
+      scope: pageDomain ? 'page' : 'dataset',
+      pageDomain: pageDomain || undefined,
+    });
 
     points.push({
-      timestamp,
-      riskScore: calculateOverallRiskScore(hourEvents),
-      eventCount: hourEvents.length,
+      timestamp: end,
+      evidenceIndex: score.score,
+      confidence: score.confidence,
+      eventCount: hourEvents.reduce(
+        (total, event) => total + getEventOccurrenceCount(event),
+        0
+      ),
     });
   }
 
   return points;
+}
+
+function maxRiskLevel(first: RiskLevel, second: RiskLevel): RiskLevel {
+  const rank: Record<RiskLevel, number> = {
+    low: 1,
+    medium: 2,
+    high: 3,
+    critical: 4,
+  };
+  return rank[second] > rank[first] ? second : first;
 }
