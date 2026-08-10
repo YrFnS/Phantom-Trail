@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { aiEngine } from '../../lib/ai-engine';
 import type { RateLimitStatus as RateLimitStatusType } from '../../lib/ai';
 
@@ -13,32 +13,33 @@ export function RateLimitStatus({
 }: RateLimitStatusProps) {
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [status, setStatus] = useState<RateLimitStatusType | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [timeRemaining, setTimeRemaining] = useState(0);
 
   useEffect(() => {
     let mounted = true;
     let interval: ReturnType<typeof setInterval> | null = null;
 
-    const updateRateLimitStatus = async () => {
+    const updateStatus = async () => {
       if (!mounted) return;
 
       try {
-        const rateLimitStatus = await aiEngine.getRateLimitStatus();
+        const nextStatus = await aiEngine.getRateLimitStatus();
         if (!mounted) return;
 
-        setStatus(rateLimitStatus);
-
-        if (!rateLimitStatus.canMakeRequest) {
-          const remaining =
-            rateLimitStatus.retryAfter ||
-            rateLimitStatus.resetTime - Date.now();
-          setTimeRemaining(Math.max(0, remaining));
-        } else {
-          setTimeRemaining(0);
-        }
+        setStatus(nextStatus);
+        setTimeRemaining(
+          nextStatus.canMakeRequest
+            ? 0
+            : Math.max(
+                0,
+                nextStatus.retryAfter ||
+                  nextStatus.resetTime - Date.now()
+              )
+        );
       } catch (error) {
-        if (!mounted) return;
-        console.error('Failed to get rate limit status:', error);
+        if (mounted) {
+          console.error('Failed to get OpenRouter rate status:', error);
+        }
       }
     };
 
@@ -50,12 +51,14 @@ export function RateLimitStatus({
         setIsAvailable(available);
         if (!available) return;
 
-        await updateRateLimitStatus();
-        interval = setInterval(updateRateLimitStatus, 1000);
+        await updateStatus();
+        interval = setInterval(() => {
+          void updateStatus();
+        }, 1000);
       } catch (error) {
         if (!mounted) return;
         setIsAvailable(false);
-        console.error('Failed to check AI availability:', error);
+        console.error('Failed to check OpenRouter opt-in status:', error);
       }
     };
 
@@ -67,39 +70,33 @@ export function RateLimitStatus({
     };
   }, []);
 
-  const formatTime = (ms: number): string => {
-    const seconds = Math.ceil(ms / 1000);
-    if (seconds < 60) {
-      return `${seconds}s`;
-    }
+  const formatTime = (milliseconds: number): string => {
+    const seconds = Math.ceil(milliseconds / 1000);
+    if (seconds < 60) return `${seconds}s`;
+
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+    return `${minutes}m ${seconds % 60}s`;
   };
 
-  if (isAvailable === null) {
-    return null;
-  }
+  if (isAvailable === null) return null;
 
   if (!isAvailable) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
         <div className="w-2 h-2 rounded-full bg-[var(--text-muted)]" />
         <div className="text-xs text-[var(--text-secondary)]">
-          AI not configured
+          OpenRouter off
         </div>
         {showDetails && (
           <div className="text-[10px] text-[var(--text-muted)]">
-            OpenRouter key required
+            Requires explicit enablement and an API key
           </div>
         )}
       </div>
     );
   }
 
-  if (!status) {
-    return null;
-  }
+  if (!status) return null;
 
   const isLimited = !status.canMakeRequest;
   const isLowRequests = status.requestsRemaining <= 3;
@@ -119,14 +116,14 @@ export function RateLimitStatus({
       <div className="text-xs">
         {isLimited ? (
           <span className="text-red-400">
-            AI rate limited{' '}
+            OpenRouter summary limited{' '}
             {timeRemaining > 0 && `(${formatTime(timeRemaining)})`}
           </span>
         ) : (
           <span
             className={isLowRequests ? 'text-yellow-400' : 'text-green-400'}
           >
-            AI API available ({status.requestsRemaining} left)
+            OpenRouter enabled ({status.requestsRemaining} local requests left)
           </span>
         )}
       </div>
@@ -135,9 +132,9 @@ export function RateLimitStatus({
         <div className="text-[10px] text-gray-500">
           {isLimited
             ? timeRemaining > 0
-              ? `Retry in ${formatTime(timeRemaining)}`
-              : 'Checking API availability...'
-            : `Rate window resets ${formatTime(
+              ? `Local retry window: ${formatTime(timeRemaining)}`
+              : 'Checking local rate state...'
+            : `Local window resets in ${formatTime(
                 Math.max(0, status.resetTime - Date.now())
               )}`}
         </div>
