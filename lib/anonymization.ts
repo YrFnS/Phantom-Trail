@@ -1,4 +1,4 @@
-import {
+import type {
   AnonymousPrivacyData,
   PrivacyData,
   RiskLevel,
@@ -7,11 +7,25 @@ import {
 
 export class AnonymizationService {
   /**
-   * Anonymize privacy data for P2P sharing
+   * Prepare an estimated score for optional P2P sharing.
+   * Insufficient-evidence states are never converted to zero or advertised.
    */
-  static anonymizeForP2P(rawData: PrivacyData): AnonymousPrivacyData {
+  static anonymizeForP2P(rawData: PrivacyData): AnonymousPrivacyData | null {
+    if (
+      rawData.scoreStatus !== 'estimated' ||
+      rawData.averageScore === null ||
+      rawData.grade === 'N/A'
+    ) {
+      return null;
+    }
+
     return {
       privacyScore: this.roundScore(rawData.averageScore),
+      scoreStatus: 'estimated',
+      scoreConfidence:
+        rawData.scoreConfidence && rawData.scoreConfidence !== 'none'
+          ? rawData.scoreConfidence
+          : 'low',
       grade: rawData.grade,
       trackerCount: this.capTrackerCount(rawData.trackerCount),
       riskDistribution: this.aggregateRiskData(rawData.events || []),
@@ -21,23 +35,14 @@ export class AnonymizationService {
     };
   }
 
-  /**
-   * Round privacy score to nearest 5 for anonymization
-   */
   private static roundScore(score: number): number {
     return Math.round(score / 5) * 5;
   }
 
-  /**
-   * Cap tracker count at 50 to prevent fingerprinting
-   */
   private static capTrackerCount(count: number): number {
     return Math.min(count, 50);
   }
 
-  /**
-   * Aggregate risk data from tracking events
-   */
   private static aggregateRiskData(
     events: TrackingEvent[]
   ): Record<RiskLevel, number> {
@@ -50,11 +55,10 @@ export class AnonymizationService {
 
     events.forEach(event => {
       if (event.riskLevel && event.riskLevel in riskCounts) {
-        riskCounts[event.riskLevel as RiskLevel]++;
+        riskCounts[event.riskLevel]++;
       }
     });
 
-    // Convert to percentages and round
     const total = Object.values(riskCounts).reduce(
       (sum, count) => sum + count,
       0
@@ -68,9 +72,6 @@ export class AnonymizationService {
     return riskCounts;
   }
 
-  /**
-   * Get top website categories (limited for privacy)
-   */
   private static getTopCategories(
     events: TrackingEvent[],
     limit: number
@@ -78,7 +79,6 @@ export class AnonymizationService {
     const categories = new Map<string, number>();
 
     events.forEach(event => {
-      // Use trackerType as category since TrackingEvent doesn't have category
       if (event.trackerType) {
         categories.set(
           event.trackerType,
@@ -88,40 +88,26 @@ export class AnonymizationService {
     });
 
     return Array.from(categories.entries())
-      .sort(([, a], [, b]) => b - a)
+      .sort(([, first], [, second]) => second - first)
       .slice(0, limit)
       .map(([category]) => category);
   }
 
-  /**
-   * Round timestamp to nearest hour for privacy
-   */
   private static roundToHour(timestamp: number): number {
     const date = new Date(timestamp);
     date.setMinutes(0, 0, 0);
     return date.getTime();
   }
 
-  /**
-   * Get general region (optional, broad geographic area)
-   */
   private static getGeneralRegion(): string | undefined {
-    // This would typically use IP geolocation to get broad region
-    // For now, return undefined to maintain maximum privacy
     return undefined;
   }
 
-  /**
-   * Validate that data is properly anonymized
-   */
   static validateAnonymization(data: AnonymousPrivacyData): boolean {
-    // Check that score is rounded to 5
+    if (data.scoreStatus && data.scoreStatus !== 'estimated') return false;
     if (data.privacyScore % 5 !== 0) return false;
-
-    // Check that tracker count is capped
     if (data.trackerCount > 50) return false;
 
-    // Check that timestamp is rounded to hour
     const date = new Date(data.timestamp);
     if (
       date.getMinutes() !== 0 ||
@@ -131,39 +117,25 @@ export class AnonymizationService {
       return false;
     }
 
-    // Check that categories are limited
-    if (data.websiteCategories.length > 5) return false;
-
-    return true;
+    return data.websiteCategories.length <= 5;
   }
 
-  /**
-   * Generate anonymous peer ID that changes periodically
-   */
   static generateAnonymousPeerId(): string {
-    // Generate ID that changes every hour for privacy
     const hourTimestamp = Math.floor(Date.now() / (1000 * 60 * 60));
-    const randomSeed = Math.random().toString(36).substr(2, 6);
+    const randomSeed = Math.random().toString(36).slice(2, 8);
     return `anon_${hourTimestamp}_${randomSeed}`;
   }
 
-  /**
-   * Sanitize data before sharing to remove any potential PII
-   */
   static sanitizeForSharing(
     data: Record<string, unknown>
   ): Record<string, unknown> {
-    // Remove any fields that might contain PII
     const sanitized = { ...data };
-
-    // Remove URLs, IPs, and other identifying information
     delete sanitized.url;
     delete sanitized.domain;
     delete sanitized.ip;
     delete sanitized.userAgent;
     delete sanitized.sessionId;
     delete sanitized.userId;
-
     return sanitized;
   }
 }
