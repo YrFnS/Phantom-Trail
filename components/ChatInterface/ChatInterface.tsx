@@ -7,9 +7,6 @@ import type {
 } from './ChatInterface.types';
 import { LoadingSpinner } from '../ui';
 
-/**
- * Individual message display component
- */
 function MessageDisplay({ message }: MessageDisplayProps) {
   const isUser = message.type === 'user';
 
@@ -27,7 +24,6 @@ function MessageDisplay({ message }: MessageDisplayProps) {
           </div>
         ) : (
           <div className="space-y-2">
-            {/* Check if content looks like analysis result (starts with #) */}
             {message.content.startsWith('#') ? (
               <AnalysisResult content={message.content} />
             ) : (
@@ -47,9 +43,6 @@ function MessageDisplay({ message }: MessageDisplayProps) {
   );
 }
 
-/**
- * Main Chat Interface component
- */
 export function ChatInterface({ className = '' }: ChatInterfaceProps) {
   const {
     messages,
@@ -62,10 +55,10 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
   } = useChat();
 
   const examplePrompts = [
-    'Analyze my tracking patterns',
-    "What's my privacy risk?",
-    'Show me tracking timeline',
-    "Audit this website's privacy",
+    'Summarize my recorded signals',
+    'Which recorded signals are classified as high risk?',
+    'Show the recorded-signal timeline',
+    'Summarize signals associated with the current website',
   ];
 
   const handleExampleClick = (prompt: string) => {
@@ -90,10 +83,9 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
-      {/* Header */}
       <div className="flex items-center justify-between px-1 mb-2">
         <h2 className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
-          Privacy Assistant
+          Experimental Signal Q&amp;A
         </h2>
         {messages.length > 0 && (
           <button
@@ -105,7 +97,12 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
         )}
       </div>
 
-      {/* Messages */}
+      <div className="mb-2 p-2 rounded border-l-2 border-[var(--warning)] bg-[var(--warning)]/5 text-[10px] leading-relaxed text-[var(--text-secondary)]">
+        The current prototype recognizes a limited set of English query
+        patterns and summarizes recorded events. It is not a general-purpose
+        assistant or a verified website privacy audit.
+      </div>
+
       <div className="flex-1 overflow-y-auto mb-2 space-y-3 min-h-[300px]">
         {messages.length === 0 ? (
           <div className="text-center text-[var(--text-tertiary)] mt-8">
@@ -118,12 +115,13 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
             >
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
-            <p className="text-xs mb-3 font-medium">Ask about your privacy</p>
+            <p className="text-xs mb-3 font-medium">
+              Ask about recorded signals
+            </p>
 
-            {/* Example prompts */}
             <div className="space-y-2">
               <p className="text-[10px] text-[var(--text-muted)] mb-2">
-                Try these examples:
+                Supported examples:
               </p>
               {examplePrompts.map((prompt, index) => (
                 <button
@@ -147,7 +145,7 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] px-2 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
                   <LoadingSpinner size="sm" />
                   <span className="text-[var(--text-tertiary)]">
-                    Analyzing...
+                    Processing recorded data...
                   </span>
                 </div>
               </div>
@@ -156,14 +154,12 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
         )}
       </div>
 
-      {/* Error */}
       {error && (
         <div className="p-2 bg-[var(--warning)]/10 border-l-2 border-[var(--warning)] mb-2 rounded text-xs text-[var(--warning)]">
           {error}
         </div>
       )}
 
-      {/* Input */}
       <form onSubmit={handleSubmit} className="flex gap-1.5">
         <input
           type="text"
@@ -172,7 +168,7 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
             setInputValue(e.target.value)
           }
           onKeyDown={handleKeyPress}
-          placeholder="Ask about tracking patterns, privacy risks, or specific trackers..."
+          placeholder="Ask about recorded signals or supported analyses..."
           className="flex-1 px-2 py-1.5 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-md text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
           disabled={loading}
         />
