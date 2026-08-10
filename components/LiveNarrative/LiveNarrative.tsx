@@ -12,9 +12,6 @@ import type {
 import { Card, CardHeader, CardContent, Badge, LoadingSpinner } from '../ui';
 import { PrivacyActions } from '../PrivacyActions';
 
-/**
- * Individual event display component with AI analysis
- */
 const EventDisplay = React.memo(
   function EventDisplay({ event, analysis }: EventDisplayProps) {
     const { analysis: eventAnalysis, loading: analysisLoading } =
@@ -32,7 +29,7 @@ const EventDisplay = React.memo(
             variant={event.riskLevel}
             className="text-[10px] px-1.5 py-0.5 shrink-0"
           >
-            {event.riskLevel}
+            {event.riskLevel} label
           </Badge>
           <div className="flex-1 min-w-0">
             <h3 className="text-xs font-medium text-[var(--text-primary)] truncate">
@@ -46,6 +43,9 @@ const EventDisplay = React.memo(
 
         {displayAnalysis && !analysisLoading && (
           <div className="mt-1.5 pt-1.5 border-t border-dark-600/50">
+            <p className="text-[9px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">
+              Optional generated summary
+            </p>
             <p className="text-[10px] text-gray-300 leading-relaxed">
               {displayAnalysis.narrative}
             </p>
@@ -54,17 +54,11 @@ const EventDisplay = React.memo(
       </div>
     );
   },
-  (prevProps, nextProps) => {
-    return (
-      prevProps.event.id === nextProps.event.id &&
-      prevProps.analysis === nextProps.analysis
-    );
-  }
+  (previousProps, nextProps) =>
+    previousProps.event.id === nextProps.event.id &&
+    previousProps.analysis === nextProps.analysis
 );
 
-/**
- * Pattern alert display component
- */
 const PatternAlerts = React.memo(function PatternAlerts({
   alerts,
 }: {
@@ -88,7 +82,7 @@ const PatternAlerts = React.memo(function PatternAlerts({
           <div className="flex items-start gap-1.5">
             <span className="text-sm">
               {alert.severity === 'critical'
-                ? '🚨'
+                ? '⚠️'
                 : alert.severity === 'warning'
                   ? '⚠️'
                   : 'ℹ️'}
@@ -103,14 +97,10 @@ const PatternAlerts = React.memo(function PatternAlerts({
   );
 });
 
-/**
- * Main Live Narrative component
- */
 export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
   const { events, analysis, loading, error } = useLiveNarrative();
   const { alerts } = usePatternDetection(events);
 
-  // Memoize expensive computations
   const hasEvents = React.useMemo(() => events.length > 0, [events.length]);
   const isInitialLoading = React.useMemo(
     () => loading && events.length === 0,
@@ -123,14 +113,14 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
         <Card>
           <CardHeader>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-              Live Activity
+              Recorded Signals
             </h2>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-3">
               <LoadingSpinner size="sm" />
               <span className="text-sm text-gray-400">
-                Loading tracking data...
+                Loading recorded detector signals...
               </span>
             </div>
           </CardContent>
@@ -145,7 +135,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
         <Card>
           <CardHeader>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-              Live Activity
+              Recorded Signals
             </h2>
           </CardHeader>
           <CardContent>
@@ -161,10 +151,10 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
                 <path d="M21 21l-4.35-4.35" />
               </svg>
               <p className="text-sm text-gray-400 mb-1">
-                No tracking detected yet...
+                No detector signals recorded yet
               </p>
               <p className="text-xs text-gray-500">
-                Visit a website to see tracking activity
+                Browse to collect possible tracking-related signals
               </p>
             </div>
           </CardContent>
@@ -175,79 +165,67 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
 
   return (
     <div className={`space-y-2 ${className}`}>
-      {/* Compact header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Live Feed
+            Recorded Signal Feed
           </h2>
-          {hasEvents && (
-            <div
-              className="w-1.5 h-1.5 bg-[var(--accent-primary)] rounded-full animate-pulse-dot"
-              title="Live updates"
-            />
-          )}
+          <div
+            className="w-1.5 h-1.5 bg-[var(--accent-primary)] rounded-full animate-pulse-dot"
+            title="Local detector updates"
+          />
         </div>
-        {hasEvents && (
-          <span className="text-[10px] text-gray-500">
-            {events.length} events
-          </span>
-        )}
+        <span className="text-[10px] text-gray-500">
+          {events.length} signals
+        </span>
       </div>
 
-      {isInitialLoading && (
-        <div className="flex items-center justify-center py-12">
-          <LoadingSpinner size="sm" />
+      <div className="p-2 rounded border-l-2 border-[var(--warning)] bg-[var(--warning)]/5 text-[10px] leading-relaxed text-[var(--text-secondary)]">
+        These entries are rule and instrumentation output. They can include false
+        positives and do not prove that data was collected, retained, shared, or
+        sold.
+      </div>
+
+      <PatternAlerts alerts={alerts} />
+
+      {analysis && (
+        <div className="p-2 bg-[var(--bg-secondary)] rounded border-l-2 border-[var(--accent-primary)]/30">
+          <p className="text-[9px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">
+            Optional generated summary
+          </p>
+          <p className="text-xs text-gray-300 leading-relaxed">
+            {analysis.narrative}
+          </p>
         </div>
       )}
 
-      {!hasEvents && !isInitialLoading && (
-        <div className="text-center py-12">
-          <div className="text-3xl mb-2 opacity-50">🔍</div>
-          <p className="text-xs text-gray-500">No tracking detected</p>
+      {error && (
+        <div className="p-2 bg-yellow-500/5 rounded border-l-2 border-yellow-500">
+          <p className="text-xs text-yellow-400">
+            Optional generated summary unavailable
+          </p>
         </div>
       )}
 
-      {hasEvents && (
-        <>
-          <PatternAlerts alerts={alerts} />
+      <PrivacyActions
+        events={events}
+        currentDomain={events[0]?.domain || ''}
+        className="mb-2"
+      />
 
-          {analysis && (
-            <div className="p-2 bg-[var(--bg-secondary)] rounded border-l-2 border-[var(--accent-primary)]/30">
-              <p className="text-xs text-gray-300 leading-relaxed">
-                {analysis.narrative}
-              </p>
-            </div>
-          )}
-
-          {error && (
-            <div className="p-2 bg-yellow-500/5 rounded border-l-2 border-yellow-500">
-              <p className="text-xs text-yellow-400">AI analysis unavailable</p>
-            </div>
-          )}
-
-          {/* Privacy Actions - Show recommendations based on detected events */}
-          <PrivacyActions
-            events={events}
-            currentDomain={events[0]?.domain || ''}
-            className="mb-2"
+      <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
+        {events.map(event => (
+          <EventDisplay
+            key={event.id}
+            event={event}
+            analysis={
+              event.id === events[events.length - 1]?.id
+                ? analysis || undefined
+                : undefined
+            }
           />
-
-          <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
-            {events.map(event => (
-              <EventDisplay
-                key={event.id}
-                event={event}
-                analysis={
-                  event.id === events[events.length - 1]?.id
-                    ? analysis || undefined
-                    : undefined
-                }
-              />
-            ))}
-          </div>
-        </>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
