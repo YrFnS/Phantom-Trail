@@ -1,0 +1,360 @@
+name: P0 visible-copy sweep
+
+on:
+  push:
+    branches:
+      - agent/p0-truthfulness-baseline
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: p0-visible-copy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out P0 branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/p0-truthfulness-baseline
+
+      - name: Apply exact source replacements
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str, expected: int | None = None) -> None:
+              file = Path(path)
+              text = file.read_text()
+              found = text.count(old)
+              if found == 0:
+                  raise SystemExit(f'Expected text not found in {path}: {old!r}')
+              if expected is not None and found != expected:
+                  raise SystemExit(
+                      f'Expected {expected} occurrence(s) in {path}, found {found}: {old!r}'
+                  )
+              file.write_text(text.replace(old, new))
+
+          # Live feed: use signal language throughout visible states.
+          replace(
+              'components/LiveNarrative/LiveNarrative.tsx',
+              'Live Activity',
+              'Recorded Signals',
+              expected=2,
+          )
+          replace(
+              'components/LiveNarrative/LiveNarrative.tsx',
+              'Loading tracking data...',
+              'Loading recorded signals...',
+              expected=1,
+          )
+          replace(
+              'components/LiveNarrative/LiveNarrative.tsx',
+              'No tracking detected yet...',
+              'No signals recorded yet...',
+              expected=1,
+          )
+          replace(
+              'components/LiveNarrative/LiveNarrative.tsx',
+              'Visit a website to see tracking activity',
+              'Browse to collect possible tracking signals',
+              expected=1,
+          )
+          replace(
+              'components/LiveNarrative/LiveNarrative.tsx',
+              'Live Feed',
+              'Recorded Signal Feed',
+              expected=1,
+          )
+          replace(
+              'components/LiveNarrative/LiveNarrative.tsx',
+              '{events.length} events',
+              '{events.length} signals',
+              expected=1,
+          )
+          replace(
+              'components/LiveNarrative/LiveNarrative.tsx',
+              'No tracking detected',
+              'No signals recorded',
+              expected=1,
+          )
+          replace(
+              'components/LiveNarrative/LiveNarrative.tsx',
+              'AI analysis unavailable',
+              'Optional analysis unavailable',
+              expected=1,
+          )
+
+          # Graph: make inferred relationships and evidence limits explicit.
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              'Network Graph',
+              'Recorded Signal Graph',
+              expected=3,
+          )
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              'Loading network...',
+              'Loading recorded signal graph...',
+              expected=1,
+          )
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              'No tracking data yet',
+              'No recorded signals yet',
+              expected=1,
+          )
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              'Visit websites to see the network',
+              'Browse to collect signals for this graph',
+              expected=1,
+          )
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              '{data.nodes.length} domains, {data.edges.length} connections',
+              '{data.nodes.length} recorded domains, {data.edges.length} inferred links',
+              expected=1,
+          )
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              '''          />
+          <div className="flex items-center justify-between">''',
+              '''          />
+          <p className="mb-3 text-[10px] leading-relaxed text-[var(--text-tertiary)]">
+            Edges are inferred from stored event URLs. They are not verified
+            data flows or proof that domains exchanged information.
+          </p>
+          <div className="flex items-center justify-between">''',
+              expected=1,
+          )
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              '<span>Low Risk</span>',
+              '<span>Low signal</span>',
+              expected=1,
+          )
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              '<span>Medium Risk</span>',
+              '<span>Medium signal</span>',
+              expected=1,
+          )
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              '<span>High Risk</span>',
+              '<span>High signal</span>',
+              expected=1,
+          )
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              '<span>Critical Risk</span>',
+              '<span>Critical signal</span>',
+              expected=1,
+          )
+          replace(
+              'components/NetworkGraph/NetworkGraph.tsx',
+              'Click nodes to explore',
+              'Inspect recorded nodes',
+              expected=1,
+          )
+
+          # Coaching: distinguish generated heuristics from measured behavior.
+          replace(
+              'components/PrivacyCoaching/PrivacyCoaching.tsx',
+              'Start browsing to begin your privacy journey',
+              'Browse to collect signals for experimental coaching',
+              expected=1,
+          )
+          replace(
+              'components/PrivacyCoaching/PrivacyCoaching.tsx',
+              '''  return (
+    <div className={`${className} space-y-4`}>
+      {/* Journey Overview */}''',
+              '''  return (
+    <div className={`${className} space-y-4`}>
+      <div className="p-2 rounded border-l-2 border-[var(--warning)] bg-[var(--warning)]/5 text-[10px] leading-relaxed text-[var(--text-secondary)]">
+        Goals and insights are generated from heuristic recorded signals. They
+        are not measurements of browsing safety or verified user behavior.
+      </div>
+
+      {/* Journey Overview */}''',
+              expected=1,
+          )
+          replace(
+              'components/PrivacyCoaching/PrivacyCoaching.tsx',
+              'Privacy Journey',
+              'Experimental Coaching',
+              expected=1,
+          )
+          replace(
+              'components/PrivacyCoaching/PrivacyCoaching.tsx',
+              'Current Score',
+              'Current Heuristic',
+              expected=1,
+          )
+          replace(
+              'components/PrivacyCoaching/PrivacyCoaching.tsx',
+              'This Week',
+              'Recent Change',
+              expected=1,
+          )
+          replace(
+              'components/PrivacyCoaching/PrivacyCoaching.tsx',
+              'Actions Taken',
+              'Recorded Actions',
+              expected=1,
+          )
+          replace(
+              'components/PrivacyCoaching/PrivacyCoaching.tsx',
+              'Active Goals',
+              'Generated Goals',
+              expected=1,
+          )
+          replace(
+              'components/PrivacyCoaching/PrivacyCoaching.tsx',
+              'Personal Insights',
+              'Heuristic Insights',
+              expected=1,
+          )
+          replace(
+              'components/PrivacyCoaching/PrivacyCoaching.tsx',
+              'Score Trend',
+              'Heuristic Trend',
+              expected=1,
+          )
+
+          # Coaching engine: stop inferring unsafe browsing behavior from event ratios.
+          replace(
+              'lib/privacy-coach.ts',
+              'AI-powered personalized privacy recommendations based on user behavior',
+              'Experimental coaching suggestions based on recorded signal events',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'You frequently visit high-risk sites. Consider using a VPN and strict privacy settings.',
+              'A large share of recent events was classified as high or critical risk. This does not prove that the sites are unsafe; review the recorded evidence before acting.',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Heavy social media usage detected. Review privacy settings and consider alternatives like Signal or Mastodon.',
+              'A large share of recent recorded domains matched social-media rules. This is a signal pattern, not a measurement of your total browsing behavior.',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'High-Risk Browsing Detected',
+              'Frequent High-Risk Signals',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Heavy Social Media Usage',
+              'Frequent Social-Domain Matches',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Frequent Online Shopping',
+              'Frequent Shopping-Domain Matches',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Insecure Banking Practices',
+              'Banking-Related Signals',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Behavior Pattern Detected',
+              'Possible Signal Pattern',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Install Basic Privacy Tools',
+              'Review Basic Privacy Tools',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Get essential privacy protection with uBlock Origin and Privacy Badger',
+              'Consider whether tools such as uBlock Origin or Privacy Badger fit your needs',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Enhance Privacy Settings',
+              'Review Browser Privacy Settings',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Fine-tune browser settings and add advanced protection',
+              'Review browser settings and choose controls appropriate to your needs',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Achieve Privacy Expert Status',
+              'Review Advanced Privacy Options',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Master advanced privacy techniques and tools',
+              'Explore advanced options only after reviewing their trade-offs',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Set New Privacy Goals',
+              'Review Generated Goals',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Ready for the next step? Set a new privacy improvement goal to continue your journey.',
+              'Review the generated goals and keep only those that match your needs.',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Your privacy score improved by ${scoreChange} points this week. Keep it up!',
+              'Your experimental heuristic changed by ${scoreChange} points in the recent history window.',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Privacy Score Declining',
+              'Heuristic Score Decreased',
+              expected=1,
+          )
+          replace(
+              'lib/privacy-coach.ts',
+              'Your score dropped by ${Math.abs(scoreChange)} points. Let\'s identify what changed.',
+              'The experimental heuristic decreased by ${Math.abs(scoreChange)} points. Review which recorded events changed.',
+              expected=1,
+          )
+          PY
+
+      - name: Commit visible-copy sweep
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/LiveNarrative/LiveNarrative.tsx \
+            components/NetworkGraph/NetworkGraph.tsx \
+            components/PrivacyCoaching/PrivacyCoaching.tsx \
+            lib/privacy-coach.ts
+          git commit -m "fix(p0): qualify visible heuristic claims"
+          git push origin HEAD:agent/p0-truthfulness-baseline
