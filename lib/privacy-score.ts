@@ -1,5 +1,9 @@
 import type { TrackingEvent } from './types';
 import { EventsStorage } from './storage/events-storage';
+import {
+  eventMatchesPageDomain,
+  getDisplayDomain,
+} from './event-attribution.mts';
 
 export interface PrivacyScore {
   score: number;
@@ -69,7 +73,7 @@ export function calculatePrivacyScore(
   if (events.length > 10) score -= 20;
 
   const uniqueDomainGroups = new Set(
-    events.map(event => extractDomainGroup(event.domain))
+    events.map(event => extractDomainGroup(getDisplayDomain(event)))
   );
   if (uniqueDomainGroups.size >= 3) score -= 15;
 
@@ -177,7 +181,7 @@ function generateReviewNotes(
 
   if (domainGroupCount >= 3) {
     notes.push(
-      `Recorded event labels span ${domainGroupCount} simplified root-domain groups. The current event model does not prove cross-site tracking, common ownership, or data sharing.`
+      `Recorded event labels span ${domainGroupCount} simplified root-domain groups. Explicit P1 routes improve attribution, but they still do not prove cross-site tracking, common ownership, or data sharing.`
     );
   }
 
@@ -189,19 +193,19 @@ function generateReviewNotes(
 
   if (breakdown.excessiveTrackingPenalty) {
     notes.push(
-      'More than ten detector events were counted. Check duplicate requests and repeated instrumentation before interpreting the volume.'
+      'More than ten stored detector rows were counted. Aggregated occurrences and repeated resources should be reviewed separately before interpreting the volume.'
     );
   }
 
   if (!breakdown.httpsBonus) {
     notes.push(
-      'The supplied context was not marked HTTPS. This flag alone does not establish how every request was transported or whether the page is unsafe.'
+      'The supplied page context was not marked HTTPS. This flag alone does not establish how every resource was transported or whether the page is unsafe.'
     );
   }
 
   if (score < 60) {
     notes.push(
-      'The experimental formula produced a low value. Review the underlying event mix rather than treating the number as a website verdict.'
+      'The experimental formula produced a low value. Review the underlying attributed event mix rather than treating the number as a website verdict.'
     );
   }
 
@@ -229,8 +233,8 @@ export interface DomainScoreResult {
 /**
  * Compatibility calculator for background messages.
  *
- * It uses only local recorded events. Unauthenticated peer scores are not used
- * as website reputation, and missing evidence returns an explicit N/A state.
+ * It uses local events attributed to the requested page domain. Resource-domain
+ * matches alone do not make a page result known.
  */
 export class PrivacyScoreCalculator {
   private static scoreCache = new Map<
@@ -288,13 +292,7 @@ export class PrivacyScoreCalculator {
     event: TrackingEvent,
     normalizedDomain: string
   ): boolean {
-    if ((event.domain || '').toLowerCase() === normalizedDomain) return true;
-
-    try {
-      return new URL(event.url).hostname.toLowerCase() === normalizedDomain;
-    } catch {
-      return false;
-    }
+    return eventMatchesPageDomain(event, normalizedDomain);
   }
 
   private static getUnknownResult(): DomainScoreResult {
