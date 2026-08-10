@@ -6,57 +6,59 @@ import {
 } from '../tracking-analysis';
 
 /**
- * Specialized analyzer for tracking pattern analysis
+ * Formats frequency groupings from stored detector signals.
  */
 export class PatternAnalyzer {
-  /**
-   * Analyze tracking patterns over a given timeframe
-   */
   static async analyze(timeframe?: number): Promise<AnalysisResult> {
     return await TrackingAnalysis.analyzePatterns(timeframe);
   }
 
-  /**
-   * Format pattern analysis results into readable text
-   */
   static formatResponse(result: AnalysisResult): string {
-    let response = `# Tracker Pattern Analysis\n\n`;
+    let response = `# Recorded Signal-Pattern Summary\n\n`;
+    response += `> These groups are derived from stored event labels. They do not prove tracker identity, cross-site behavior, or data transfer.\n\n`;
     response += `${result.summary}\n\n`;
     response += this.formatPatternData(result.data as PatternData);
 
     if (result.recommendations.length > 0) {
-      response += `\n## Recommendations\n`;
-      result.recommendations.forEach((rec: string, i: number) => {
-        response += `${i + 1}. ${rec}\n`;
+      response += `\n## Review Notes\n`;
+      result.recommendations.forEach((recommendation: string, index: number) => {
+        response += `${index + 1}. ${recommendation}\n`;
       });
     }
 
     return response;
   }
 
-  /**
-   * Format pattern data into readable sections
-   */
   private static formatPatternData(data: PatternData): string {
-    let output = `## Top Trackers (Last ${data.timeframeDays} Days)\n`;
-    data.topTrackers
-      .slice(0, 5)
-      .forEach((tracker: TrackerPattern, i: number) => {
-        output += `${i + 1}. **${tracker.name}** - ${tracker.occurrences} occurrences (${tracker.riskLevel} risk)\n`;
-      });
+    let output = `## Most Frequent Domain Labels (Last ${data.timeframeDays} Days)\n`;
 
-    if (data.crossSiteTrackers.length > 0) {
-      output += `\n## Cross-Site Tracking Detected\n`;
-      data.crossSiteTrackers.slice(0, 3).forEach((tracker: TrackerPattern) => {
-        output += `- **${tracker.name}** appears on ${tracker.crossSiteCount} different sites\n`;
-      });
+    if (data.topTrackers.length === 0) {
+      output += '- No detector signals were recorded in this window.\n';
+    } else {
+      data.topTrackers
+        .slice(0, 5)
+        .forEach((pattern: TrackerPattern, index: number) => {
+          output += `${index + 1}. **${pattern.name}** — ${pattern.occurrences} recorded occurrence${
+            pattern.occurrences === 1 ? '' : 's'
+          } (${pattern.riskLevel} prototype label)\n`;
+        });
     }
 
-    output += `\n## Risk Distribution\n`;
-    output += `- Low Risk: ${data.riskDistribution.low}%\n`;
-    output += `- Medium Risk: ${data.riskDistribution.medium}%\n`;
-    output += `- High Risk: ${data.riskDistribution.high}%\n`;
-    output += `- Critical Risk: ${data.riskDistribution.critical}%\n`;
+    if (data.crossSiteTrackers.length > 0) {
+      output += `\n## Domain Groups Associated with Multiple URL Hosts\n`;
+      data.crossSiteTrackers
+        .slice(0, 3)
+        .forEach((pattern: TrackerPattern) => {
+          output += `- **${pattern.name}** is associated with ${pattern.crossSiteCount} URL-host labels in stored events\n`;
+        });
+      output += `\nThe current event model can misattribute page and resource domains, so these are not confirmed cross-site trackers.\n`;
+    }
+
+    output += `\n## Prototype Severity-Label Distribution\n`;
+    output += `- Low label: ${data.riskDistribution.low}%\n`;
+    output += `- Medium label: ${data.riskDistribution.medium}%\n`;
+    output += `- High label: ${data.riskDistribution.high}%\n`;
+    output += `- Critical label: ${data.riskDistribution.critical}%\n`;
 
     return output;
   }
