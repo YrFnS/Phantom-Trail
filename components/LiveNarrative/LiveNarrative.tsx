@@ -4,6 +4,12 @@ import {
   useEventAnalysis,
   usePatternDetection,
 } from './LiveNarrative.hooks';
+import {
+  getEventOccurrenceCount,
+  getPageDomain,
+  getResourceDomain,
+  normalizeTrackingEvent,
+} from '../../lib/event-attribution.mts';
 import type {
   LiveNarrativeProps,
   EventDisplayProps,
@@ -14,29 +20,71 @@ import { PrivacyActions } from '../PrivacyActions';
 
 const EventDisplay = React.memo(
   function EventDisplay({ event, analysis }: EventDisplayProps) {
+    const normalized = React.useMemo(
+      () => normalizeTrackingEvent(event),
+      [event]
+    );
     const { analysis: eventAnalysis, loading: analysisLoading } =
-      useEventAnalysis(event);
-
+      useEventAnalysis(normalized);
     const displayAnalysis = React.useMemo(
       () => eventAnalysis || analysis,
       [eventAnalysis, analysis]
     );
 
+    const pageDomain = getPageDomain(normalized);
+    const resourceDomain = getResourceDomain(normalized);
+    const route =
+      pageDomain && resourceDomain && pageDomain !== resourceDomain
+        ? `${pageDomain} → ${resourceDomain}`
+        : pageDomain || resourceDomain || normalized.domain || 'unknown';
+    const occurrences = getEventOccurrenceCount(normalized);
+    const context = normalized.context;
+    const detector = normalized.detector;
+
     return (
       <div className="group relative p-2 rounded-lg bg-dark-800/50 border border-dark-600/50 hover:border-plasma/30 transition-all duration-200">
         <div className="flex items-start gap-2">
           <Badge
-            variant={event.riskLevel}
+            variant={normalized.riskLevel}
             className="text-[10px] px-1.5 py-0.5 shrink-0"
           >
-            {event.riskLevel} label
+            {normalized.riskLevel} label
           </Badge>
           <div className="flex-1 min-w-0">
-            <h3 className="text-xs font-medium text-[var(--text-primary)] truncate">
-              {event.domain}
+            <h3
+              className="text-xs font-medium text-[var(--text-primary)] truncate"
+              title={route}
+            >
+              {route}
             </h3>
-            <p className="text-[10px] text-gray-400 line-clamp-1">
-              {event.description}
+            <div className="flex flex-wrap gap-1 mt-1">
+              <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[9px] text-[var(--text-tertiary)]">
+                {context?.source || 'legacy'}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[9px] text-[var(--text-tertiary)]">
+                {context?.party || 'unknown'}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[9px] text-[var(--text-tertiary)]">
+                detector {detector?.confidence || 'low'}
+              </span>
+              {occurrences > 1 && (
+                <span className="px-1.5 py-0.5 rounded bg-[var(--accent-primary)]/10 text-[9px] text-[var(--accent-primary)]">
+                  {occurrences} occurrences
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-gray-400 leading-relaxed mt-1.5">
+              {normalized.description}
+            </p>
+            {detector?.evidence?.[0] && (
+              <p className="text-[9px] text-[var(--text-tertiary)] leading-relaxed mt-1">
+                Evidence: {detector.evidence[0]}
+              </p>
+            )}
+            <p className="text-[9px] text-[var(--text-muted)] mt-1">
+              Page attribution: {context?.attributionBasis || 'unknown'} (
+              {context?.attributionConfidence || 'low'}) • party basis:{' '}
+              {context?.partyBasis || 'missing-context'}
             </p>
           </div>
         </div>
@@ -56,6 +104,8 @@ const EventDisplay = React.memo(
   },
   (previousProps, nextProps) =>
     previousProps.event.id === nextProps.event.id &&
+    previousProps.event.lastSeenAt === nextProps.event.lastSeenAt &&
+    previousProps.event.occurrences === nextProps.event.occurrences &&
     previousProps.analysis === nextProps.analysis
 );
 
@@ -113,14 +163,14 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
         <Card>
           <CardHeader>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-              Recorded Signals
+              Attributed Signals
             </h2>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-3">
               <LoadingSpinner size="sm" />
               <span className="text-sm text-gray-400">
-                Loading recorded detector signals...
+                Loading attributed detector signals...
               </span>
             </div>
           </CardContent>
@@ -135,7 +185,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
         <Card>
           <CardHeader>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-              Recorded Signals
+              Attributed Signals
             </h2>
           </CardHeader>
           <CardContent>
@@ -154,7 +204,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
                 No detector signals recorded yet
               </p>
               <p className="text-xs text-gray-500">
-                Browse to collect possible tracking-related signals
+                Browse to collect page and resource evidence
               </p>
             </div>
           </CardContent>
@@ -163,12 +213,14 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
     );
   }
 
+  const latestPageDomain = getPageDomain(events[events.length - 1]);
+
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Recorded Signal Feed
+            Attributed Signal Feed
           </h2>
           <div
             className="w-1.5 h-1.5 bg-[var(--accent-primary)] rounded-full animate-pulse-dot"
@@ -176,14 +228,15 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
           />
         </div>
         <span className="text-[10px] text-gray-500">
-          {events.length} signals
+          {events.length} rows
         </span>
       </div>
 
       <div className="p-2 rounded border-l-2 border-[var(--warning)] bg-[var(--warning)]/5 text-[10px] leading-relaxed text-[var(--text-secondary)]">
-        These entries are rule and instrumentation output. They can include false
-        positives and do not prove that data was collected, retained, shared, or
-        sold.
+        P1 records the visited page, matched resource or API operation,
+        attribution basis, party relationship, rule, and confidence separately.
+        These fields can still be incomplete or wrong and do not prove data
+        collection, retention, sharing, or sale.
       </div>
 
       <PatternAlerts alerts={alerts} />
@@ -209,7 +262,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
 
       <PrivacyActions
         events={events}
-        currentDomain={events[0]?.domain || ''}
+        currentDomain={latestPageDomain}
         className="mb-2"
       />
 
