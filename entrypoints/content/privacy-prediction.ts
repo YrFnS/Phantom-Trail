@@ -4,10 +4,9 @@ import {
   type PageContext,
 } from '../../lib/privacy-predictor';
 
-// Privacy prediction state
 let currentTooltip: HTMLElement | null = null;
 let hoverTimeout: number | null = null;
-const HOVER_DELAY = 500; // 500ms delay before showing prediction
+const HOVER_DELAY = 500;
 
 export async function handleLinkHover(link: HTMLAnchorElement): Promise<void> {
   if (hoverTimeout) {
@@ -16,14 +15,11 @@ export async function handleLinkHover(link: HTMLAnchorElement): Promise<void> {
 
   hoverTimeout = window.setTimeout(async () => {
     try {
-      // Check if privacy predictions are enabled
       const settings = await chrome.storage.local.get('phantom_trail_settings');
       const enablePrivacyPredictions =
-        settings.phantom_trail_settings?.enablePrivacyPredictions ?? true;
+        settings.phantom_trail_settings?.enablePrivacyPredictions ?? false;
 
-      if (!enablePrivacyPredictions) {
-        return;
-      }
+      if (!enablePrivacyPredictions) return;
 
       const href = link.href;
       if (!href || href.startsWith('javascript:') || href.startsWith('#')) {
@@ -41,10 +37,10 @@ export async function handleLinkHover(link: HTMLAnchorElement): Promise<void> {
       const analysis = await PrivacyPredictor.analyzeLinkHover(href, context);
 
       if (analysis.shouldWarn) {
-        showPrivacyTooltip(link, analysis.prediction, analysis.displayText);
+        showHeuristicTooltip(link, analysis.prediction, analysis.displayText);
       }
     } catch (error) {
-      console.warn('[Phantom Trail] Privacy prediction failed:', error);
+      console.warn('[Phantom Trail] Link heuristic failed:', error);
     }
   }, HOVER_DELAY);
 }
@@ -54,7 +50,7 @@ export function handleLinkLeave(): void {
     clearTimeout(hoverTimeout);
     hoverTimeout = null;
   }
-  hidePrivacyTooltip();
+  hideTooltip();
 }
 
 function getLinkPosition(
@@ -69,21 +65,21 @@ function getLinkPosition(
   return 'content';
 }
 
-function showPrivacyTooltip(
+function showHeuristicTooltip(
   link: HTMLAnchorElement,
   prediction: PrivacyPrediction,
   displayText: string
 ): void {
-  hidePrivacyTooltip();
+  hideTooltip();
 
   const tooltip = document.createElement('div');
   tooltip.className = 'phantom-trail-tooltip';
+  tooltip.setAttribute('role', 'note');
 
-  // Different icon and title for historical vs predicted data
-  const icon = prediction.isHistorical ? '✓' : '🛡️';
+  const icon = prediction.isHistorical ? '◷' : '~';
   const title = prediction.isHistorical
-    ? 'Historical Data'
-    : 'Privacy Prediction';
+    ? 'Recorded heuristic history'
+    : 'Experimental link estimate';
 
   tooltip.innerHTML = `
     <div class="phantom-trail-tooltip-content">
@@ -93,14 +89,14 @@ function showPrivacyTooltip(
       </div>
       <div class="phantom-trail-tooltip-body">
         <div class="phantom-trail-tooltip-score">
-          Privacy Score: <span class="phantom-trail-score-${prediction.predictedGrade.toLowerCase()}">${prediction.predictedScore}/100</span>
+          Heuristic signal score: <span class="phantom-trail-score-${prediction.predictedGrade.toLowerCase()}">${prediction.predictedScore}/100</span>
         </div>
         <div class="phantom-trail-tooltip-text">${displayText}</div>
+        <div class="phantom-trail-tooltip-text">Not a destination audit, safety verdict, or privacy guarantee.</div>
       </div>
     </div>
   `;
 
-  // Position tooltip
   const rect = link.getBoundingClientRect();
   tooltip.style.position = 'fixed';
   tooltip.style.left = `${rect.left}px`;
@@ -111,7 +107,7 @@ function showPrivacyTooltip(
   currentTooltip = tooltip;
 }
 
-function hidePrivacyTooltip(): void {
+function hideTooltip(): void {
   if (currentTooltip) {
     currentTooltip.remove();
     currentTooltip = null;
