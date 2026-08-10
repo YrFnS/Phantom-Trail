@@ -20,8 +20,10 @@ export enum BadgeStyle {
 export interface PrivacySummary {
   score: number;
   grade: string;
-  trackerCount: number;
-  riskLevel: string;
+  qualifyingRows: number;
+  evidenceUnits: number;
+  confidence: string;
+  penaltyLabel: string;
 }
 
 const STORAGE_KEY = 'phantom-trail-badge-settings';
@@ -73,6 +75,16 @@ export class BadgeManager {
         return;
       }
 
+      if (score.status !== 'estimated' || score.score === null) {
+        await chrome.action.setBadgeText({ text: '', tabId });
+        await chrome.action.setTitle({
+          tabId,
+          title: `Phantom Trail — N/A: insufficient score-qualified evidence\nObserved rows: ${score.breakdown.observedRows}\nExcluded rows: ${score.breakdown.excludedRows}\nNo privacy or safety conclusion can be drawn`,
+        });
+        this.lastUpdateTime.delete(tabId);
+        return;
+      }
+
       const now = Date.now();
       const lastUpdate = this.lastUpdateTime.get(tabId) || 0;
       if (now - lastUpdate < this.UPDATE_THROTTLE_MS) return;
@@ -94,8 +106,10 @@ export class BadgeManager {
       await this.updateTooltip(tabId, {
         score: score.score,
         grade: score.grade,
-        trackerCount: score.breakdown.totalTrackers,
-        riskLevel: this.getSignalLabel(score.score),
+        qualifyingRows: score.breakdown.qualifyingRows,
+        evidenceUnits: score.breakdown.evidenceUnits,
+        confidence: score.confidence,
+        penaltyLabel: this.getPenaltyLabel(score.score),
       });
     } catch (error) {
       console.error('Failed to update experimental badge:', error);
@@ -151,10 +165,7 @@ export class BadgeManager {
   static async saveBadgeSettings(settings: BadgeSettings): Promise<void> {
     try {
       await chrome.storage.local.set({ [STORAGE_KEY]: settings });
-
-      if (!settings.enabled) {
-        await this.clearAllBadges();
-      }
+      if (!settings.enabled) await this.clearAllBadges();
     } catch (error) {
       console.error('Failed to save badge settings:', error);
     }
@@ -172,7 +183,7 @@ export class BadgeManager {
   }
 
   private static generateBadgeText(
-    score: PrivacyScore,
+    score: PrivacyScore & { score: number },
     style: BadgeStyle
   ): string {
     switch (style) {
@@ -196,26 +207,28 @@ export class BadgeManager {
     const colors = COLOR_SCHEMES[colorScheme];
     if (score >= 90) return colors.excellent;
     if (score >= 80) return colors.good;
-    if (score >= 70) return colors.moderate;
-    if (score >= 60) return colors.poor;
+    if (score >= 65) return colors.moderate;
+    if (score >= 50) return colors.poor;
     return colors.critical;
   }
 
-  private static getSignalLabel(score: number): string {
-    if (score >= 90) return 'minimal penalty';
-    if (score >= 80) return 'low penalty';
-    if (score >= 70) return 'moderate penalty';
-    if (score >= 60) return 'high penalty';
-    return 'critical penalty';
+  private static getPenaltyLabel(score: number): string {
+    if (score >= 90) return 'minimal observed penalty';
+    if (score >= 80) return 'low observed penalty';
+    if (score >= 65) return 'moderate observed penalty';
+    if (score >= 50) return 'high observed penalty';
+    return 'very high observed penalty';
   }
 
   private static async updateTooltip(
     tabId: number,
     summary: PrivacySummary
   ): Promise<void> {
-    const tooltipText = `Experimental heuristic: ${summary.score} (${summary.grade})
-Recorded signals: ${summary.trackerCount}
-Model label: ${summary.riskLevel}
+    const tooltipText = `Experimental evidence index: ${summary.score} (${summary.grade})
+Evidence units: ${summary.evidenceUnits}
+Qualifying rows: ${summary.qualifyingRows}
+Coverage confidence: ${summary.confidence}
+Model label: ${summary.penaltyLabel}
 Not a verified privacy or safety rating`;
 
     await chrome.action.setTitle({ title: tooltipText, tabId });
