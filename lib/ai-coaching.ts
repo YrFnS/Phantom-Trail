@@ -70,8 +70,9 @@ export class PrivacyCoach {
   }
 
   static async createPrivacyGoals(
-    _userPreferences: UserPreferences
+    userPreferences: UserPreferences
   ): Promise<PrivacyGoal[]> {
+    void userPreferences;
     const insights = await this.generatePersonalizedInsights();
 
     // Automatic score-optimization goals are intentionally disabled. An N/A
