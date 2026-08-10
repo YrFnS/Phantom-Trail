@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { P2PPrivacyNetwork } from '../../lib/p2p-privacy-network';
-import {
-  CommunityStats,
-  CommunityComparison,
-  P2PSettings,
-} from '../../lib/types';
+import { CommunityStats, P2PSettings } from '../../lib/types';
 import { P2PStorage } from '../../lib/storage/p2p-storage';
 
 interface CommunityInsightsProps {
@@ -20,119 +16,42 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
   const [communityStats, setCommunityStats] = useState<CommunityStats | null>(
     null
   );
-  const [comparison, setComparison] = useState<CommunityComparison | null>(
-    null
-  );
   const [networkStatus, setNetworkStatus] = useState<string>('Disabled');
   const [isEnabled, setIsEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const updateNetworkStatus = useCallback(async () => {
+  const updateNetworkStatus = useCallback(() => {
     try {
-      const status = network.getNetworkStatus();
-      setNetworkStatus(status);
-
-      if (network.isNetworkActive()) {
-        const stats = await network.getCommunityStats();
-        setCommunityStats(stats);
-      }
+      setNetworkStatus(network.getNetworkStatus());
+      setCommunityStats(
+        network.isNetworkActive() ? network.getCommunityStats() : null
+      );
     } catch (error) {
       console.error('Failed to update network status:', error);
     }
   }, [network]);
 
-  const generateRecommendations = useCallback(
-    (userScore: number, networkAverage: number) => {
-      const recommendations = [];
-
-      if (userScore < networkAverage) {
-        recommendations.push({
-          type: 'tool' as const,
-          title: 'uBlock Origin',
-          description: '85% of A-grade peers use this ad blocker',
-          adoptionRate: 85,
-          impact: 'high' as const,
-        });
-
-        recommendations.push({
-          type: 'setting' as const,
-          title: 'Third-party cookies',
-          description: 'Block third-party cookies in browser settings',
-          adoptionRate: 78,
-          impact: 'medium' as const,
-        });
-      }
-
-      if (userScore > 80) {
-        recommendations.push({
-          type: 'behavior' as const,
-          title: 'Share knowledge',
-          description: 'Help others improve their privacy practices',
-          adoptionRate: 65,
-          impact: 'low' as const,
-        });
-      }
-
-      return recommendations;
-    },
-    []
-  );
-
-  const calculateComparison = useCallback(() => {
-    if (!communityStats || communityStats.connectedPeers === 0) {
-      setComparison(null);
-      return;
-    }
-
-    // Calculate percentile based on user score vs network average
-    const networkAverage = communityStats.averageScore;
-    const percentile =
-      userScore > networkAverage
-        ? Math.min(
-            95,
-            50 + ((userScore - networkAverage) / networkAverage) * 50
-          )
-        : Math.max(
-            5,
-            50 - ((networkAverage - userScore) / networkAverage) * 50
-          );
-
-    const betterThan = Math.round(percentile);
-
-    const recommendations = generateRecommendations(userScore, networkAverage);
-
-    setComparison({
-      userScore,
-      networkAverage,
-      percentile,
-      betterThan,
-      recommendations,
-    });
-  }, [userScore, communityStats, generateRecommendations]);
-
   const loadP2PSettings = useCallback(async () => {
     try {
       const settings = await P2PStorage.getSettings();
       setIsEnabled(settings.joinPrivacyNetwork);
+
+      if (settings.joinPrivacyNetwork) {
+        await network.initializeNetwork();
+      }
+
+      updateNetworkStatus();
     } catch (error) {
       console.error('Failed to load P2P settings:', error);
     }
-  }, []);
+  }, [network, updateNetworkStatus]);
 
   useEffect(() => {
     loadP2PSettings();
-    updateNetworkStatus();
 
-    // Update status every 10 seconds
     const interval = setInterval(updateNetworkStatus, 10000);
     return () => clearInterval(interval);
   }, [loadP2PSettings, updateNetworkStatus]);
-
-  useEffect(() => {
-    if (isEnabled && communityStats) {
-      calculateComparison();
-    }
-  }, [userScore, communityStats, isEnabled, calculateComparison]);
 
   const enableP2PNetwork = async () => {
     setLoading(true);
@@ -173,7 +92,6 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
 
       setIsEnabled(false);
       setCommunityStats(null);
-      setComparison(null);
       setNetworkStatus('Disabled');
     } catch (error) {
       console.error('Failed to disable P2P network:', error);
@@ -187,25 +105,33 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
       <div className="bg-[var(--bg-elevated)] border border-[var(--border-primary)] rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[var(--text-primary)] font-medium">
-            Community Insights
+            Community Network
           </h3>
-          <div className="w-2 h-2 bg-[var(--text-tertiary)] rounded-full"></div>
+          <span className="text-[10px] uppercase tracking-wide text-[var(--warning)]">
+            Experimental
+          </span>
         </div>
 
         <p className="text-[var(--text-secondary)] text-sm mb-4">
-          Connect with other privacy-conscious users to compare your privacy
-          practices and get peer recommendations.
+          Join an experimental peer-to-peer transport for exchanging aggregate
+          privacy samples. This is not a verified reputation service or a
+          representative community benchmark.
         </p>
 
-        <div className="bg-[var(--bg-secondary)] border border-[var(--accent-primary)]/20 rounded p-3 mb-4">
-          <h4 className="text-[var(--accent-primary)] text-sm font-medium mb-2">
-            Privacy-First Design
+        <div className="bg-[var(--bg-secondary)] border border-[var(--warning)]/30 rounded p-3 mb-4">
+          <h4 className="text-[var(--warning)] text-sm font-medium mb-2">
+            Before joining
           </h4>
           <ul className="text-[var(--text-secondary)] text-xs space-y-1">
-            <li>• No servers - direct peer-to-peer connections</li>
-            <li>• Anonymous data only (scores rounded, no URLs)</li>
-            <li>• Data exists only while browsers are connected</li>
-            <li>• You control what to share</li>
+            <li>• Peer identity and submitted data are not authenticated.</li>
+            <li>
+              • Shared fields can include score, grade, counts, categories, and
+              optional broad region.
+            </li>
+            <li>• Connected peers must be treated as untrusted.</li>
+            <li>
+              • No adoption percentages or peer percentiles are verified.
+            </li>
           </ul>
         </div>
 
@@ -214,94 +140,88 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
           disabled={loading}
           className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50 transition-colors"
         >
-          {loading ? 'Connecting...' : 'Join Privacy Network'}
+          {loading ? 'Connecting...' : 'Join Experimental Network'}
         </button>
       </div>
     );
   }
 
+  const connectedPeers =
+    communityStats?.connectedPeers ?? network.getConnectedPeerCount();
+  const sampleCount = communityStats
+    ? Object.values(communityStats.scoreDistribution).reduce(
+        (total, count) => total + count,
+        0
+      )
+    : 0;
+
   return (
     <div className="bg-[var(--bg-elevated)] border border-[var(--border-primary)] rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[var(--text-primary)] font-medium">
-          Community Insights
+          Community Network
         </h3>
-        <div
-          className={`w-2 h-2 rounded-full ${
-            network.isNetworkActive()
-              ? 'bg-[var(--success)]'
-              : 'bg-[var(--text-tertiary)]'
-          }`}
-        ></div>
+        <span className="text-[10px] uppercase tracking-wide text-[var(--warning)]">
+          Experimental
+        </span>
       </div>
 
-      <div className="text-[var(--text-secondary)] text-sm mb-4">
+      <div className="text-[var(--text-secondary)] text-sm mb-3">
         {networkStatus}
       </div>
 
-      {comparison && (
-        <div className="space-y-4">
-          <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-3">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[var(--text-secondary)] text-sm">
-                Your Score
-              </span>
-              <span className="text-[var(--accent-primary)] font-medium">
-                {userGrade} ({userScore})
-              </span>
-            </div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[var(--text-secondary)] text-sm">
-                Network Average
-              </span>
-              <span className="text-[var(--text-primary)]">
-                {Math.round(comparison.networkAverage)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[var(--text-secondary)] text-sm">
-                Better Than
-              </span>
-              <span className="text-[var(--success)] font-medium">
-                {comparison.betterThan}% of peers
-              </span>
-            </div>
-          </div>
+      <div className="p-2 mb-4 text-xs rounded border border-[var(--warning)]/30 bg-[var(--warning)]/10 text-[var(--text-secondary)]">
+        Peer values are self-reported and unverified. They do not establish
+        website reputation, population percentiles, or tool adoption rates.
+      </div>
 
-          {comparison.recommendations.length > 0 && (
-            <div>
-              <h4 className="text-[var(--text-primary)] text-sm font-medium mb-2">
-                Peer Recommendations
-              </h4>
-              <div className="space-y-2">
-                {comparison.recommendations.slice(0, 2).map((rec, index) => (
-                  <div
-                    key={index}
-                    className="bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded p-2"
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-[var(--text-primary)] text-sm font-medium">
-                        {rec.title}
-                      </span>
-                      <span className="text-[var(--accent-primary)] text-xs">
-                        {rec.adoptionRate}% use this
-                      </span>
-                    </div>
-                    <p className="text-[var(--text-secondary)] text-xs">
-                      {rec.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-3">
+          <div className="text-[10px] text-[var(--text-secondary)] mb-1">
+            Local heuristic score
+          </div>
+          <div className="text-[var(--accent-primary)] font-medium">
+            {userGrade} ({userScore})
+          </div>
+        </div>
+
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-3">
+          <div className="text-[10px] text-[var(--text-secondary)] mb-1">
+            Connected peers
+          </div>
+          <div className="text-[var(--text-primary)] font-medium">
+            {connectedPeers}
+          </div>
+        </div>
+      </div>
+
+      {communityStats && sampleCount > 0 ? (
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-3 mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[var(--text-secondary)] text-sm">
+              Contributing samples
+            </span>
+            <span className="text-[var(--text-primary)]">{sampleCount}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[var(--text-secondary)] text-sm">
+              Unverified sample average
+            </span>
+            <span className="text-[var(--text-primary)]">
+              {Math.round(communityStats.averageScore)}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-3 mb-4 text-xs text-[var(--text-secondary)]">
+          No valid peer samples have been received in this session.
         </div>
       )}
 
       <button
         onClick={disableP2PNetwork}
         disabled={loading}
-        className="w-full mt-4 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] hover:border-[var(--border-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-4 py-2 rounded text-sm disabled:opacity-50 transition-colors"
+        className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] hover:border-[var(--border-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-4 py-2 rounded text-sm disabled:opacity-50 transition-colors"
       >
         {loading ? 'Disconnecting...' : 'Leave Network'}
       </button>
