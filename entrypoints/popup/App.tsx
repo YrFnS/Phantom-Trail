@@ -12,7 +12,11 @@ import {
 } from '../../components/ui';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { LogoIcon, SettingsIcon } from '../../components/icons';
-import type { PrivacyScore as PrivacyScoreType } from '../../lib/types';
+import { calculatePrivacyScore } from '../../lib/privacy-score';
+import type {
+  EvidenceCoverageConfidence,
+  EvidenceScoreColor,
+} from '../../lib/types';
 
 const LiveNarrative = lazy(() =>
   import('../../components/LiveNarrative').then(module => ({
@@ -51,35 +55,33 @@ const ComponentLoader = () => (
   </div>
 );
 
-const EMPTY_PRIVACY_SCORE: PrivacyScoreType = {
-  score: 100,
-  grade: 'A',
-  color: 'green',
-  breakdown: {
-    totalTrackers: 0,
-    highRisk: 0,
-    mediumRisk: 0,
-    lowRisk: 0,
-    criticalRisk: 0,
-    httpsBonus: true,
-    excessiveTrackingPenalty: false,
-  },
-  recommendations: [],
-};
+const EMPTY_EVIDENCE_SCORE = calculatePrivacyScore([]);
+
+function getScoreColorClass(color: EvidenceScoreColor): string {
+  switch (color) {
+    case 'green':
+      return 'text-[var(--success)]';
+    case 'yellow':
+    case 'orange':
+      return 'text-[var(--warning)]';
+    case 'red':
+      return 'text-[var(--error)]';
+    case 'gray':
+    default:
+      return 'text-[var(--text-secondary)]';
+  }
+}
 
 function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState<ViewType>('narrative');
-
   const { events, currentSiteScore, overallScore, currentDomain } =
     useAppData();
 
   useEffect(() => {
     const handleTabSwitch = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
-      if (customEvent.detail === 'actions') {
-        setActiveView('dashboard');
-      }
+      if (customEvent.detail === 'actions') setActiveView('dashboard');
     };
 
     window.addEventListener('switchTab', handleTabSwitch);
@@ -94,20 +96,19 @@ function App() {
     );
   }
 
-  const hasCurrentSignals =
-    (currentSiteScore?.breakdown.totalTrackers ?? 0) > 0;
-  const hasRecentSignals = events.length > 0;
-
-  const communityScore = hasCurrentSignals
-    ? currentSiteScore?.score || 0
-    : hasRecentSignals
-      ? overallScore?.score || 0
-      : 0;
-  const communityGrade = hasCurrentSignals
-    ? currentSiteScore?.grade || '—'
-    : hasRecentSignals
-      ? overallScore?.grade || '—'
-      : '—';
+  const currentEstimate =
+    currentSiteScore?.status === 'estimated' && currentSiteScore.score !== null
+      ? currentSiteScore
+      : null;
+  const overallEstimate =
+    overallScore?.status === 'estimated' && overallScore.score !== null
+      ? overallScore
+      : null;
+  const communitySource = currentEstimate || overallEstimate;
+  const communityScore = communitySource?.score ?? null;
+  const communityGrade = communitySource?.grade ?? 'N/A';
+  const communityConfidence: EvidenceCoverageConfidence =
+    communitySource?.confidence ?? 'none';
 
   return (
     <div className="extension-popup relative bg-[var(--bg-primary)] text-[var(--text-primary)]">
@@ -131,7 +132,7 @@ function App() {
               <ThemeToggle size="sm" />
               <ExportButton
                 events={events}
-                privacyScore={overallScore || EMPTY_PRIVACY_SCORE}
+                privacyScore={overallScore || EMPTY_EVIDENCE_SCORE}
               />
               <button
                 onClick={() => setShowSettings(true)}
@@ -147,28 +148,23 @@ function App() {
             <div className="mb-2">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wide">
-                  Current site heuristic
+                  Current-page evidence index
                 </span>
                 <span
-                  className={`text-xl font-bold ${
-                    !hasCurrentSignals
-                      ? 'text-[var(--text-secondary)]'
-                      : currentSiteScore.color === 'green'
-                        ? 'text-[var(--success)]'
-                        : currentSiteScore.color === 'yellow'
-                          ? 'text-[var(--warning)]'
-                          : currentSiteScore.color === 'orange'
-                            ? 'text-[var(--warning)]'
-                            : 'text-[var(--error)]'
-                  }`}
+                  className={`text-xl font-bold ${getScoreColorClass(
+                    currentSiteScore.color
+                  )}`}
                 >
-                  {hasCurrentSignals ? currentSiteScore.grade : '—'}
+                  {currentEstimate
+                    ? `${currentEstimate.grade} ${currentEstimate.score}`
+                    : 'N/A'}
                 </span>
               </div>
               <div className="text-[10px] text-[var(--text-secondary)] truncate flex items-center justify-between">
                 <span>
-                  {currentDomain || 'Unknown'} •{' '}
-                  {currentSiteScore.breakdown.totalTrackers} recorded signals
+                  {currentDomain || 'Unknown page'} •{' '}
+                  {currentSiteScore.breakdown.observedRows} observed rows •{' '}
+                  {currentSiteScore.breakdown.evidenceUnits} evidence units
                 </span>
                 {currentDomain && (
                   <QuickTrustButton
@@ -178,38 +174,40 @@ function App() {
                   />
                 )}
               </div>
+              <div className="text-[9px] text-[var(--text-tertiary)] mt-1">
+                {currentEstimate
+                  ? `${currentEstimate.confidence} evidence-coverage confidence`
+                  : 'Insufficient score-qualified evidence; this is not a favorable result.'}
+              </div>
             </div>
           )}
 
           <div className="flex items-center justify-between text-[10px] text-[var(--text-secondary)]">
             <div>
-              {hasRecentSignals && overallScore ? (
+              {overallScore ? (
                 <>
-                  Recent heuristic:{' '}
+                  Recent evidence index:{' '}
                   <span
-                    className={`font-medium ${
-                      overallScore.color === 'green'
-                        ? 'text-[var(--success)]'
-                        : overallScore.color === 'yellow'
-                          ? 'text-[var(--warning)]'
-                          : overallScore.color === 'orange'
-                            ? 'text-[var(--warning)]'
-                            : 'text-[var(--error)]'
-                    }`}
+                    className={`font-medium ${getScoreColorClass(
+                      overallScore.color
+                    )}`}
                   >
-                    {overallScore.grade} ({overallScore.score})
+                    {overallEstimate
+                      ? `${overallEstimate.grade} (${overallEstimate.score})`
+                      : 'N/A'}
                   </span>{' '}
-                  • {events.length} events
+                  • {events.length} stored rows
                 </>
               ) : (
-                'No recent signals recorded'
+                'Loading recorded evidence'
               )}
             </div>
             <RateLimitStatus className="ml-2" />
           </div>
 
           <p className="text-[9px] text-[var(--warning)] mt-1">
-            Grades are experimental and are not verified privacy ratings.
+            Model bands summarize qualifying recorded evidence. They are not
+            verified privacy or safety ratings.
           </p>
         </header>
 
@@ -240,6 +238,7 @@ function App() {
                     <CommunityInsights
                       userScore={communityScore}
                       userGrade={communityGrade}
+                      userConfidence={communityConfidence}
                     />
                   )}
                 </Suspense>
