@@ -13,166 +13,166 @@ export interface ExportOptions {
 }
 
 /**
- * Export service for tracking data
+ * Exports recorded prototype detector events.
+ * The legacy `pdf` format identifier produces plain text for compatibility.
  */
 export class ExportService {
-  /**
-   * Sanitize CSV value to prevent injection
-   */
   private static sanitizeCSVValue(value: string): string {
-    // Prevent CSV injection by prefixing dangerous characters
     const sanitized = value.replace(/^[=+\-@]/, "'$&");
     return `"${sanitized.replace(/"/g, '""')}"`;
   }
 
-  /**
-   * Export tracking events as CSV
-   */
   static async exportAsCSV(events: TrackingEvent[]): Promise<Blob> {
     const headers = [
       'Timestamp',
-      'Domain',
-      'Tracker Type',
-      'Risk Level',
-      'Description',
-      'URL',
+      'Event Domain Label',
+      'Prototype Category Label',
+      'Prototype Severity Label',
+      'Recorded Description',
+      'Stored URL',
     ];
 
-    const csvContent = [
-      headers.join(','),
-      ...events.map(event =>
-        [
-          new Date(event.timestamp).toISOString(),
-          this.sanitizeCSVValue(event.domain),
-          this.sanitizeCSVValue(event.trackerType),
-          this.sanitizeCSVValue(event.riskLevel),
-          this.sanitizeCSVValue(event.description),
-          this.sanitizeCSVValue(event.url),
-        ].join(',')
-      ),
+    const rows = events.map(event =>
+      [
+        new Date(event.timestamp).toISOString(),
+        event.domain,
+        event.trackerType,
+        event.riskLevel,
+        event.description,
+        event.url,
+      ]
+        .map(value => this.sanitizeCSVValue(String(value)))
+        .join(',')
+    );
+
+    const preamble = [
+      '# Phantom Trail 0.1.0 experimental detector-signal export',
+      '# Rows can contain false positives, false negatives, duplicates, attribution errors, and full stored URLs.',
+      '# A row does not prove data collection, sharing, sale, tracking intent, or website safety.',
     ].join('\n');
 
-    return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    return new Blob([[preamble, headers.join(','), ...rows].join('\n')], {
+      type: 'text/csv;charset=utf-8;',
+    });
   }
 
-  /**
-   * Export tracking events as JSON
-   */
   static async exportAsJSON(events: TrackingEvent[]): Promise<Blob> {
     const exportData = {
-      exportDate: new Date().toISOString(),
-      totalEvents: events.length,
+      format: 'phantom-trail-experimental-signal-export',
+      version: '0.1.0',
+      exportedAt: new Date().toISOString(),
+      disclaimer:
+        'Recorded detector events can be wrong or misattributed and do not prove data collection, sharing, sale, tracking intent, website safety, or legal compliance.',
+      dataWarning:
+        'Stored URL values can include paths, query strings, or fragments. Review this file before sharing it.',
+      recordedEventCount: events.length,
       events: events.map(event => ({
         ...event,
         timestamp: new Date(event.timestamp).toISOString(),
       })),
     };
 
-    const jsonContent = JSON.stringify(exportData, null, 2);
-    return new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    return new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json;charset=utf-8;',
+    });
   }
 
   /**
-   * Export tracking summary as PDF (text format)
+   * Generate a plain-text summary. This is intentionally not represented as a
+   * PDF document in the filename or UI.
    */
   static async exportAsPDF(
     events: TrackingEvent[],
-    privacyScore: PrivacyScore
+    heuristic: PrivacyScore
   ): Promise<Blob> {
-    const reportDate = new Date().toLocaleDateString();
+    const generatedAt = new Date().toLocaleString();
+    const timeRange = this.getTimeRange(events);
+    const domainStats = this.groupByDomain(events);
 
-    // Efficient min/max calculation for large arrays
-    const timeRange =
-      events.length > 0
-        ? (() => {
-            const { min, max } = events.reduce(
-              (acc, e) => ({
-                min: Math.min(acc.min, e.timestamp),
-                max: Math.max(acc.max, e.timestamp),
-              }),
-              { min: Infinity, max: -Infinity }
-            );
-            return `${new Date(min).toLocaleDateString()} - ${new Date(max).toLocaleDateString()}`;
-          })()
-        : 'No data';
+    const report = `
+PHANTOM TRAIL 0.1.0 - EXPERIMENTAL SIGNAL EXPORT
+Generated: ${generatedAt}
+Recorded time range: ${timeRange}
 
-    // Group events by domain
-    const domainStats = events.reduce(
-      (acc, event) => {
-        if (!acc[event.domain]) {
-          acc[event.domain] = { count: 0, riskLevels: [] };
-        }
-        acc[event.domain].count++;
-        acc[event.domain].riskLevels.push(event.riskLevel);
-        return acc;
-      },
-      {} as Record<string, { count: number; riskLevels: string[] }>
-    );
+IMPORTANT LIMITS
+- This file summarizes stored detector events from an experimental extension.
+- Events can include false positives, false negatives, duplicates, and incorrect page/resource attribution.
+- A recorded event does not prove collection, sharing, sale, fingerprinting, attack, intent, ownership, website safety, or legal non-compliance.
+- Stored URLs can include sensitive paths, query strings, or fragments. Review this file before sharing it.
 
-    const pdfContent = `
-PHANTOM TRAIL - PRIVACY REPORT
-Generated: ${reportDate}
-Time Range: ${timeRange}
+EXPERIMENTAL HEURISTIC
+- Value: ${heuristic.score}/100
+- Letter label: ${heuristic.grade}
+- This value is produced by hand-written penalties and is not an independently validated privacy rating.
 
-PRIVACY SCORE: ${privacyScore.score}/100 (Grade: ${privacyScore.grade})
+RECORDED SIGNAL SUMMARY
+- Total detector events: ${heuristic.breakdown.totalTrackers}
+- Critical prototype labels: ${heuristic.breakdown.criticalRisk}
+- High prototype labels (including critical): ${heuristic.breakdown.highRisk}
+- Medium prototype labels: ${heuristic.breakdown.mediumRisk}
+- Low prototype labels: ${heuristic.breakdown.lowRisk}
+- Context marked HTTPS: ${heuristic.breakdown.httpsBonus ? 'yes' : 'no'}
+- More-than-ten-events penalty applied: ${
+      heuristic.breakdown.excessiveTrackingPenalty ? 'yes' : 'no'
+    }
 
-SUMMARY:
-- Total Trackers Detected: ${privacyScore.breakdown.totalTrackers}
-- High Risk Trackers: ${privacyScore.breakdown.highRisk}
-- Medium Risk Trackers: ${privacyScore.breakdown.mediumRisk}
-- Low Risk Trackers: ${privacyScore.breakdown.lowRisk}
-- HTTPS Secure: ${privacyScore.breakdown.httpsBonus ? 'Yes' : 'No'}
-- Excessive Tracking: ${privacyScore.breakdown.excessiveTrackingPenalty ? 'Yes' : 'No'}
-
-TRACKER BREAKDOWN BY DOMAIN:
+EVENT-DOMAIN LABEL COUNTS
 ${Object.entries(domainStats)
-  .sort(([, a], [, b]) => b.count - a.count)
-  .map(([domain, stats]) => `- ${domain}: ${stats.count} requests`)
-  .join('\n')}
+  .sort(([, first], [, second]) => second.count - first.count)
+  .map(
+    ([domain, stats]) =>
+      `- ${domain}: ${stats.count} recorded event${stats.count === 1 ? '' : 's'}`
+  )
+  .join('\n') || '- none'}
 
-RECOMMENDATIONS:
-${privacyScore.recommendations.map(rec => `• ${rec}`).join('\n')}
+GENERATED REVIEW NOTES
+${
+  heuristic.recommendations.length > 0
+    ? heuristic.recommendations.map(note => `- ${note}`).join('\n')
+    : '- none'
+}
 
-DETAILED EVENTS:
+DETAILED RECORDED EVENTS (FIRST 50)
 ${events
   .slice(0, 50)
   .map(
     event =>
-      `[${new Date(event.timestamp).toLocaleString()}] ${event.domain} - ${event.description} (${event.riskLevel} risk)`
+      `[${new Date(event.timestamp).toLocaleString()}] domain label=${
+        event.domain
+      }; category label=${event.trackerType}; severity label=${
+        event.riskLevel
+      }; description=${event.description}; stored URL=${event.url}`
   )
-  .join('\n')}
+  .join('\n') || 'No recorded events.'}
 
-${events.length > 50 ? `\n... and ${events.length - 50} more events` : ''}
+${
+  events.length > 50
+    ? `Additional recorded events omitted from this text summary: ${events.length - 50}`
+    : ''
+}
 
----
-Report generated by Phantom Trail Privacy Extension
+END OF EXPERIMENTAL SIGNAL EXPORT
     `.trim();
 
-    return new Blob([pdfContent], { type: 'text/plain;charset=utf-8;' });
+    return new Blob([report], { type: 'text/plain;charset=utf-8;' });
   }
 
-  /**
-   * Generate filename for export
-   */
   static generateFilename(
     format: ExportFormat,
     dateRange?: { start: Date; end: Date }
   ): string {
     const timestamp = new Date().toISOString().split('T')[0];
-    const extension = format === 'pdf' ? 'txt' : format; // PDF is actually text format
+    const extension = format === 'pdf' ? 'txt' : format;
 
     if (dateRange) {
       const startDate = dateRange.start.toISOString().split('T')[0];
       const endDate = dateRange.end.toISOString().split('T')[0];
-      return `phantom-trail-${startDate}-to-${endDate}.${extension}`;
+      return `phantom-trail-signals-${startDate}-to-${endDate}.${extension}`;
     }
 
-    return `phantom-trail-report-${timestamp}.${extension}`;
+    return `phantom-trail-signals-${timestamp}.${extension}`;
   }
 
-  /**
-   * Download blob as file
-   */
   static downloadBlob(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -181,12 +181,9 @@ Report generated by Phantom Trail Privacy Extension
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
-  /**
-   * Prepare export data (separated from download for better separation of concerns)
-   */
   static async prepareExport(
     events: TrackingEvent[],
     privacyScore: PrivacyScore,
@@ -208,13 +205,12 @@ Report generated by Phantom Trail Privacy Extension
         throw new Error(`Unsupported export format: ${options.format}`);
     }
 
-    const filename = this.generateFilename(options.format, options.dateRange);
-    return { blob, filename };
+    return {
+      blob,
+      filename: this.generateFilename(options.format, options.dateRange),
+    };
   }
 
-  /**
-   * Generate export for scheduled exports
-   */
   static async generateExport(
     events: TrackingEvent[],
     format: ExportFormat
@@ -224,20 +220,17 @@ Report generated by Phantom Trail Privacy Extension
         return await this.exportAsCSV(events);
       case 'json':
         return await this.exportAsJSON(events);
-      case 'pdf': {
-        // For PDF, we need a privacy score for analysis
-        const privacyScore = calculatePrivacyScore(events, true);
-        return await this.exportAsPDF(events, privacyScore);
-      }
+      case 'pdf':
+        return await this.exportAsPDF(
+          events,
+          calculatePrivacyScore(events, true)
+        );
       default:
         throw new Error(`Unsupported export format: ${format}`);
     }
   }
 
-  /**
-   * Export and download tracking data
-   * @deprecated Use prepareExport + downloadBlob for better separation of concerns
-   */
+  /** @deprecated Use prepareExport and downloadBlob. */
   static async exportAndDownload(
     events: TrackingEvent[],
     privacyScore: PrivacyScore,
@@ -249,5 +242,36 @@ Report generated by Phantom Trail Privacy Extension
       options
     );
     this.downloadBlob(blob, filename);
+  }
+
+  private static getTimeRange(events: TrackingEvent[]): string {
+    if (events.length === 0) return 'no recorded events';
+
+    const { min, max } = events.reduce(
+      (range, event) => ({
+        min: Math.min(range.min, event.timestamp),
+        max: Math.max(range.max, event.timestamp),
+      }),
+      { min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY }
+    );
+
+    return `${new Date(min).toLocaleString()} - ${new Date(max).toLocaleString()}`;
+  }
+
+  private static groupByDomain(
+    events: TrackingEvent[]
+  ): Record<string, { count: number; riskLevels: string[] }> {
+    return events.reduce(
+      (groups, event) => {
+        const domain = event.domain || 'unknown';
+        if (!groups[domain]) {
+          groups[domain] = { count: 0, riskLevels: [] };
+        }
+        groups[domain].count++;
+        groups[domain].riskLevels.push(event.riskLevel);
+        return groups;
+      },
+      {} as Record<string, { count: number; riskLevels: string[] }>
+    );
   }
 }
