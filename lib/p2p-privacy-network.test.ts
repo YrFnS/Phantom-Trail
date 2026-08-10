@@ -1,11 +1,12 @@
 /**
- * Simple test to verify P2P Privacy Network functionality
+ * Compatibility tests for the experimental P2P transport and score
+ * anonymization guardrails.
  */
 
 import { P2PPrivacyNetwork } from '../lib/p2p-privacy-network';
 import { AnonymizationService } from '../lib/anonymization';
+import type { PrivacyData } from '../lib/types';
 
-// Mock Chrome APIs for testing
 (global as { chrome?: unknown }).chrome = {
   storage: {
     local: {
@@ -21,13 +22,10 @@ import { AnonymizationService } from '../lib/anonymization';
   },
   runtime: {
     id: 'test-extension-id',
-    onMessage: {
-      addListener: jest.fn(),
-    },
+    onMessage: { addListener: jest.fn() },
   },
 };
 
-// Mock WebRTC
 (global as { RTCPeerConnection?: unknown }).RTCPeerConnection = jest
   .fn()
   .mockImplementation(() => ({
@@ -63,16 +61,17 @@ describe('P2P Privacy Network', () => {
   });
 
   test('should check if network is active', () => {
-    const isActive = network.isNetworkActive();
-    expect(typeof isActive).toBe('boolean');
+    expect(typeof network.isNetworkActive()).toBe('boolean');
   });
 });
 
 describe('Anonymization Service', () => {
-  test('should anonymize privacy data', () => {
-    const mockPrivacyData = {
+  test('should anonymize an estimated evidence-index sample', () => {
+    const mockPrivacyData: PrivacyData = {
       averageScore: 87,
-      grade: 'B' as const,
+      scoreStatus: 'estimated',
+      scoreConfidence: 'medium',
+      grade: 'B',
       trackerCount: 23,
       events: [
         {
@@ -80,39 +79,63 @@ describe('Anonymization Service', () => {
           timestamp: Date.now(),
           url: 'https://example.com',
           domain: 'example.com',
-          trackerType: 'advertising' as const,
-          riskLevel: 'medium' as const,
-          description: 'Test tracker',
+          trackerType: 'advertising',
+          riskLevel: 'medium',
+          description: 'Test detector row',
         },
       ],
     };
 
     const anonymized = AnonymizationService.anonymizeForP2P(mockPrivacyData);
+    expect(anonymized).not.toBeNull();
+    if (!anonymized) throw new Error('Expected an estimated sample');
 
-    expect(anonymized.privacyScore % 5).toBe(0); // Should be rounded to nearest 5
-    expect(anonymized.trackerCount).toBeLessThanOrEqual(50); // Should be capped
-    expect(anonymized.websiteCategories.length).toBeLessThanOrEqual(3); // Should be limited
+    expect(anonymized.privacyScore % 5).toBe(0);
+    expect(anonymized.scoreStatus).toBe('estimated');
+    expect(anonymized.scoreConfidence).toBe('medium');
+    expect(anonymized.trackerCount).toBeLessThanOrEqual(50);
+    expect(anonymized.websiteCategories.length).toBeLessThanOrEqual(3);
     expect(AnonymizationService.validateAnonymization(anonymized)).toBe(true);
   });
 
-  test('should validate anonymization', () => {
+  test('should refuse to convert insufficient evidence into zero', () => {
+    const unknownData: PrivacyData = {
+      averageScore: null,
+      scoreStatus: 'insufficient-evidence',
+      scoreConfidence: 'none',
+      grade: 'N/A',
+      trackerCount: 0,
+      events: [],
+    };
+
+    expect(AnonymizationService.anonymizeForP2P(unknownData)).toBeNull();
+  });
+
+  test('should validate only estimated P2 samples', () => {
     const validData = {
-      privacyScore: 85, // Multiple of 5
+      privacyScore: 85,
+      scoreStatus: 'estimated' as const,
+      scoreConfidence: 'medium' as const,
       grade: 'B',
-      trackerCount: 25, // Under cap
+      trackerCount: 25,
       riskDistribution: { low: 10, medium: 20, high: 5, critical: 0 },
       websiteCategories: ['advertising', 'analytics'],
-      timestamp: new Date('2024-01-01T12:00:00.000Z').getTime(), // Rounded to hour
+      timestamp: new Date('2024-01-01T12:00:00.000Z').getTime(),
     };
 
     expect(AnonymizationService.validateAnonymization(validData)).toBe(true);
-
-    const invalidData = {
-      ...validData,
-      privacyScore: 87, // Not multiple of 5
-    };
-
-    expect(AnonymizationService.validateAnonymization(invalidData)).toBe(false);
+    expect(
+      AnonymizationService.validateAnonymization({
+        ...validData,
+        privacyScore: 87,
+      })
+    ).toBe(false);
+    expect(
+      AnonymizationService.validateAnonymization({
+        ...validData,
+        scoreStatus: undefined,
+      })
+    ).toBe(false);
   });
 });
 
