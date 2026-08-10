@@ -1,14 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { P2PStorage } from '../../lib/storage/p2p-storage';
-import { P2PSettings } from '../../lib/types';
+import type { P2PSettings } from '../../lib/types';
 
 interface P2PSettingsComponentProps {
   onSettingsChange?: (settings: P2PSettings) => void;
 }
 
-export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
+interface ToggleRowProps {
+  label: string;
+  description: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+function ToggleRow({
+  label,
+  description,
+  checked,
+  disabled,
+  onChange,
+}: ToggleRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <label className="text-sm font-medium text-[var(--text-primary)]">
+          {label}
+        </label>
+        <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+          {description}
+        </p>
+      </div>
+      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={event => onChange(event.target.checked)}
+          disabled={disabled}
+          className="sr-only peer"
+        />
+        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600" />
+      </label>
+    </div>
+  );
+}
+
+export function P2PSettingsComponent({
   onSettingsChange,
-}) => {
+}: P2PSettingsComponentProps) {
   const [settings, setSettings] = useState<P2PSettings>({
     joinPrivacyNetwork: false,
     shareAnonymousData: false,
@@ -19,17 +58,17 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadSettings();
-  }, []);
+    const loadSettings = async () => {
+      try {
+        const storedSettings = await P2PStorage.getSettings();
+        setSettings(storedSettings);
+      } catch (error) {
+        console.error('Failed to load P2P settings:', error);
+      }
+    };
 
-  const loadSettings = async () => {
-    try {
-      const p2pSettings = await P2PStorage.getSettings();
-      setSettings(p2pSettings);
-    } catch (error) {
-      console.error('Failed to load P2P settings:', error);
-    }
-  };
+    void loadSettings();
+  }, []);
 
   const updateSetting = async <K extends keyof P2PSettings>(
     key: K,
@@ -37,11 +76,10 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
   ) => {
     setLoading(true);
     try {
-      const newSettings = { ...settings, [key]: value };
-      setSettings(newSettings);
-
-      await P2PStorage.saveSettings(newSettings);
-      onSettingsChange?.(newSettings);
+      const nextSettings = { ...settings, [key]: value };
+      setSettings(nextSettings);
+      await P2PStorage.saveSettings(nextSettings);
+      onSettingsChange?.(nextSettings);
     } catch (error) {
       console.error('Failed to update P2P settings:', error);
     } finally {
@@ -53,103 +91,69 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
-          Peer-to-Peer Privacy Network
+          Experimental P2P Sample Exchange
         </h3>
-        <p className="text-sm text-[var(--text-secondary)] mb-4">
-          Connect with other privacy-conscious users to compare practices and
-          get recommendations. All data is anonymized and shared directly
-          between browsers - no servers involved.
+        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+          Phantom Trail can use Trystero to exchange self-reported aggregate
+          samples with connected browsers. Peers are not authenticated, samples
+          are not independently verified, and the resulting network is not a
+          representative privacy benchmark.
         </p>
       </div>
 
-      {/* Network Participation */}
+      <div className="rounded-lg border border-[var(--error)]/30 bg-[var(--error)]/10 p-3">
+        <h4 className="text-sm font-medium text-[var(--error)] mb-1">
+          Network metadata disclosure
+        </h4>
+        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+          WebRTC and Trystero may use third-party signaling, relay, and NAT
+          traversal infrastructure. Connected peers and infrastructure providers
+          may observe ordinary connection metadata such as IP addresses. “P2P”
+          does not mean that no servers or third parties are involved.
+        </p>
+      </div>
+
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <label className="text-sm font-medium text-[var(--text-primary)]">
-              Join Privacy Network
-            </label>
-            <p className="text-xs text-[var(--text-secondary)]">
-              Connect with other Phantom Trail users for peer insights
-            </p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.joinPrivacyNetwork}
-              onChange={e =>
-                updateSetting('joinPrivacyNetwork', e.target.checked)
-              }
-              disabled={loading}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-          </label>
-        </div>
+        <ToggleRow
+          label="Join experimental peer network"
+          description="Off by default. Connect to an unauthenticated shared room for prototype peer samples."
+          checked={settings.joinPrivacyNetwork}
+          disabled={loading}
+          onChange={checked => updateSetting('joinPrivacyNetwork', checked)}
+        />
 
         {settings.joinPrivacyNetwork && (
-          <div className="ml-4 space-y-4 border-l-2 border-[var(--accent-primary)]/20 pl-4">
-            {/* Data Sharing */}
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-[var(--text-primary)]">
-                  Share Anonymous Data
-                </label>
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Share privacy scores and tracker counts (no URLs or personal
-                  data)
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.shareAnonymousData}
-                  onChange={e =>
-                    updateSetting('shareAnonymousData', e.target.checked)
-                  }
-                  disabled={loading}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
+          <div className="ml-4 space-y-5 border-l-2 border-[var(--accent-primary)]/20 pl-4">
+            <ToggleRow
+              label="Share reduced aggregate sample"
+              description="Shares rounded score-related fields, capped event counts, risk distribution, category labels, and a rounded timestamp. This is data minimization—not a guarantee of anonymity."
+              checked={settings.shareAnonymousData}
+              disabled={loading}
+              onChange={checked => updateSetting('shareAnonymousData', checked)}
+            />
 
-            {/* Regional Data */}
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-[var(--text-primary)]">
-                  Share Regional Data
-                </label>
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Include broad geographic region for regional privacy insights
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.shareRegionalData}
-                  onChange={e =>
-                    updateSetting('shareRegionalData', e.target.checked)
-                  }
-                  disabled={loading}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
+            <ToggleRow
+              label="Include coarse region"
+              description="Adds a broad region field when available. Leave disabled unless regional experimentation is specifically required."
+              checked={settings.shareRegionalData}
+              disabled={loading}
+              onChange={checked => updateSetting('shareRegionalData', checked)}
+            />
 
-            {/* Max Connections */}
             <div>
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                Maximum Connections: {settings.maxConnections}
+                Requested connection limit: {settings.maxConnections}
               </label>
               <input
                 type="range"
                 min="1"
                 max="20"
                 value={settings.maxConnections}
-                onChange={e =>
-                  updateSetting('maxConnections', parseInt(e.target.value))
+                onChange={event =>
+                  updateSetting(
+                    'maxConnections',
+                    Number.parseInt(event.target.value, 10)
+                  )
                 }
                 disabled={loading}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
@@ -158,77 +162,42 @@ export const P2PSettingsComponent: React.FC<P2PSettingsComponentProps> = ({
                 <span>1 peer</span>
                 <span>20 peers</span>
               </div>
+              <p className="text-[10px] text-[var(--text-tertiary)] mt-1">
+                The transport may not always enforce or reach this requested
+                number.
+              </p>
             </div>
 
-            {/* Auto Reconnect */}
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-[var(--text-primary)]">
-                  Auto Reconnect
-                </label>
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Automatically reconnect to peers when connections drop
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.autoReconnect}
-                  onChange={e =>
-                    updateSetting('autoReconnect', e.target.checked)
-                  }
-                  disabled={loading}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
+            <ToggleRow
+              label="Attempt automatic reconnection"
+              description="Ask the experimental transport to reconnect after a dropped session. Successful recovery is not guaranteed."
+              checked={settings.autoReconnect}
+              disabled={loading}
+              onChange={checked => updateSetting('autoReconnect', checked)}
+            />
           </div>
         )}
       </div>
 
-      {/* Privacy Information */}
-      <div className="bg-[var(--bg-secondary)] border border-[var(--accent-primary)]/20 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-[var(--accent-primary)] mb-2">
-          Privacy Protection
+      <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg p-4">
+        <h4 className="text-sm font-medium text-[var(--text-primary)] mb-2">
+          Current prototype boundaries
         </h4>
-        <ul className="text-xs text-[var(--text-secondary)] space-y-1">
-          <li>• No servers - direct peer-to-peer connections only</li>
-          <li>• Privacy scores rounded to nearest 5 points</li>
-          <li>• Tracker counts capped at 50 for anonymization</li>
-          <li>• No URLs, domains, or personal data shared</li>
-          <li>• Data exists only while browsers are connected</li>
-          <li>• Connections automatically encrypted via WebRTC</li>
+        <ul className="text-xs text-[var(--text-secondary)] space-y-1 leading-relaxed">
+          <li>• Peer identity and data authenticity are not established.</li>
+          <li>• Samples are self-reported and can be inaccurate or malicious.</li>
+          <li>• A small connected group is not a population benchmark.</li>
+          <li>• No URLs or domains are intended in the aggregate payload.</li>
+          <li>• Normal WebRTC/signaling metadata can still be exposed.</li>
+          <li>• Disconnecting clears the current in-memory peer session.</li>
         </ul>
       </div>
 
       {loading && (
-        <div className="text-center">
-          <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-[var(--text-primary)] bg-[var(--bg-secondary)] transition ease-in-out duration-150">
-            <svg
-              className="animate-spin -ml-1 mr-3 h-5 w-5 text-[var(--accent-primary)]"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Updating settings...
-          </div>
+        <div className="text-center text-xs text-[var(--accent-primary)]">
+          Updating experimental P2P settings...
         </div>
       )}
     </div>
   );
-};
+}
