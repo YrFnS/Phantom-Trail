@@ -1,5 +1,4 @@
 import type { TrackingEvent } from './types';
-import { TrustedSitesManager } from './trusted-sites-manager';
 import { EventsStorage } from './storage/events-storage';
 
 export interface PrivacyScore {
@@ -7,6 +6,7 @@ export interface PrivacyScore {
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
   color: 'green' | 'yellow' | 'orange' | 'red';
   breakdown: {
+    /** Legacy field name: currently counts recorded detector events. */
     totalTrackers: number;
     highRisk: number;
     mediumRisk: number;
@@ -25,15 +25,14 @@ export interface PrivacyScore {
 }
 
 /**
- * Calculate privacy score based on tracking events (synchronous version)
+ * Apply the current experimental penalty formula to recorded detector events.
+ * The result is not an independently validated website privacy rating.
  */
 export function calculatePrivacyScore(
   events: TrackingEvent[],
   isHttps: boolean = true
 ): PrivacyScore {
-  let score = 100; // Start with perfect score
-
-  // Count trackers by risk level
+  let score = 100;
   const breakdown = {
     totalTrackers: events.length,
     highRisk: 0,
@@ -44,151 +43,76 @@ export function calculatePrivacyScore(
     excessiveTrackingPenalty: events.length > 10,
   };
 
-  // Deduct points per tracker type (REBALANCED)
-  events.forEach(event => {
+  for (const event of events) {
     switch (event.riskLevel) {
       case 'critical':
-        score -= 30; // Was 25
+        score -= 30;
         breakdown.criticalRisk++;
-        breakdown.highRisk++; // Critical counts as high-risk for display
+        breakdown.highRisk++;
         break;
       case 'high':
-        score -= 18; // Was 15
+        score -= 18;
         breakdown.highRisk++;
         break;
       case 'medium':
-        score -= 10; // Was 8
+        score -= 10;
         breakdown.mediumRisk++;
         break;
       case 'low':
-        score -= 5; // Was 3
+        score -= 5;
         breakdown.lowRisk++;
         break;
     }
-  });
-
-  // Bonus for HTTPS
-  if (isHttps) {
-    score += 5;
   }
 
-  // Penalty for excessive tracking (10+ trackers)
-  if (events.length > 10) {
-    score -= 20;
-  }
+  if (isHttps) score += 5;
+  if (events.length > 10) score -= 20;
 
-  // NEW: Cross-site tracking penalty (3+ unique tracker companies)
-  const uniqueCompanies = new Set(events.map(e => extractCompany(e.domain)));
-  if (uniqueCompanies.size >= 3) {
-    score -= 15;
-  }
-
-  // NEW: Persistent tracking penalty (fingerprinting detected)
-  const hasPersistentTracking = events.some(
-    e =>
-      e.inPageTracking?.method &&
-      [
-        'canvas-fingerprint',
-        'font-fingerprint',
-        'audio-fingerprint',
-        'webgl-fingerprint',
-        'webrtc-leak',
-      ].includes(e.inPageTracking.method)
+  const uniqueDomainGroups = new Set(
+    events.map(event => extractDomainGroup(event.domain))
   );
-  if (hasPersistentTracking) {
-    score -= 20;
-  }
+  if (uniqueDomainGroups.size >= 3) score -= 15;
 
-  // Ensure score stays within bounds
+  const hasFingerprintingRelatedSignal = events.some(event =>
+    [
+      'canvas-fingerprint',
+      'font-fingerprint',
+      'audio-fingerprint',
+      'webgl-fingerprint',
+      'webrtc-leak',
+    ].includes(event.inPageTracking?.method || '')
+  );
+  if (hasFingerprintingRelatedSignal) score -= 20;
+
   score = Math.max(0, Math.min(100, score));
-
-  // Determine grade and color
   const { grade, color } = getGradeAndColor(score);
-
-  // Generate recommendations
-  const recommendations = generateRecommendations(
-    breakdown,
-    score,
-    uniqueCompanies.size,
-    hasPersistentTracking
-  );
 
   return {
     score,
     grade,
     color,
     breakdown,
-    recommendations,
+    recommendations: generateReviewNotes(
+      breakdown,
+      score,
+      uniqueDomainGroups.size,
+      hasFingerprintingRelatedSignal
+    ),
   };
 }
 
 /**
- * Calculate privacy score with trust adjustments (async version)
+ * Historical compatibility API. Personal site annotations no longer alter the
+ * detector-derived heuristic.
  */
 export async function calculatePrivacyScoreWithTrust(
   events: TrackingEvent[],
   isHttps: boolean = true,
-  domain?: string
+  _domain?: string
 ): Promise<PrivacyScore> {
-  // Start with base calculation
-  const baseScore = calculatePrivacyScore(events, isHttps);
-
-  // Apply trust adjustment if domain is provided
-  if (domain) {
-    const originalScore = baseScore.score;
-    const adjustedScore = await TrustedSitesManager.adjustScoreForTrust(
-      originalScore,
-      domain
-    );
-
-    if (adjustedScore !== originalScore) {
-      const trustedSite = await TrustedSitesManager.getTrustedSite(domain);
-      const trustAdjustment = {
-        applied: true,
-        domain,
-        adjustment: adjustedScore - originalScore,
-        reason: trustedSite?.reason || 'Trusted site adjustment applied',
-      };
-
-      // Recalculate grade and color with adjusted score
-      const { grade, color } = getGradeAndColor(adjustedScore);
-
-      // Generate recommendations with trust context
-      const recommendations = generateRecommendations(
-        { ...baseScore.breakdown, trustAdjustment },
-        adjustedScore,
-        new Set(events.map(e => extractCompany(e.domain))).size,
-        events.some(
-          e =>
-            e.inPageTracking?.method &&
-            [
-              'canvas-fingerprint',
-              'font-fingerprint',
-              'audio-fingerprint',
-              'webgl-fingerprint',
-              'webrtc-leak',
-            ].includes(e.inPageTracking.method)
-        ),
-        domain
-      );
-
-      return {
-        ...baseScore,
-        score: adjustedScore,
-        grade,
-        color,
-        breakdown: { ...baseScore.breakdown, trustAdjustment },
-        recommendations,
-      };
-    }
-  }
-
-  return baseScore;
+  return calculatePrivacyScore(events, isHttps);
 }
 
-/**
- * Calculate privacy score based on tracking events (synchronous version for backward compatibility)
- */
 export function calculatePrivacyScoreSync(
   events: TrackingEvent[],
   isHttps: boolean = true
@@ -196,20 +120,14 @@ export function calculatePrivacyScoreSync(
   return calculatePrivacyScore(events, isHttps);
 }
 
-/**
- * Extract company name from tracker domain
- */
-function extractCompany(domain: string): string {
-  // Remove common prefixes and get root domain
-  const cleaned = domain.replace(/^(www\.|analytics\.|tracking\.|ads\.)/, '');
-  const parts = cleaned.split('.');
-  // Return second-level domain (e.g., "google" from "google.com")
+function extractDomainGroup(domain: string): string {
+  const cleaned = (domain || 'unknown')
+    .toLowerCase()
+    .replace(/^(www\.|analytics\.|tracking\.|ads\.)/, '');
+  const parts = cleaned.split('.').filter(Boolean);
   return parts.length >= 2 ? parts[parts.length - 2] : cleaned;
 }
 
-/**
- * Get letter grade and color based on score
- */
 function getGradeAndColor(score: number): {
   grade: PrivacyScore['grade'];
   color: PrivacyScore['color'];
@@ -221,158 +139,172 @@ function getGradeAndColor(score: number): {
   return { grade: 'F', color: 'red' };
 }
 
-/**
- * Generate privacy recommendations based on score breakdown
- */
-function generateRecommendations(
+function generateReviewNotes(
   breakdown: PrivacyScore['breakdown'],
   score: number,
-  crossSiteTrackers: number,
-  hasPersistentTracking: boolean,
-  domain?: string
+  domainGroupCount: number,
+  hasFingerprintingRelatedSignal: boolean
 ): string[] {
-  const recommendations: string[] = [];
+  const notes: string[] = [];
 
-  // Trust-related recommendations first
-  if (breakdown.trustAdjustment?.applied) {
-    if (breakdown.trustAdjustment.adjustment > 0) {
-      recommendations.push(
-        `✅ Score boosted for trusted site: ${breakdown.trustAdjustment.reason}`
-      );
-    }
-  } else if (domain && score < 80) {
-    recommendations.push(
-      `Consider adding ${domain} to trusted sites if you use it regularly.`
+  if (breakdown.totalTrackers === 0) {
+    notes.push(
+      'No detector signals were recorded in this data set. This does not prove that tracking was absent.'
     );
+    return notes;
   }
 
   if (breakdown.criticalRisk > 0) {
-    recommendations.push(
-      `${breakdown.criticalRisk} critical-risk trackers detected. Immediate action recommended.`
+    notes.push(
+      `${breakdown.criticalRisk} recorded signal${
+        breakdown.criticalRisk === 1 ? '' : 's'
+      } carry the prototype critical label. Inspect the detector evidence; the label is not proof of an attack or data collection.`
     );
   }
 
-  if (breakdown.highRisk > 0) {
-    recommendations.push(
-      `${breakdown.highRisk} high-risk trackers detected. Consider using an ad blocker.`
+  const highOnlyCount = Math.max(
+    0,
+    breakdown.highRisk - breakdown.criticalRisk
+  );
+  if (highOnlyCount > 0) {
+    notes.push(
+      `${highOnlyCount} recorded signal${
+        highOnlyCount === 1 ? '' : 's'
+      } carry the prototype high label. Review false-positive and attribution risk before changing browser settings.`
     );
   }
 
-  if (crossSiteTrackers >= 3) {
-    recommendations.push(
-      `Cross-site tracking detected (${crossSiteTrackers} companies). Your data is being shared across multiple sites.`
+  if (domainGroupCount >= 3) {
+    notes.push(
+      `Recorded event labels span ${domainGroupCount} simplified root-domain groups. The current event model does not prove cross-site tracking, common ownership, or data sharing.`
     );
   }
 
-  if (hasPersistentTracking) {
-    recommendations.push(
-      'Persistent fingerprinting detected. This tracking works even in incognito mode.'
+  if (hasFingerprintingRelatedSignal) {
+    notes.push(
+      'At least one fingerprinting-related instrumentation rule fired. Normal canvas, WebGL, audio, font, or WebRTC use can trigger these rules.'
     );
   }
 
   if (breakdown.excessiveTrackingPenalty) {
-    recommendations.push(
-      'Excessive tracking detected. This site may be sharing data with many third parties.'
+    notes.push(
+      `More than ten detector events were counted. Check duplicate requests and repeated instrumentation before interpreting the volume.`
     );
   }
 
   if (!breakdown.httpsBonus) {
-    recommendations.push(
-      'Site is not using HTTPS. Your data may be transmitted insecurely.'
+    notes.push(
+      'The supplied context was not marked HTTPS. This flag alone does not establish how every request was transported or whether the page is unsafe.'
     );
   }
 
   if (score < 60) {
-    recommendations.push(
-      'Consider using privacy-focused browser extensions or switching to a more private browser.'
+    notes.push(
+      'The experimental formula produced a low value. Review the underlying event mix rather than treating the number as a website verdict.'
     );
   }
 
-  if (breakdown.totalTrackers === 0) {
-    recommendations.push('Great! No trackers detected on this site.');
-  }
-
-  return recommendations;
+  return notes;
 }
 
-/**
- * Compare two privacy scores to show trend
- */
 export function getPrivacyTrend(
   currentScore: number,
   previousScore: number
 ): 'improving' | 'declining' | 'stable' {
   const difference = currentScore - previousScore;
-
   if (difference > 5) return 'improving';
   if (difference < -5) return 'declining';
   return 'stable';
 }
 
+export interface DomainScoreResult {
+  score: number;
+  grade: string;
+  color: string;
+  known: boolean;
+  source: 'local-events' | 'insufficient-evidence';
+}
+
 /**
- * Real P2P-based Privacy Score Calculator
- * No longer uses fake data!
+ * Compatibility calculator for background messages.
+ *
+ * It uses only local recorded events. Unauthenticated peer scores are not used
+ * as website reputation, and missing evidence returns an explicit N/A state.
  */
 export class PrivacyScoreCalculator {
-  // Cache to prevent spamming the network
-  private static scoreCache: Map<string, { score: number; timestamp: number }> =
-    new Map();
-  private static CACHE_TTL = 300000; // 5 minutes
+  private static scoreCache = new Map<
+    string,
+    { result: DomainScoreResult; timestamp: number }
+  >();
+  private static readonly CACHE_TTL = 300000;
 
-  static async calculateDomainScore(domain?: string): Promise<{
-    score: number;
-    grade: string;
-    color: string;
-  }> {
-    // If no domain provided, return standard default (e.g. for Home page)
-    if (!domain) {
-      return { score: 100, grade: 'A', color: 'green' };
-    }
+  static async calculateDomainScore(
+    domain?: string
+  ): Promise<DomainScoreResult> {
+    const normalizedDomain = domain?.trim().toLowerCase();
+    if (!normalizedDomain) return this.getUnknownResult();
 
-    // 1. Check Cache
-    const cached = this.scoreCache.get(domain);
+    const cached = this.scoreCache.get(normalizedDomain);
     if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      const { grade, color } = getGradeAndColor(cached.score);
-      return { score: cached.score, grade, color };
+      return cached.result;
     }
-
-    let communityScore: number | null = null;
-    let localScore: number = 75; // Default baseline if no data
 
     try {
-      // 2. Ask P2P Network
-      const { P2PPrivacyNetwork } = await import('./p2p-privacy-network');
-      const network = P2PPrivacyNetwork.getInstance();
+      const events = await EventsStorage.getRecentEvents(1000);
+      const domainEvents = events.filter(event =>
+        this.matchesDomain(event, normalizedDomain)
+      );
 
-      // Wait for P2P connection or fallback quickly
-      if (network.isNetworkActive() && network.getConnectedPeerCount() > 0) { // Fix: use property/method correctly
-        communityScore = await network.askReputation(domain);
-      } else {
-        // If local score is available in EventsStorage, use that
-        const events = await EventsStorage.getRecentEvents(100);
-        const domainEvents = events.filter(e => e.domain === domain);
-        if (domainEvents.length > 0) {
-          const calculated = calculatePrivacyScore(domainEvents);
-          localScore = calculated.score;
-        }
+      if (domainEvents.length === 0) {
+        const result = this.getUnknownResult();
+        this.scoreCache.set(normalizedDomain, {
+          result,
+          timestamp: Date.now(),
+        });
+        return result;
       }
-    } catch (e) {
-      console.warn('Failed to get P2P score:', e);
+
+      const score = calculatePrivacyScore(domainEvents);
+      const result: DomainScoreResult = {
+        score: score.score,
+        grade: score.grade,
+        color: score.color,
+        known: true,
+        source: 'local-events',
+      };
+      this.scoreCache.set(normalizedDomain, {
+        result,
+        timestamp: Date.now(),
+      });
+      return result;
+    } catch (error) {
+      console.warn('Failed to calculate local domain heuristic:', error);
+      return this.getUnknownResult();
     }
+  }
 
-    // 3. Calculate Final Score
-    // If we have community score, use it (weighted 50/50 with local if available? or just use it?)
-    // For "Domain Reputation" (what others think), community score is king.
-    // If we have no community score, we use local score.
-    const finalScore = communityScore !== null ? communityScore : localScore;
+  private static matchesDomain(
+    event: TrackingEvent,
+    normalizedDomain: string
+  ): boolean {
+    if ((event.domain || '').toLowerCase() === normalizedDomain) return true;
 
-    // Cache the result
-    this.scoreCache.set(domain, { score: finalScore, timestamp: Date.now() });
+    try {
+      return new URL(event.url).hostname.toLowerCase() === normalizedDomain;
+    } catch {
+      return false;
+    }
+  }
 
-    const { grade, color } = getGradeAndColor(finalScore);
-    return { score: finalScore, grade, color };
+  private static getUnknownResult(): DomainScoreResult {
+    return {
+      score: 0,
+      grade: 'N/A',
+      color: 'gray',
+      known: false,
+      source: 'insufficient-evidence',
+    };
   }
 }
 
-// Export as PrivacyScore for backward compatibility
 export const PrivacyScoreClass = PrivacyScoreCalculator;
