@@ -1,9 +1,16 @@
 import type { AnalysisResult, TrackerPattern } from './types';
 import { AnalysisHelpers } from './helpers';
+import {
+  getEventOccurrenceCount,
+  getPageDomain,
+  getResourceDomain,
+  normalizeTrackingEvent,
+} from '../event-attribution.mts';
 
 /**
- * Groups recorded event fields into frequency patterns.
- * The current event model does not reliably prove cross-site attribution.
+ * Groups attributed resource domains into frequency patterns.
+ * A repeated domain across pages is still not proof of user correlation or data
+ * sharing.
  */
 export class PatternAnalyzer {
   static async analyzePatterns(
@@ -11,39 +18,47 @@ export class PatternAnalyzer {
   ): Promise<AnalysisResult> {
     const events = await AnalysisHelpers.getEventsInTimeframe(timeframe);
     const trackerMap = new Map<string, TrackerPattern>();
-    const domainHosts = new Map<string, Set<string>>();
+    const resourcePages = new Map<string, Set<string>>();
 
-    for (const event of events) {
-      const domain = event.domain;
-      if (!trackerMap.has(domain)) {
-        trackerMap.set(domain, {
-          domain,
-          name: AnalysisHelpers.getTrackerName(domain),
+    for (const rawEvent of events) {
+      const event = normalizeTrackingEvent(rawEvent);
+      const resourceDomain = getResourceDomain(event);
+      if (!resourceDomain) continue;
+
+      if (!trackerMap.has(resourceDomain)) {
+        trackerMap.set(resourceDomain, {
+          domain: resourceDomain,
+          name: AnalysisHelpers.getTrackerName(resourceDomain),
           occurrences: 0,
           riskLevel: event.riskLevel,
           crossSiteCount: 0,
-          firstSeen: event.timestamp,
-          lastSeen: event.timestamp,
+          firstSeen: event.firstSeenAt || event.timestamp,
+          lastSeen: event.lastSeenAt || event.timestamp,
         });
-        domainHosts.set(domain, new Set());
+        resourcePages.set(resourceDomain, new Set());
       }
 
-      const pattern = trackerMap.get(domain);
+      const pattern = trackerMap.get(resourceDomain);
       if (!pattern) continue;
 
-      pattern.occurrences++;
-      pattern.lastSeen = Math.max(pattern.lastSeen, event.timestamp);
-      pattern.firstSeen = Math.min(pattern.firstSeen, event.timestamp);
+      pattern.occurrences += getEventOccurrenceCount(event);
+      pattern.lastSeen = Math.max(
+        pattern.lastSeen,
+        event.lastSeenAt || event.timestamp
+      );
+      pattern.firstSeen = Math.min(
+        pattern.firstSeen,
+        event.firstSeenAt || event.timestamp
+      );
 
-      try {
-        domainHosts.get(domain)?.add(new URL(event.url).hostname);
-      } catch {
-        domainHosts.get(domain)?.add(event.url);
+      const pageDomain = getPageDomain(event);
+      if (pageDomain && event.context?.party === 'third-party') {
+        resourcePages.get(resourceDomain)?.add(pageDomain);
       }
     }
 
     for (const [domain, pattern] of trackerMap.entries()) {
-      pattern.crossSiteCount = domainHosts.get(domain)?.size || 0;
+      pattern.crossSiteCount = resourcePages.get(domain)?.size || 0;
     }
 
     const topTrackers = Array.from(trackerMap.values())
@@ -51,11 +66,18 @@ export class PatternAnalyzer {
       .slice(0, 10);
 
     const riskCounts = { low: 0, medium: 0, high: 0, critical: 0 };
-    for (const event of events) riskCounts[event.riskLevel]++;
+    for (const event of events) {
+      riskCounts[event.riskLevel] += getEventOccurrenceCount(event);
+    }
 
-    const total = events.length;
+    const totalOccurrences = events.reduce(
+      (total, event) => total + getEventOccurrenceCount(event),
+      0
+    );
     const percentage = (count: number) =>
-      total > 0 ? Math.round((count / total) * 100) : 0;
+      totalOccurrences > 0
+        ? Math.round((count / totalOccurrences) * 100)
+        : 0;
     const riskDistribution = {
       low: percentage(riskCounts.low),
       medium: percentage(riskCounts.medium),
@@ -68,11 +90,11 @@ export class PatternAnalyzer {
     );
     const mostFrequent = topTrackers[0];
 
-    const summary = `Grouped ${events.length} recorded detector signals. Most frequent domain label: ${
+    const summary = `Grouped ${events.length} stored rows into ${trackerMap.size} resource-domain labels and ${totalOccurrences} occurrences. Most frequent resource label: ${
       mostFrequent?.name || 'none'
-    } (${mostFrequent?.occurrences || 0} events). ${
+    } (${mostFrequent?.occurrences || 0} occurrences). ${
       crossSiteTrackers.length
-    } domain groups were associated with multiple URL-host labels; attribution is unverified.`;
+    } attributed third-party resource groups appeared on multiple page domains; identity, correlation, and data sharing are not established.`;
 
     return {
       type: 'pattern',
@@ -81,7 +103,7 @@ export class PatternAnalyzer {
         topTrackers,
         crossSiteTrackers,
         riskDistribution,
-        totalEvents: events.length,
+        totalEvents: totalOccurrences,
         timeframeDays: Math.round(timeframe / (24 * 60 * 60 * 1000)),
       },
       recommendations: this.generateRecommendations(
@@ -101,20 +123,20 @@ export class PatternAnalyzer {
 
     if (crossSiteTrackers.length > 0) {
       recommendations.push(
-        `${crossSiteTrackers.length} domain groups appeared with more than one URL-host label. Review page/resource attribution before treating this as cross-site tracking.`
+        `${crossSiteTrackers.length} attributed third-party resource groups appeared on more than one page domain. Review attribution basis, CNAME limitations, ownership, and rule evidence before interpreting this as cross-site tracking.`
       );
     }
 
     if (riskDistribution.critical > 10) {
       recommendations.push(
-        `${riskDistribution.critical}% of recorded events carry the prototype critical label. Inspect the underlying detector evidence and false-positive risk.`
+        `${riskDistribution.critical}% of recorded occurrences carry the prototype critical label. Inspect the underlying detector evidence and false-positive risk.`
       );
     }
 
     const mostFrequent = topTrackers[0];
     if (mostFrequent && mostFrequent.occurrences > 50) {
       recommendations.push(
-        `${mostFrequent.name} appears in ${mostFrequent.occurrences} recorded events. Check duplicates and request context before changing browser settings.`
+        `${mostFrequent.name} appears in ${mostFrequent.occurrences} recorded occurrences. Check duplicate aggregation and request context before changing browser settings.`
       );
     }
 
