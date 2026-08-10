@@ -5,7 +5,7 @@ export default defineConfig({
   manifest: {
     name: 'Phantom Trail',
     description:
-      'AI-native Chrome extension that makes invisible data collection visible in real-time',
+      'Experimental Chrome extension for inspecting possible web-tracking signals',
     version: '0.1.0',
     permissions: [
       'webRequest',
@@ -31,14 +31,14 @@ export default defineConfig({
           default: 'Ctrl+Shift+A',
           mac: 'Command+Shift+A',
         },
-        description: 'Quick privacy analysis of current site',
+        description: 'Quick experimental analysis of the current site',
       },
       'export-data': {
         suggested_key: {
           default: 'Ctrl+Shift+E',
           mac: 'Command+Shift+E',
         },
-        description: 'Export privacy data',
+        description: 'Export recorded Phantom Trail data',
       },
     },
     icons: {
@@ -58,7 +58,8 @@ export default defineConfig({
     build: {
       rollupOptions: {
         onwarn(warning, warn) {
-          // Suppress specific warnings that don't affect functionality
+          // Existing prototype exceptions. These warnings must be reviewed
+          // before Phantom Trail can be described as production-ready.
           if (
             warning.code === 'EVAL' ||
             warning.code === 'MODULE_LEVEL_DIRECTIVE' ||
@@ -69,22 +70,20 @@ export default defineConfig({
           warn(warning);
         },
       },
-      chunkSizeWarningLimit: 1500, // Increase limit for complex extension
-      target: 'es2020', // Ensure compatibility with Chrome extensions
+      chunkSizeWarningLimit: 1500,
+      target: 'es2020',
     },
     define: {
-      // Ensure proper environment variables
       'process.env.NODE_ENV': JSON.stringify(
         process.env.NODE_ENV || 'development'
       ),
     },
     optimizeDeps: {
       include: ['cytoscape', 'vis-network', 'chart.js'],
-      exclude: ['chrome'], // Exclude chrome APIs from bundling
+      exclude: ['chrome'],
     },
     resolve: {
       alias: {
-        // Ensure proper resolution of chrome APIs
         'webextension-polyfill':
           'webextension-polyfill/dist/browser-polyfill.js',
       },
