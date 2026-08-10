@@ -1,0 +1,120 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "agent/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-lock:
+    name: Dependency lock
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Regenerate lockfile in the runner
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Upload regenerated lockfile for review
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: regenerated-pnpm-lock
+          path: pnpm-lock.yaml
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Require committed lockfile to match package.json
+        run: |
+          if ! git diff --quiet -- pnpm-lock.yaml; then
+            echo "::error::pnpm-lock.yaml is not synchronized with package.json. Download the regenerated-pnpm-lock artifact and commit the reviewed result."
+            git --no-pager diff -- pnpm-lock.yaml
+            exit 1
+          fi
+
+  extension:
+    name: Type, lint, and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Type-check
+        run: pnpm type-check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build Chrome extension
+        run: pnpm build
+
+      - name: Validate generated manifest
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = '.output/chrome-mv3/manifest.json';
+
+          if (!fs.existsSync(path)) {
+            throw new Error(`Expected generated manifest at ${path}`);
+          }
+
+          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (manifest.name !== 'Phantom Trail') {
+            throw new Error(`Unexpected manifest name: ${manifest.name}`);
+          }
+          if (manifest.version !== '0.1.0') {
+            throw new Error(`Unexpected manifest version: ${manifest.version}`);
+          }
+
+          console.log(`Validated ${manifest.name} ${manifest.version}`);
+          NODE
+
+      - name: Create reviewable extension archive
+        run: pnpm zip
+
+      - name: Upload Chrome build for manual review
+        uses: actions/upload-artifact@v7
+        with:
+          name: phantom-trail-chrome-${{ github.sha }}
+          path: |
+            .output/*chrome*.zip
+            .output/chrome-mv3
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
