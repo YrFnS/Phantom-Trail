@@ -55,7 +55,7 @@ jobs:
           fi
 
   extension:
-    name: Type, lint, and build
+    name: Test, type, lint, and build
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -74,6 +74,9 @@ jobs:
 
       - name: Install dependencies from committed lockfile
         run: pnpm install --frozen-lockfile
+
+      - name: Attribution fixtures
+        run: pnpm test
 
       - name: Type-check
         run: pnpm type-check
