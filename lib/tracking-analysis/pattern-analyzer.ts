@@ -1,18 +1,20 @@
 import type { AnalysisResult, TrackerPattern } from './types';
 import { AnalysisHelpers } from './helpers';
 
+/**
+ * Groups recorded event fields into frequency patterns.
+ * The current event model does not reliably prove cross-site attribution.
+ */
 export class PatternAnalyzer {
   static async analyzePatterns(
     timeframe: number = 7 * 24 * 60 * 60 * 1000
   ): Promise<AnalysisResult> {
     const events = await AnalysisHelpers.getEventsInTimeframe(timeframe);
-
     const trackerMap = new Map<string, TrackerPattern>();
-    const domainSites = new Map<string, Set<string>>();
+    const domainHosts = new Map<string, Set<string>>();
 
-    events.forEach(event => {
+    for (const event of events) {
       const domain = event.domain;
-
       if (!trackerMap.has(domain)) {
         trackerMap.set(domain, {
           domain,
@@ -23,46 +25,54 @@ export class PatternAnalyzer {
           firstSeen: event.timestamp,
           lastSeen: event.timestamp,
         });
-        domainSites.set(domain, new Set());
+        domainHosts.set(domain, new Set());
       }
 
-      const tracker = trackerMap.get(domain)!;
-      tracker.occurrences++;
-      tracker.lastSeen = Math.max(tracker.lastSeen, event.timestamp);
-      tracker.firstSeen = Math.min(tracker.firstSeen, event.timestamp);
+      const pattern = trackerMap.get(domain);
+      if (!pattern) continue;
 
-      const siteDomain = new URL(event.url).hostname;
-      domainSites.get(domain)!.add(siteDomain);
-    });
+      pattern.occurrences++;
+      pattern.lastSeen = Math.max(pattern.lastSeen, event.timestamp);
+      pattern.firstSeen = Math.min(pattern.firstSeen, event.timestamp);
 
-    trackerMap.forEach((tracker, domain) => {
-      tracker.crossSiteCount = domainSites.get(domain)!.size;
-    });
+      try {
+        domainHosts.get(domain)?.add(new URL(event.url).hostname);
+      } catch {
+        domainHosts.get(domain)?.add(event.url);
+      }
+    }
+
+    for (const [domain, pattern] of trackerMap.entries()) {
+      pattern.crossSiteCount = domainHosts.get(domain)?.size || 0;
+    }
 
     const topTrackers = Array.from(trackerMap.values())
-      .sort((a, b) => b.occurrences - a.occurrences)
+      .sort((first, second) => second.occurrences - first.occurrences)
       .slice(0, 10);
 
     const riskCounts = { low: 0, medium: 0, high: 0, critical: 0 };
-    events.forEach(event => riskCounts[event.riskLevel]++);
+    for (const event of events) riskCounts[event.riskLevel]++;
 
     const total = events.length;
+    const percentage = (count: number) =>
+      total > 0 ? Math.round((count / total) * 100) : 0;
     const riskDistribution = {
-      low: Math.round((riskCounts.low / total) * 100),
-      medium: Math.round((riskCounts.medium / total) * 100),
-      high: Math.round((riskCounts.high / total) * 100),
-      critical: Math.round((riskCounts.critical / total) * 100),
+      low: percentage(riskCounts.low),
+      medium: percentage(riskCounts.medium),
+      high: percentage(riskCounts.high),
+      critical: percentage(riskCounts.critical),
     };
 
-    const crossSiteTrackers = topTrackers.filter(t => t.crossSiteCount > 1);
-
-    const summary = `Analyzed ${events.length} tracking events. Top tracker: ${topTrackers[0]?.name || 'None'} (${topTrackers[0]?.occurrences || 0} occurrences). ${crossSiteTrackers.length} trackers detected across multiple sites.`;
-
-    const recommendations = this.generateRecommendations(
-      topTrackers,
-      crossSiteTrackers,
-      riskDistribution
+    const crossSiteTrackers = topTrackers.filter(
+      pattern => pattern.crossSiteCount > 1
     );
+    const mostFrequent = topTrackers[0];
+
+    const summary = `Grouped ${events.length} recorded detector signals. Most frequent domain label: ${
+      mostFrequent?.name || 'none'
+    } (${mostFrequent?.occurrences || 0} events). ${
+      crossSiteTrackers.length
+    } domain groups were associated with multiple URL-host labels; attribution is unverified.`;
 
     return {
       type: 'pattern',
@@ -74,7 +84,11 @@ export class PatternAnalyzer {
         totalEvents: events.length,
         timeframeDays: Math.round(timeframe / (24 * 60 * 60 * 1000)),
       },
-      recommendations,
+      recommendations: this.generateRecommendations(
+        topTrackers,
+        crossSiteTrackers,
+        riskDistribution
+      ),
     };
   }
 
@@ -87,19 +101,20 @@ export class PatternAnalyzer {
 
     if (crossSiteTrackers.length > 0) {
       recommendations.push(
-        `${crossSiteTrackers.length} trackers follow you across sites. Consider using Privacy Badger or uBlock Origin.`
+        `${crossSiteTrackers.length} domain groups appeared with more than one URL-host label. Review page/resource attribution before treating this as cross-site tracking.`
       );
     }
 
     if (riskDistribution.critical > 10) {
       recommendations.push(
-        `${riskDistribution.critical}% of tracking is critical risk. Review your browsing habits and use stronger privacy tools.`
+        `${riskDistribution.critical}% of recorded events carry the prototype critical label. Inspect the underlying detector evidence and false-positive risk.`
       );
     }
 
-    if (topTrackers.length > 0 && topTrackers[0].occurrences > 50) {
+    const mostFrequent = topTrackers[0];
+    if (mostFrequent && mostFrequent.occurrences > 50) {
       recommendations.push(
-        `${topTrackers[0].name} is very active (${topTrackers[0].occurrences} events). Consider blocking this tracker.`
+        `${mostFrequent.name} appears in ${mostFrequent.occurrences} recorded events. Check duplicates and request context before changing browser settings.`
       );
     }
 
