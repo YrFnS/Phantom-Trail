@@ -1,125 +1,136 @@
-# Installation Instructions
+# Installing Phantom Trail 0.1.0
 
-## Quick Install (Manual)
+> **Experimental software**
+>
+> Phantom Trail is a development prototype. Its detections and privacy scores are heuristic, it can report false positives or miss trackers, and several visible modules are incomplete. Do not rely on it as a security control or legal-compliance tool.
+
+## Build from source
 
 ### Prerequisites
 
-- Google Chrome browser (version 88+)
-- 5 minutes of your time
+- A current Google Chrome or Chromium-based browser
+- Node.js 18 or newer
+- `pnpm`
 
-### Installation Steps
+### Steps
 
-1. **Download the Extension**
-   - Download `phantom-trail-1.0.0-chrome.zip` from the releases page
-   - Or get it from the shared link
+```bash
+git clone https://github.com/YrFnS/Phantom-Trail.git
+cd Phantom-Trail
+pnpm install
+pnpm type-check
+pnpm lint
+pnpm build
+```
 
-2. **Extract the ZIP File**
-   - Right-click the ZIP file → "Extract All" (Windows) or double-click (Mac)
-   - Remember the extraction location
+Load the built extension:
 
-3. **Open Chrome Extensions Page**
-   - Open Google Chrome
-   - Go to `chrome://extensions/`
-   - Or: Menu (⋮) → Extensions → Manage Extensions
+1. Open `chrome://extensions/`.
+2. Enable **Developer mode**.
+3. Click **Load unpacked**.
+4. Select the `.output/chrome-mv3` directory.
+5. Pin the Phantom Trail icon if desired.
 
-4. **Enable Developer Mode**
-   - Toggle "Developer mode" switch in the top-right corner
-   - This allows loading unpacked extensions
+A successful build only confirms that the source compiled. It does not validate detection accuracy, privacy scores, performance, or every browser workflow.
 
-5. **Load the Extension**
-   - Click "Load unpacked" button
-   - Navigate to the extracted folder
-   - Select the folder containing `manifest.json`
-   - Click "Select Folder"
+## What to expect
 
-6. **Verify Installation**
-   - You should see "Phantom Trail" in your extensions list
-   - The extension icon (👻) should appear in your Chrome toolbar
-   - Status should show "Enabled"
+The extension can record request matches and in-page API signals, store recent events locally, show a live feed and graph, calculate an experimental score, and export CSV or JSON data.
 
-### First-Time Setup
+The following should be treated as incomplete or experimental:
 
-**Basic Usage (No API Key Required):**
+- Website attribution and cross-site correlation
+- A–F privacy scoring
+- Natural-language AI chat and coaching
+- Peer-to-peer community data
+- Privacy-tool effectiveness analysis
+- Cross-device sync
+- Scheduled reports and automatic trend snapshots
+- Notification workflows
+- PDF, email, and cloud export delivery
 
-- Extension works immediately for tracking detection
-- Click the extension icon to see tracking events
-- View privacy scores and network graphs
+## Optional OpenRouter AI
 
-**Optional: Enable AI Features**
+AI requests require an OpenRouter API key entered in extension settings.
 
-1. Get a free OpenRouter API key:
-   - Visit https://openrouter.ai/
-   - Sign up for an account
-   - Generate an API key
-   - Copy the key (starts with `sk-or-...`)
+When an AI code path runs, Phantom Trail sanitizes event URLs and currently sends OpenRouter a prompt built mainly from tracker domains, counts, types, and risk levels. Your API key is also sent to OpenRouter to authenticate the request.
 
-2. Configure in extension:
-   - Click the Phantom Trail icon
-   - Go to Settings tab
-   - Paste your API key in "OpenRouter API Key" field
-   - Click "Save Settings"
+Do not enter an API key or enable AI for sensitive browsing until you have reviewed:
 
-3. AI features now enabled:
-   - Real-time AI narrative explaining tracking
-   - Natural language chat interface
-   - Personalized privacy recommendations
-   - AI-powered privacy coaching
+- [Privacy and Data Disclosure](docs/PRIVACY_POLICY.md)
+- OpenRouter’s own terms and privacy documentation
 
-### Testing the Extension
+## Experimental peer network
 
-1. **Visit a website** (try cnn.com or amazon.com)
-2. **Click the extension icon**
-3. **Check the Live Feed tab** - you should see tracking events
-4. **View Privacy Score** - see current site and overall scores
-5. **Explore Network Graph** - visualize data flows
-6. **Try the Chat** (if AI enabled) - ask "What trackers are on this page?"
+Joining the peer network is optional. Shared data is intended to contain aggregate fields such as a score, grade, tracker count, risk distribution, website categories, timestamp, and optional broad region.
 
-### Troubleshooting
+Peer messages are self-reported and unauthenticated. They must not be interpreted as verified website reputation, measured community adoption, or a representative benchmark.
 
-**Extension doesn't appear:**
+## Permissions
 
-- Make sure you selected the correct folder (contains `manifest.json`)
-- Check that Developer mode is enabled
-- Try reloading the extension (click refresh icon)
+The prototype requests broad permissions, including:
 
-**No tracking events showing:**
+- `<all_urls>`
+- `webRequest`
+- `storage`
+- `activeTab`
+- `tabs`
+- `alarms`
+- `notifications`
+- `downloads`
+- `management`
 
-- Visit a different website (some sites have minimal tracking)
-- Check browser console (F12) for errors
-- Ensure the extension is enabled
+These permissions are under review and should be minimized before a production release.
 
-**AI features not working:**
+## Local data and exports
 
-- Verify API key is correct (starts with `sk-or-...`)
-- Check your OpenRouter account has credits
-- Extension works without AI (basic tracking detection)
+Tracking-event objects are stored in Chrome extension storage. Stored and exported URLs may include paths, query parameters, or fragments depending on how the event was created.
 
-**Extension errors:**
+The event store is capped at 1,000 records and includes cleanup logic for events older than 30 days. CSV and JSON exports can contain raw stored event data. The current PDF option is a text report, not a real PDF document.
 
-- Open Chrome DevTools (F12) → Console tab
-- Look for error messages
-- Report issues on GitHub with error details
+## Troubleshooting
 
-### Uninstallation
+### Build fails
 
-1. Go to `chrome://extensions/`
-2. Find "Phantom Trail"
-3. Click "Remove"
-4. Confirm removal
+Run:
 
-### Privacy & Security
+```bash
+pnpm install
+pnpm type-check
+pnpm lint
+pnpm build
+```
 
-- **Local-first:** All data processing happens on your device
-- **Optional AI:** Extension works without API key
-- **No data collection:** We don't collect or transmit your browsing data
-- **Open source:** Code is available for review on GitHub
+Review the first reported error rather than assuming generated output is valid.
 
-### Support
+### No events appear
 
-- **Issues:** https://github.com/YrFnS/Phantom-Trail/issues
-- **Documentation:** See README.md for detailed features
-- **Questions:** Open a GitHub discussion
+- Reload the extension after building.
+- Refresh the website being tested.
+- Remember that no result does not prove that a site has no tracking.
+- Review the extension service-worker and page console for errors.
 
----
+### Too many events appear
 
-**Enjoy your privacy awareness journey! 👻**
+The current heuristics can classify normal API usage or broad URL patterns as tracking. Record the page, event description, and reproduction steps in a GitHub issue.
+
+### AI does not work
+
+- Confirm that an OpenRouter key is configured.
+- Confirm that the selected OpenRouter model is available to your account.
+- The non-AI prototype views can still run without a key.
+
+## Remove the extension
+
+Open `chrome://extensions/`, locate Phantom Trail, and select **Remove**. Export anything you need before removal.
+
+## Reporting problems
+
+Open an issue at the repository and include:
+
+- Chrome version
+- Phantom Trail commit or version
+- Reproduction steps
+- Expected and actual behavior
+- Relevant console errors
+- Whether AI, sync, or P2P was enabled
