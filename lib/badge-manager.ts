@@ -85,31 +85,33 @@ export class BadgeManager {
         return;
       }
 
+      const numericScore = score.score;
+      const grade = score.grade;
       const now = Date.now();
       const lastUpdate = this.lastUpdateTime.get(tabId) || 0;
       if (now - lastUpdate < this.UPDATE_THROTTLE_MS) return;
       this.lastUpdateTime.set(tabId, now);
 
-      if (settings.showOnlyRisks && score.score >= 80) {
+      if (settings.showOnlyRisks && numericScore >= 80) {
         await this.clearBadge(tabId);
         return;
       }
 
       await chrome.action.setBadgeText({
-        text: this.generateBadgeText(score, settings.style),
+        text: this.generateBadgeText(numericScore, grade, settings.style),
         tabId,
       });
       await chrome.action.setBadgeBackgroundColor({
-        color: this.getScoreColor(score.score, settings.colorScheme),
+        color: this.getScoreColor(numericScore, settings.colorScheme),
         tabId,
       });
       await this.updateTooltip(tabId, {
-        score: score.score,
-        grade: score.grade,
+        score: numericScore,
+        grade,
         qualifyingRows: score.breakdown.qualifyingRows,
         evidenceUnits: score.breakdown.evidenceUnits,
         confidence: score.confidence,
-        penaltyLabel: this.getPenaltyLabel(score.score),
+        penaltyLabel: this.getPenaltyLabel(numericScore),
       });
     } catch (error) {
       console.error('Failed to update experimental badge:', error);
@@ -183,20 +185,21 @@ export class BadgeManager {
   }
 
   private static generateBadgeText(
-    score: PrivacyScore & { score: number },
+    score: number,
+    grade: string,
     style: BadgeStyle
   ): string {
     switch (style) {
       case BadgeStyle.SCORE_ONLY:
-        return score.score.toString();
+        return score.toString();
       case BadgeStyle.GRADE_ONLY:
-        return score.grade;
+        return grade;
       case BadgeStyle.COMBINED:
-        return `${score.grade}${score.score}`;
+        return `${grade}${score}`;
       case BadgeStyle.ICON_COLOR:
         return '';
       default:
-        return score.grade;
+        return grade;
     }
   }
 
