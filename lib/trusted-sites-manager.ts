@@ -115,8 +115,9 @@ export class TrustedSitesManager {
    */
   static async adjustScoreForTrust(
     baseScore: number,
-    _domain: string
+    domain: string
   ): Promise<number> {
+    void domain;
     return baseScore;
   }
 
@@ -124,9 +125,11 @@ export class TrustedSitesManager {
    * Personal annotations must not suppress detector output.
    */
   static async shouldMonitorTracker(
-    _domain: string,
-    _trackerRiskLevel: 'low' | 'medium' | 'high' | 'critical'
+    domain: string,
+    trackerRiskLevel: 'low' | 'medium' | 'high' | 'critical'
   ): Promise<boolean> {
+    void domain;
+    void trackerRiskLevel;
     return true;
   }
 
@@ -153,8 +156,9 @@ export class TrustedSitesManager {
    * validated source exists.
    */
   static async generateTrustSuggestions(
-    _domain: string
+    domain: string
   ): Promise<TrustSuggestion[]> {
+    void domain;
     return [];
   }
 
