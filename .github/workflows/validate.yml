@@ -72,8 +72,8 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Install dependencies from committed lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Type-check
         run: pnpm type-check
