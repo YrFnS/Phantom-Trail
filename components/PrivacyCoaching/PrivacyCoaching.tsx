@@ -16,6 +16,7 @@ export function PrivacyCoaching({ className = '' }: PrivacyCoachingProps) {
   const [journey, setJourney] = useState<PrivacyJourney | null>(null);
   const [insights, setInsights] = useState<CoachingInsight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [insufficientEvidence, setInsufficientEvidence] = useState(false);
   const [events] = useStorage<TrackingEvent[]>('phantom_trail_events', []);
 
   useEffect(() => {
@@ -23,9 +24,18 @@ export function PrivacyCoaching({ className = '' }: PrivacyCoachingProps) {
       try {
         setLoading(true);
         const recentEvents = events.slice(-100);
-        const heuristicScore = calculatePrivacyScore(recentEvents, true);
+        const evidenceScore = calculatePrivacyScore(recentEvents, true);
+
+        if (evidenceScore.status !== 'estimated' || evidenceScore.score === null) {
+          setInsufficientEvidence(true);
+          setJourney(null);
+          setInsights([]);
+          return;
+        }
+
+        setInsufficientEvidence(false);
         const updatedJourney = await PrivacyCoach.updateJourney(
-          heuristicScore.score
+          evidenceScore.score
         );
         setJourney(updatedJourney);
         setInsights(
@@ -44,6 +54,9 @@ export function PrivacyCoaching({ className = '' }: PrivacyCoachingProps) {
     if (events.length > 0) {
       void loadCoachingData();
     } else {
+      setInsufficientEvidence(false);
+      setJourney(null);
+      setInsights([]);
       setLoading(false);
     }
   }, [events]);
@@ -106,10 +119,14 @@ export function PrivacyCoaching({ className = '' }: PrivacyCoachingProps) {
       <div className={`${className} text-center py-6`}>
         <div className="text-2xl mb-2">○</div>
         <p className="text-sm text-[var(--text-secondary)]">
-          Browse to collect signals for experimental coaching
+          {insufficientEvidence
+            ? 'N/A — insufficient score-qualified evidence'
+            : 'Browse to collect signals for experimental coaching'}
         </p>
-        <p className="text-[10px] text-[var(--text-tertiary)] mt-2">
-          No conclusions are available without recorded detector output.
+        <p className="text-[10px] text-[var(--text-tertiary)] mt-2 max-w-xs mx-auto">
+          {insufficientEvidence
+            ? 'Observed rows remain available in the feed, but coaching does not convert excluded or weak evidence into a zero or favorable grade.'
+            : 'No conclusions are available without recorded detector output.'}
         </p>
       </div>
     );
@@ -121,9 +138,9 @@ export function PrivacyCoaching({ className = '' }: PrivacyCoachingProps) {
   return (
     <div className={`${className} space-y-4`}>
       <div className="p-2 rounded border-l-2 border-[var(--warning)] bg-[var(--warning)]/5 text-[10px] leading-relaxed text-[var(--text-secondary)]">
-        Goals, trends, and suggestions below are generated from heuristic
-        detector events. They are not measurements of browsing safety, total
-        behavior, privacy protection, or legal compliance.
+        Goals, trends, and suggestions below use estimated evidence-index values.
+        They are not measurements of browsing safety, total behavior, privacy
+        protection, or legal compliance.
       </div>
 
       <div className="bg-[var(--bg-secondary)] rounded-lg p-4 border border-[var(--border-primary)]">
@@ -142,7 +159,7 @@ export function PrivacyCoaching({ className = '' }: PrivacyCoachingProps) {
               {journey.currentScore}
             </div>
             <div className="text-[10px] text-[var(--text-secondary)]">
-              Current heuristic
+              Evidence index
             </div>
           </div>
           <div className="text-center">
@@ -157,7 +174,7 @@ export function PrivacyCoaching({ className = '' }: PrivacyCoachingProps) {
               {scoreChange}
             </div>
             <div className="text-[10px] text-[var(--text-secondary)]">
-              Recent change
+              Estimated change
             </div>
           </div>
           <div className="text-center">
@@ -254,7 +271,7 @@ export function PrivacyCoaching({ className = '' }: PrivacyCoachingProps) {
       {journey.scoreHistory.length > 1 && (
         <div className="bg-[var(--bg-secondary)] rounded-lg p-3 border border-[var(--border-primary)]">
           <h4 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide mb-2">
-            Heuristic history
+            Estimated index history
           </h4>
           <div className="h-16 flex items-end justify-between gap-1">
             {journey.scoreHistory.slice(-14).map((point, index) => (
@@ -265,7 +282,7 @@ export function PrivacyCoaching({ className = '' }: PrivacyCoachingProps) {
                   height: `${point.score}%`,
                   minHeight: '2px',
                 }}
-                title={`Heuristic: ${point.score} (${new Date(
+                title={`Evidence index: ${point.score} (${new Date(
                   point.date
                 ).toLocaleDateString()})`}
               />
