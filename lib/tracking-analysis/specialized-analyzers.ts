@@ -2,55 +2,70 @@ import type { AnalysisResult, TrackerData, TimelineData } from './types';
 import { calculatePrivacyScore } from '../privacy-score';
 import { AnalysisHelpers } from './helpers';
 import type { TrackingEvent } from '../types';
+import {
+  eventMatchesPageDomain,
+  getEventOccurrenceCount,
+  getPageDomain,
+  getResourceDomain,
+  normalizeDomain,
+  normalizeTrackingEvent,
+} from '../event-attribution.mts';
 
 /**
- * Local analyzers for recorded detector data.
+ * Local analyzers for attributed detector data.
  *
- * These methods retain their historical API names for compatibility. They do
- * not perform a live website audit, verify ownership, or prove tracking.
+ * Historical API names remain for compatibility. These methods do not perform a
+ * live website audit, verify ownership, or prove tracking.
  */
 export class SpecializedAnalyzers {
   static async analyzeTracker(trackerDomain: string): Promise<AnalysisResult> {
+    const normalizedTrackerDomain = normalizeDomain(trackerDomain);
     const events = await AnalysisHelpers.getEventsInTimeframe(
       30 * 24 * 60 * 60 * 1000
     );
-    const trackerEvents = events.filter(event => event.domain === trackerDomain);
+    const trackerEvents = events.filter(
+      event => getResourceDomain(event) === normalizedTrackerDomain
+    );
 
     if (trackerEvents.length === 0) {
       return {
         type: 'tracker',
-        summary: `No recorded detector signals use the domain label ${trackerDomain}. No conclusion can be drawn.`,
+        summary: `No recorded detector signals use the resource-domain label ${normalizedTrackerDomain}. No conclusion can be drawn.`,
         data: null,
         recommendations: [],
       };
     }
 
-    const sites = new Set(
-      trackerEvents.map(event => this.getUrlHost(event)).filter(Boolean)
+    const pages = new Set(
+      trackerEvents.map(getPageDomain).filter(Boolean)
     );
     const trackingMethods = new Set(
       trackerEvents
         .map(event => event.inPageTracking?.method)
         .filter((method): method is NonNullable<typeof method> => Boolean(method))
     );
+    const occurrences = trackerEvents.reduce(
+      (total, event) => total + getEventOccurrenceCount(event),
+      0
+    );
 
     const trackerInfo: TrackerData = {
-      domain: trackerDomain,
-      name: AnalysisHelpers.getTrackerName(trackerDomain),
-      owner: AnalysisHelpers.getTrackerOwner(trackerDomain),
+      domain: normalizedTrackerDomain,
+      name: AnalysisHelpers.getTrackerName(normalizedTrackerDomain),
+      owner: AnalysisHelpers.getTrackerOwner(normalizedTrackerDomain),
       type: trackerEvents[0]?.trackerType || 'unknown',
       riskLevel: trackerEvents[0]?.riskLevel || 'unknown',
-      prevalence: `Associated with ${sites.size} recorded URL-host label${
-        sites.size === 1 ? '' : 's'
+      prevalence: `Attributed to ${pages.size} recorded page domain${
+        pages.size === 1 ? '' : 's'
       }`,
-      occurrences: trackerEvents.length,
+      occurrences,
       trackingMethods: Array.from(trackingMethods),
-      sites: Array.from(sites).slice(0, 10),
+      sites: Array.from(pages).slice(0, 10),
     };
 
-    const summary = `${trackerInfo.name} is a catalog display label for ${trackerDomain}. ${trackerEvents.length} recorded signals use this domain label and are associated with ${sites.size} URL-host label${
-      sites.size === 1 ? '' : 's'
-    }. Catalog owner label: ${trackerInfo.owner}. Prototype severity: ${trackerInfo.riskLevel}. Attribution and ownership have not been independently verified.`;
+    const summary = `${trackerInfo.name} is a catalog display label for resource domain ${normalizedTrackerDomain}. ${trackerEvents.length} stored rows represent ${occurrences} occurrences across ${pages.size} attributed page domain${
+      pages.size === 1 ? '' : 's'
+    }. Catalog owner label: ${trackerInfo.owner}. Prototype severity: ${trackerInfo.riskLevel}. Ownership, identity, and data use are not independently verified.`;
 
     return {
       type: 'tracker',
@@ -63,7 +78,7 @@ export class SpecializedAnalyzers {
   static async auditWebsite(websiteUrl: string): Promise<AnalysisResult> {
     let pageDomain: string;
     try {
-      pageDomain = new URL(websiteUrl).hostname;
+      pageDomain = normalizeDomain(new URL(websiteUrl).hostname);
     } catch {
       return {
         type: 'website',
@@ -76,14 +91,14 @@ export class SpecializedAnalyzers {
     const events = await AnalysisHelpers.getEventsInTimeframe(
       7 * 24 * 60 * 60 * 1000
     );
-    const siteEvents = events.filter(
-      event => this.getUrlHost(event) === pageDomain
+    const siteEvents = events.filter(event =>
+      eventMatchesPageDomain(event, pageDomain)
     );
 
     if (siteEvents.length === 0) {
       return {
         type: 'website',
-        summary: `No recorded detector signals are associated with the URL-host label ${pageDomain}. This does not show that the website has no tracking.`,
+        summary: `No recorded detector signals are attributed to page domain ${pageDomain}. This does not show that the website has no tracking.`,
         data: null,
         recommendations: [
           'A live audit was not performed. Review detector coverage and attribution before drawing conclusions.',
@@ -103,27 +118,43 @@ export class SpecializedAnalyzers {
       low: siteEvents.filter(event => event.riskLevel === 'low'),
     };
 
-    const uniqueDomains = Array.from(
-      new Set(siteEvents.map(event => event.domain || 'unknown'))
+    const resourceDomains = Array.from(
+      new Set(siteEvents.map(getResourceDomain).filter(Boolean))
     );
-    const uniqueTrackers = uniqueDomains.map(domain => ({
-      domain,
-      name: AnalysisHelpers.getTrackerName(domain),
-      count: siteEvents.filter(event => event.domain === domain).length,
-      riskLevel:
-        siteEvents.find(event => event.domain === domain)?.riskLevel ||
-        'unknown',
-    }));
+    const uniqueTrackers = resourceDomains.map(domain => {
+      const matchingEvents = siteEvents.filter(
+        event => getResourceDomain(event) === domain
+      );
+      return {
+        domain,
+        name: AnalysisHelpers.getTrackerName(domain),
+        count: matchingEvents.reduce(
+          (total, event) => total + getEventOccurrenceCount(event),
+          0
+        ),
+        riskLevel: matchingEvents[0]?.riskLevel || 'unknown',
+      };
+    });
 
-    const differentDomainCount = uniqueTrackers.filter(
-      item => !this.isSameSiteLabel(item.domain, pageDomain)
-    ).length;
+    const thirdPartyResources = new Set(
+      siteEvents
+        .map(normalizeTrackingEvent)
+        .filter(event => event.context?.party === 'third-party')
+        .map(getResourceDomain)
+        .filter(Boolean)
+    );
     const thirdPartyPercentage =
-      uniqueTrackers.length === 0
+      resourceDomains.length === 0
         ? 0
-        : Math.round((differentDomainCount / uniqueTrackers.length) * 100);
+        : Math.round(
+            (thirdPartyResources.size / resourceDomains.length) * 100
+          );
+    const occurrenceCount = siteEvents.reduce(
+      (total, event) => total + getEventOccurrenceCount(event),
+      0
+    );
 
-    const summary = `${pageDomain}: ${siteEvents.length} recorded detector signals, ${uniqueTrackers.length} unique event-domain labels, and experimental heuristic ${privacyScore.score}/100 (${privacyScore.grade}). ${thirdPartyPercentage}% of the event-domain labels differ from the page host under a simple hostname comparison. This is not a live privacy audit or proof of third-party data sharing.`;
+    const summary = `${pageDomain}: ${siteEvents.length} stored rows, ${occurrenceCount} occurrences, ${resourceDomains.length} unique resource-domain labels, and experimental heuristic ${privacyScore.score}/100 (${privacyScore.grade}). ${thirdPartyPercentage}% of unique resource domains carry the prototype third-party relationship label. This is not a live privacy audit or proof of data sharing.`;
 
     return {
       type: 'website',
@@ -134,12 +165,12 @@ export class SpecializedAnalyzers {
         trackersByRisk,
         uniqueTrackers,
         thirdPartyPercentage,
-        totalEvents: siteEvents.length,
+        totalEvents: occurrenceCount,
       },
       recommendations: this.generateWebsiteRecommendations(
         uniqueTrackers,
         thirdPartyPercentage,
-        siteEvents.length
+        occurrenceCount
       ),
     };
   }
@@ -152,12 +183,13 @@ export class SpecializedAnalyzers {
     const hourlyEvents = new Array<number>(24).fill(0);
 
     for (const event of events) {
-      const date = new Date(event.timestamp);
+      const date = new Date(event.lastSeenAt || event.timestamp);
       if (Number.isNaN(date.getTime())) continue;
 
+      const occurrences = getEventOccurrenceCount(event);
       const dayKey = date.toISOString().split('T')[0];
-      dailyEvents.set(dayKey, (dailyEvents.get(dayKey) || 0) + 1);
-      hourlyEvents[date.getHours()]++;
+      dailyEvents.set(dayKey, (dailyEvents.get(dayKey) || 0) + occurrences);
+      hourlyEvents[date.getHours()] += occurrences;
     }
 
     const dailyEntries = Array.from(dailyEvents.entries());
@@ -169,18 +201,22 @@ export class SpecializedAnalyzers {
       (current, entry) => (entry[1] < current[1] ? entry : current),
       ['', Number.POSITIVE_INFINITY]
     );
-    const dailyAverage = events.length / Math.max(1, dailyEntries.length);
+    const occurrenceCount = events.reduce(
+      (total, event) => total + getEventOccurrenceCount(event),
+      0
+    );
+    const dailyAverage = occurrenceCount / Math.max(1, dailyEntries.length);
 
     const anomalies = dailyEntries
       .filter(([, count]) => dailyAverage > 0 && count > dailyAverage * 2)
       .map(([date, count]) => ({
         timestamp: new Date(date).getTime(),
-        description: `Recorded signal count (${count}) exceeded twice the window's daily average`,
+        description: `Recorded occurrence count (${count}) exceeded twice the window's daily average`,
         eventCount: count,
       }));
 
     const timelineData: TimelineData = {
-      totalEvents: events.length,
+      totalEvents: occurrenceCount,
       dailyAverage: Math.round(dailyAverage),
       peakDay: peakDay[0] || 'none',
       lowestDay:
@@ -195,9 +231,9 @@ export class SpecializedAnalyzers {
     };
 
     const days = Math.round(timeframe / (24 * 60 * 60 * 1000));
-    const summary = `${events.length} recorded detector signals in the selected ${days}-day window. Highest daily count: ${peakDay[1]}${
+    const summary = `${events.length} stored rows represent ${occurrenceCount} detector occurrences in the selected ${days}-day window. Highest daily count: ${peakDay[1]}${
       peakDay[0] ? ` on ${peakDay[0]}` : ''
-    }. ${anomalies.length} days matched the simple deviation rule. The counts reflect stored events, not total browsing or confirmed tracking activity.`;
+    }. ${anomalies.length} days matched the simple deviation rule. These are storage patterns, not total browsing or confirmed tracking activity.`;
 
     return {
       type: 'timeline',
@@ -207,37 +243,16 @@ export class SpecializedAnalyzers {
     };
   }
 
-  private static getUrlHost(event: TrackingEvent): string {
-    try {
-      return new URL(event.url).hostname;
-    } catch {
-      return '';
-    }
-  }
-
-  private static isSameSiteLabel(
-    candidateDomain: string,
-    pageDomain: string
-  ): boolean {
-    const candidate = candidateDomain.toLowerCase().replace(/^www\./, '');
-    const page = pageDomain.toLowerCase().replace(/^www\./, '');
-    return (
-      candidate === page ||
-      candidate.endsWith(`.${page}`) ||
-      page.endsWith(`.${candidate}`)
-    );
-  }
-
   private static generateTrackerRecommendations(
     trackerInfo: TrackerData
   ): string[] {
     const recommendations = [
-      `Review the recorded URLs and detector evidence associated with ${trackerInfo.domain}; a catalog match does not prove tracking or ownership.`,
+      `Review the page/resource routes and detector evidence associated with ${trackerInfo.domain}; a catalog match does not prove tracking or ownership.`,
     ];
 
     if (trackerInfo.sites.length > 5) {
       recommendations.push(
-        `The domain label is associated with ${trackerInfo.sites.length} URL-host labels in stored data. Check page/resource attribution before treating this as cross-site prevalence.`
+        `The resource-domain label is attributed to ${trackerInfo.sites.length} page domains in stored data. Confirm attribution and rule quality before treating this as cross-site prevalence.`
       );
     }
 
@@ -257,22 +272,22 @@ export class SpecializedAnalyzers {
       count: number;
       riskLevel: string;
     }>,
-    differentDomainPercentage: number,
-    eventCount: number
+    thirdPartyPercentage: number,
+    occurrenceCount: number
   ): string[] {
     const recommendations: string[] = [
-      `Review the ${eventCount} underlying events and separate page-host labels from requested resource domains before interpreting the heuristic.`,
+      `Review the ${occurrenceCount} underlying occurrences, attribution basis, party basis, and detector confidence before interpreting the heuristic.`,
     ];
 
-    if (differentDomainPercentage > 80) {
+    if (thirdPartyPercentage > 80) {
       recommendations.push(
-        `${differentDomainPercentage}% of unique event-domain labels differ from the page host under a simple comparison. This does not prove that those parties received or shared personal data.`
+        `${thirdPartyPercentage}% of unique resource-domain labels carry the prototype third-party classification. This does not prove that those parties received or shared personal data.`
       );
     }
 
     if (uniqueTrackers.length > 15) {
       recommendations.push(
-        `${uniqueTrackers.length} unique event-domain labels were recorded. Check duplicate requests, false positives, and catalog breadth before installing or changing software.`
+        `${uniqueTrackers.length} unique resource-domain labels were recorded. Check duplicate aggregation, false positives, and catalog breadth before installing or changing software.`
       );
     }
 
@@ -281,7 +296,7 @@ export class SpecializedAnalyzers {
     );
     if (criticalLabels.length > 0) {
       recommendations.push(
-        `${criticalLabels.length} domain labels include at least one critical-labeled event. Inspect the detector evidence; this is not a verified incident.`
+        `${criticalLabels.length} resource-domain labels include at least one critical-labeled event. Inspect the detector evidence; this is not a verified incident.`
       );
     }
 
@@ -295,7 +310,7 @@ export class SpecializedAnalyzers {
 
     if (timelineData.anomalies.length > 0) {
       recommendations.push(
-        `${timelineData.anomalies.length} days exceeded the simple count threshold. Review whether page refreshes, duplicate requests, or detector changes explain the difference.`
+        `${timelineData.anomalies.length} days exceeded the simple count threshold. Review whether page refreshes, duplicate aggregation, or detector changes explain the difference.`
       );
     }
 
@@ -306,7 +321,7 @@ export class SpecializedAnalyzers {
     );
     if (peakHour.events > 0) {
       recommendations.push(
-        `The largest hourly bucket is ${peakHour.hour}:00 with ${peakHour.events} stored signals. This is a storage pattern, not a conclusion about user behavior.`
+        `The largest hourly bucket is ${peakHour.hour}:00 with ${peakHour.events} stored occurrences. This is a storage pattern, not a conclusion about user behavior.`
       );
     }
 
