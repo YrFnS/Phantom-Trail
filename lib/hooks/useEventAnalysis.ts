@@ -25,7 +25,7 @@ export function useEventAnalysis(event: TrackingEvent | null) {
     const riskFactors: string[] = [];
     if (event.inPageTracking) {
       riskFactors.push(
-        `In-page API signal: ${event.inPageTracking.method.replaceAll('-', ' ')}`
+        `In-page API signal: ${event.inPageTracking.method.replace(/-/g, ' ')}`
       );
     } else {
       riskFactors.push(`Recorded domain or URL-pattern match: ${event.domain}`);
@@ -54,7 +54,9 @@ function generateRecommendations(
   const recommendations: string[] = [];
 
   if (riskLevel === 'critical') {
-    recommendations.push('Review the recorded evidence before entering sensitive data');
+    recommendations.push(
+      'Review the recorded evidence before entering sensitive data'
+    );
   } else if (riskLevel === 'high') {
     recommendations.push('Consider reviewing browser and site privacy controls');
   } else if (riskLevel === 'medium') {
