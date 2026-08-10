@@ -1,5 +1,5 @@
-import { useRef, useEffect, useCallback } from 'react';
-import cytoscape, { Core, ElementDefinition } from 'cytoscape';
+import { useCallback, useEffect, useRef } from 'react';
+import cytoscape, { type Core, type ElementDefinition } from 'cytoscape';
 import { useNetworkData } from './NetworkGraph.hooks';
 import type { NetworkGraphProps } from './NetworkGraph.types';
 import { Card, CardHeader, CardContent, LoadingSpinner } from '../ui';
@@ -7,22 +7,20 @@ import { Card, CardHeader, CardContent, LoadingSpinner } from '../ui';
 export function NetworkGraph({ className = '' }: NetworkGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<Core | null>(null);
-  const isInitializedRef = useRef(false);
-  const lastDataHashRef = useRef<string>('');
+  const lastDataHashRef = useRef('');
   const { data, loading } = useNetworkData();
 
-  // Create a hash of the data to detect significant changes
   const getDataHash = useCallback((networkData: typeof data) => {
-    return `${networkData.nodes.length}-${networkData.edges.length}-${JSON.stringify(networkData.nodes.slice(0, 3).map(n => n.id))}`;
+    return `${networkData.nodes.length}-${networkData.edges.length}-${JSON.stringify(
+      networkData.nodes.slice(0, 3).map(node => node.id)
+    )}`;
   }, []);
 
-  // Convert our data format to Cytoscape format
   const convertToCytoscapeData = useCallback(
     (networkData: typeof data): ElementDefinition[] => {
       const elements: ElementDefinition[] = [];
       const nodeIds = new Set<string>();
 
-      // Add nodes
       networkData.nodes.forEach(node => {
         nodeIds.add(node.id);
         elements.push({
@@ -36,7 +34,6 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
         });
       });
 
-      // Add edges (only if both nodes exist)
       networkData.edges.forEach(edge => {
         if (nodeIds.has(edge.from) && nodeIds.has(edge.to)) {
           elements.push({
@@ -56,29 +53,19 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
     []
   );
 
-  // Initialize or update Cytoscape
   const initializeCytoscape = useCallback(() => {
     if (!containerRef.current || loading || data.nodes.length === 0) return;
 
     const currentHash = getDataHash(data);
+    if (cyRef.current && lastDataHashRef.current === currentHash) return;
 
-    // Only recreate if data significantly changed or cytoscape doesn't exist
-    if (cyRef.current && lastDataHashRef.current === currentHash) {
-      return;
-    }
-
-    // Destroy existing instance
-    if (cyRef.current) {
-      cyRef.current.destroy();
-      cyRef.current = null;
-    }
+    cyRef.current?.destroy();
+    cyRef.current = null;
 
     try {
-      const elements = convertToCytoscapeData(data);
-
       cyRef.current = cytoscape({
         container: containerRef.current,
-        elements,
+        elements: convertToCytoscapeData(data),
         style: [
           {
             selector: 'node',
@@ -116,16 +103,11 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           },
           {
             selector: '.highlighted',
-            style: {
-              opacity: 1,
-              'z-index': 10,
-            },
+            style: { opacity: 1, 'z-index': 10 },
           },
           {
             selector: '.dimmed',
-            style: {
-              opacity: 0.3,
-            },
+            style: { opacity: 0.3 },
           },
         ],
         layout: {
@@ -141,43 +123,27 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
           numIter: 1000,
           initialTemp: 200,
           coolingFactor: 0.95,
-          minTemp: 1.0,
+          minTemp: 1,
         },
         minZoom: 0.3,
         maxZoom: 3,
       });
 
-      // Add event listeners for interactivity
       cyRef.current.on('tap', 'node', event => {
         const node = event.target;
-        const nodeData = node.data();
-        console.log(
-          'Node clicked:',
-          nodeData.label,
-          'Risk:',
-          nodeData.riskLevel
-        );
-
-        // Highlight connected nodes
         const connectedEdges = node.connectedEdges();
         const connectedNodes = connectedEdges.connectedNodes();
 
-        // Reset all styles
         cyRef.current?.elements().removeClass('highlighted dimmed');
-
-        // Highlight connected elements
         node.addClass('highlighted');
         connectedNodes.addClass('highlighted');
         connectedEdges.addClass('highlighted');
-
-        // Dim non-connected elements
         cyRef.current
           ?.elements()
           .not(node.union(connectedNodes).union(connectedEdges))
           .addClass('dimmed');
       });
 
-      // Reset highlighting on background tap
       cyRef.current.on('tap', event => {
         if (event.target === cyRef.current) {
           cyRef.current?.elements().removeClass('highlighted dimmed');
@@ -185,40 +151,29 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
       });
 
       lastDataHashRef.current = currentHash;
-      isInitializedRef.current = true;
     } catch (error) {
-      console.error('Failed to initialize Cytoscape:', error);
+      console.error('Failed to initialize recorded signal graph:', error);
     }
-  }, [data, loading, getDataHash, convertToCytoscapeData]);
+  }, [convertToCytoscapeData, data, getDataHash, loading]);
 
-  // Initialize and update network
   useEffect(() => {
-    if (!loading && data.nodes.length > 0) {
-      initializeCytoscape();
-    }
-  }, [initializeCytoscape, loading, data]);
+    if (!loading && data.nodes.length > 0) initializeCytoscape();
+  }, [data.nodes.length, initializeCytoscape, loading]);
 
-  // Handle resize
   useEffect(() => {
     const handleResize = () => {
-      if (cyRef.current) {
-        cyRef.current.resize();
-        cyRef.current.fit();
-      }
+      cyRef.current?.resize();
+      cyRef.current?.fit();
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (cyRef.current) {
-        cyRef.current.destroy();
-        cyRef.current = null;
-      }
-      isInitializedRef.current = false;
+      cyRef.current?.destroy();
+      cyRef.current = null;
       lastDataHashRef.current = '';
     };
   }, []);
@@ -229,7 +184,7 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
         <Card>
           <CardHeader>
             <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-              Network Graph
+              Recorded Signal Graph
             </h3>
           </CardHeader>
           <CardContent>
@@ -237,7 +192,7 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
               <div className="text-center">
                 <LoadingSpinner size="lg" className="mb-3" />
                 <p className="text-sm text-[var(--text-secondary)]">
-                  Loading network...
+                  Loading recorded signal graph...
                 </p>
               </div>
             </div>
@@ -253,7 +208,7 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
         <Card>
           <CardHeader>
             <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-              Network Graph
+              Recorded Signal Graph
             </h3>
           </CardHeader>
           <CardContent>
@@ -273,10 +228,10 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
                   <path d="M13.5 10.5l4-4M10.5 13.5l-4 4M13.5 13.5l4 4" />
                 </svg>
                 <p className="text-sm text-[var(--text-secondary)] mb-1">
-                  No tracking data yet
+                  No recorded signals yet
                 </p>
                 <p className="text-xs text-[var(--text-tertiary)]">
-                  Visit websites to see the network
+                  Browse to collect detector output for this graph
                 </p>
               </div>
             </div>
@@ -290,42 +245,50 @@ export function NetworkGraph({ className = '' }: NetworkGraphProps) {
     <div className={className}>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h3 className="font-medium text-[var(--text-primary)]">
-              Network Graph
+              Recorded Signal Graph
             </h3>
-            <div className="text-xs text-[var(--text-secondary)]">
-              {data.nodes.length} domains, {data.edges.length} connections
+            <div className="text-xs text-[var(--text-secondary)] text-right">
+              {data.nodes.length} recorded domains, {data.edges.length} inferred
+              links
             </div>
           </div>
         </CardHeader>
         <CardContent>
+          <div className="p-2 mb-3 rounded border-l-2 border-[var(--warning)] bg-[var(--warning)]/5 text-[10px] leading-relaxed text-[var(--text-secondary)]">
+            Nodes come from stored detector events. Edges are inferred from event
+            URLs and are not verified data flows or proof that domains exchanged
+            information.
+          </div>
+
           <div
             ref={containerRef}
             className="w-full h-64 border border-[var(--border-primary)] rounded-lg bg-[var(--bg-tertiary)] mb-3"
             style={{ height: '320px' }}
           />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--text-secondary)]">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-[var(--success)]"></div>
-                <span>Low Risk</span>
+                <div className="w-2 h-2 rounded-full bg-[var(--success)]" />
+                <span>Low label</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-[var(--warning)]"></div>
-                <span>Medium Risk</span>
+                <div className="w-2 h-2 rounded-full bg-[var(--warning)]" />
+                <span>Medium label</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-[var(--warning)]"></div>
-                <span>High Risk</span>
+                <div className="w-2 h-2 rounded-full bg-[var(--warning)]" />
+                <span>High label</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-[var(--error)]"></div>
-                <span>Critical Risk</span>
+                <div className="w-2 h-2 rounded-full bg-[var(--error)]" />
+                <span>Critical label</span>
               </div>
             </div>
-            <div className="text-xs text-[var(--text-tertiary)]">
-              Click nodes to explore
+            <div className="text-xs text-[var(--text-tertiary)] shrink-0">
+              Inspect recorded nodes
             </div>
           </div>
         </CardContent>
