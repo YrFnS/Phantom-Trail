@@ -2,7 +2,10 @@ import { format, startOfWeek } from 'date-fns';
 import { calculatePrivacyScore } from './privacy-score';
 import { ReportsStorage } from './storage/reports-storage';
 import { EventsStorage } from './storage/events-storage';
-
+import {
+  getDisplayDomain,
+  getEventOccurrenceCount,
+} from './event-attribution.mts';
 import type {
   TrendData,
   DailySnapshot,
@@ -13,8 +16,8 @@ import type {
 } from './types';
 
 /**
- * Processes stored prototype snapshots.
- * Historical API names are retained for compatibility.
+ * Processes stored evidence-index snapshots. Unknown days remain null and are
+ * never converted to 100 or zero.
  */
 export class PrivacyTrends {
   static async calculateDailyTrends(days: number = 30): Promise<TrendData[]> {
@@ -37,7 +40,15 @@ export class PrivacyTrends {
 
         return {
           date: snapshot.date,
-          privacyScore: snapshot.privacyScore ?? 100,
+          privacyScore: snapshot.privacyScore ?? null,
+          scoreStatus:
+            snapshot.scoreStatus ||
+            (snapshot.privacyScore === null
+              ? 'insufficient-evidence'
+              : 'estimated'),
+          scoreConfidence:
+            snapshot.scoreConfidence ||
+            (snapshot.privacyScore === null ? 'none' : 'low'),
           trackingEvents: eventCounts.total || 0,
           riskDistribution: eventCounts.byRisk || {
             low: 0,
@@ -51,7 +62,7 @@ export class PrivacyTrends {
         };
       });
     } catch (error) {
-      console.error('Failed to calculate heuristic history:', error);
+      console.error('Failed to calculate evidence-index history:', error);
       return [];
     }
   }
@@ -64,22 +75,26 @@ export class PrivacyTrends {
       const currentWeek = reports[reports.length - 1];
       const previousWeek =
         reports.length > 1 ? reports[reports.length - 2] : null;
+      const scoreChange =
+        previousWeek &&
+        currentWeek.averageScore !== null &&
+        previousWeek.averageScore !== null
+          ? currentWeek.averageScore - previousWeek.averageScore
+          : null;
 
       return {
         ...currentWeek,
-        scoreChange: previousWeek
-          ? currentWeek.averageScore - previousWeek.averageScore
-          : 0,
+        scoreChange,
       };
     } catch (error) {
-      console.error('Failed to get prototype weekly aggregation:', error);
+      console.error('Failed to get weekly evidence aggregation:', error);
       return null;
     }
   }
 
   /**
-   * Apply simple moving-average deviation rules to stored snapshots.
-   * Returned items are threshold matches, not verified incidents or anomalies.
+   * Apply simple deviation rules only to numeric estimated snapshots. Unknown
+   * days are omitted rather than treated as favorable or poor values.
    */
   static async detectAnomalies(): Promise<Anomaly[]> {
     try {
@@ -87,33 +102,37 @@ export class PrivacyTrends {
       if (trends.length < 7) return [];
 
       const deviations: Anomaly[] = [];
-      const scores = trends.map(trend => trend.privacyScore ?? 100);
       const events = trends.map(trend => trend.trackingEvents || 0);
 
-      for (let index = 6; index < trends.length; index++) {
-        const scoreBaseline = this.calculateMovingAverage(
-          scores.slice(index - 6, index + 1),
-          7
-        )[6];
-        const eventBaseline = this.calculateMovingAverage(
-          events.slice(index - 6, index + 1),
-          7
-        )[6];
-
+      for (let index = 6; index < trends.length; index += 1) {
         const trend = trends[index];
-        const currentScore = trend.privacyScore ?? 100;
+        const currentScore = trend.privacyScore;
         const currentEvents = trend.trackingEvents || 0;
-        const scoreDeviation = Math.abs(currentScore - scoreBaseline);
+        const eventBaseline = this.averageNumbers(
+          events.slice(index - 6, index + 1)
+        );
 
-        if (currentScore < scoreBaseline - 15) {
-          deviations.push({
-            date: trend.date,
-            type: 'score_drop',
-            severity: scoreDeviation > 25 ? 'high' : 'medium',
-            description: `Experimental heuristic (${currentScore}) fell more than 15 points below its seven-day moving average (${scoreBaseline})`,
-            value: currentScore,
-            baseline: scoreBaseline,
-          });
+        if (currentScore !== null) {
+          const scoreWindow = trends
+            .slice(index - 6, index + 1)
+            .map(item => item.privacyScore)
+            .filter((value): value is number => value !== null);
+
+          if (scoreWindow.length >= 3) {
+            const scoreBaseline = this.averageNumbers(scoreWindow);
+            const scoreDeviation = Math.abs(currentScore - scoreBaseline);
+
+            if (currentScore < scoreBaseline - 15) {
+              deviations.push({
+                date: trend.date,
+                type: 'score_drop',
+                severity: scoreDeviation > 25 ? 'high' : 'medium',
+                description: `Estimated evidence index (${currentScore}) fell more than 15 points below the average of ${scoreWindow.length} numeric snapshots (${scoreBaseline})`,
+                value: currentScore,
+                baseline: scoreBaseline,
+              });
+            }
+          }
         }
 
         if (eventBaseline > 0 && currentEvents > eventBaseline * 2) {
@@ -121,7 +140,7 @@ export class PrivacyTrends {
             date: trend.date,
             type: 'tracking_spike',
             severity: currentEvents > eventBaseline * 3 ? 'high' : 'medium',
-            description: `Recorded signal count (${currentEvents}) exceeded twice its seven-day moving average (${eventBaseline})`,
+            description: `Recorded occurrence count (${currentEvents}) exceeded twice its seven-day moving average (${eventBaseline})`,
             value: currentEvents,
             baseline: eventBaseline,
           });
@@ -144,15 +163,11 @@ export class PrivacyTrends {
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(targetDate);
       endOfDay.setHours(23, 59, 59, 999);
-
       const dayEvents = await EventsStorage.getEventsByDateRange(
         startOfDay,
         endOfDay
       );
-      const privacyScore =
-        dayEvents.length > 0
-          ? calculatePrivacyScore(dayEvents, true).score
-          : 100;
+      const score = calculatePrivacyScore(dayEvents, true);
 
       const byRisk: Record<RiskLevel, number> = {
         low: 0,
@@ -169,12 +184,15 @@ export class PrivacyTrends {
         unknown: 0,
       };
       const domainCounts: Record<string, number> = {};
+      let occurrenceCount = 0;
 
       for (const event of dayEvents) {
-        byRisk[event.riskLevel]++;
-        byType[event.trackerType]++;
-        const domain = event.domain || 'unknown';
-        domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+        const occurrences = getEventOccurrenceCount(event);
+        occurrenceCount += occurrences;
+        byRisk[event.riskLevel] += occurrences;
+        byType[event.trackerType] += occurrences;
+        const domain = getDisplayDomain(event) || 'unknown';
+        domainCounts[domain] = (domainCounts[domain] || 0) + occurrences;
       }
 
       const topDomains = Object.entries(domainCounts)
@@ -184,16 +202,18 @@ export class PrivacyTrends {
 
       return {
         date: dateString,
-        privacyScore,
+        privacyScore: score.score,
+        scoreStatus: score.status,
+        scoreConfidence: score.confidence,
         eventCounts: {
-          total: dayEvents.length,
+          total: occurrenceCount,
           byRisk,
           byType,
         },
         topDomains,
       };
     } catch (error) {
-      console.error('Failed to generate prototype daily snapshot:', error);
+      console.error('Failed to generate daily evidence snapshot:', error);
       return this.getEmptySnapshot(dateString);
     }
   }
@@ -204,17 +224,22 @@ export class PrivacyTrends {
 
     try {
       const weekSnapshots: DailySnapshot[] = [];
-      for (let index = 0; index < 7; index++) {
+      for (let index = 0; index < 7; index += 1) {
         const date = new Date(startDate);
         date.setDate(date.getDate() + index);
         weekSnapshots.push(await this.generateDailySnapshot(date));
       }
 
-      const scores = weekSnapshots.map(snapshot => snapshot.privacyScore);
-      const averageScore = Math.round(
-        scores.reduce((total, score) => total + score, 0) / scores.length
-      );
-
+      const numericScores = weekSnapshots
+        .map(snapshot => snapshot.privacyScore)
+        .filter((score): score is number => score !== null);
+      const averageScore =
+        numericScores.length > 0
+          ? Math.round(
+              numericScores.reduce((total, score) => total + score, 0) /
+                numericScores.length
+            )
+          : null;
       const allDomainLabels = new Set<string>();
       weekSnapshots.forEach(snapshot => {
         snapshot.topDomains.forEach(({ domain }) => {
@@ -236,35 +261,22 @@ export class PrivacyTrends {
       return {
         weekStart: weekStartString,
         averageScore,
-        scoreChange: 0,
+        scoreChange: null,
         newTrackers: newDomainLabels,
         improvedSites: [],
         riskySites: [],
       };
     } catch (error) {
-      console.error('Failed to generate prototype weekly aggregation:', error);
+      console.error('Failed to generate weekly evidence aggregation:', error);
       return {
         weekStart: weekStartString,
-        averageScore: 100,
-        scoreChange: 0,
+        averageScore: null,
+        scoreChange: null,
         newTrackers: [],
         improvedSites: [],
         riskySites: [],
       };
     }
-  }
-
-  private static calculateMovingAverage(
-    data: number[],
-    window: number
-  ): number[] {
-    return data.map((_, index) => {
-      const start = Math.max(0, index - window + 1);
-      const slice = data.slice(start, index + 1);
-      const average =
-        slice.reduce((total, value) => total + value, 0) / slice.length;
-      return Math.round(average * 100) / 100;
-    });
   }
 
   static async initializeTrendTracking(): Promise<void> {
@@ -278,16 +290,25 @@ export class PrivacyTrends {
         );
       }
 
-      console.log('Prototype heuristic snapshot tracking initialized');
+      console.log('Evidence-index snapshot tracking initialized');
     } catch (error) {
-      console.error('Failed to initialize prototype snapshot tracking:', error);
+      console.error('Failed to initialize evidence snapshot tracking:', error);
     }
+  }
+
+  private static averageNumbers(values: number[]): number {
+    if (values.length === 0) return 0;
+    const average =
+      values.reduce((total, value) => total + value, 0) / values.length;
+    return Math.round(average * 100) / 100;
   }
 
   private static getEmptySnapshot(date: string): DailySnapshot {
     return {
       date,
-      privacyScore: 100,
+      privacyScore: null,
+      scoreStatus: 'insufficient-evidence',
+      scoreConfidence: 'none',
       eventCounts: {
         total: 0,
         byRisk: { low: 0, medium: 0, high: 0, critical: 0 },
