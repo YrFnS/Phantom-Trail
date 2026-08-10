@@ -2,17 +2,19 @@ import { RiskAnalysis } from './risk-analysis';
 import type {
   PrivacyPrediction,
   RiskFactor,
-  PredictedTracker,
   LinkAnalysis,
   PageContext,
 } from './types';
-import type { RiskLevel, TrackerType, TrackingEvent } from '../types';
+import type { TrackingEvent } from '../types';
 import { EventsStorage } from '../storage/events-storage';
 import { calculatePrivacyScore } from '../privacy-score';
 
 export class PredictionEngine {
   /**
-   * Get historical privacy data for a domain
+   * Return recent recorded detector events associated with a destination.
+   *
+   * The current event model has known attribution limitations, so this data is
+   * historical heuristic context rather than a verified destination audit.
    */
   private static async getHistoricalData(
     domain: string
@@ -23,35 +25,35 @@ export class PredictionEngine {
   } | null> {
     try {
       const allEvents = await EventsStorage.getTrackingEvents();
-
-      // Filter events for this domain (last 7 days)
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
       const domainEvents = allEvents.filter(event => {
-        const eventDomain = new URL(event.url).hostname;
-        return (
-          (eventDomain === domain ||
-            eventDomain.endsWith(`.${domain}`) ||
-            domain.endsWith(`.${eventDomain}`)) &&
-          event.timestamp > sevenDaysAgo
-        );
+        try {
+          const eventDomain = new URL(event.url).hostname;
+          return (
+            (eventDomain === domain ||
+              eventDomain.endsWith(`.${domain}`) ||
+              domain.endsWith(`.${eventDomain}`)) &&
+            event.timestamp > sevenDaysAgo
+          );
+        } catch {
+          return false;
+        }
       });
 
-      if (domainEvents.length === 0) {
-        return null;
-      }
+      if (domainEvents.length === 0) return null;
 
-      // Calculate real privacy score from actual events
-      const isHttps = domainEvents.some(e => e.url.startsWith('https://'));
-      const privacyScore = calculatePrivacyScore(domainEvents, isHttps);
+      const isHttps = domainEvents.some(event => event.url.startsWith('https://'));
+      const heuristicScore = calculatePrivacyScore(domainEvents, isHttps);
 
       return {
-        score: privacyScore.score,
+        score: heuristicScore.score,
         events: domainEvents,
-        lastVisit: Math.max(...domainEvents.map(e => e.timestamp)),
+        lastVisit: Math.max(...domainEvents.map(event => event.timestamp)),
       };
     } catch (error) {
       console.error(
-        '[Privacy Predictor] Failed to get historical data:',
+        '[Privacy Predictor] Failed to get recorded heuristic data:',
         error
       );
       return null;
@@ -60,14 +62,11 @@ export class PredictionEngine {
 
   static async predictPrivacyScore(url: string): Promise<PrivacyPrediction> {
     try {
-      const urlObj = new URL(url);
-      const domain = urlObj.hostname;
-
-      // Check for historical data first
+      const urlObject = new URL(url);
+      const domain = urlObject.hostname;
       const historical = await this.getHistoricalData(domain);
 
       if (historical) {
-        // Use real data from tracking history
         const daysSinceVisit = Math.floor(
           (Date.now() - historical.lastVisit) / (24 * 60 * 60 * 1000)
         );
@@ -76,13 +75,15 @@ export class PredictionEngine {
           url,
           predictedScore: historical.score,
           predictedGrade: this.scoreToGrade(historical.score),
-          confidence: 1.0, // High confidence - real data
+          confidence: 0.6,
           riskFactors: [
             {
               type: 'historical-data',
               impact: 0,
-              description: `Based on ${historical.events.length} trackers detected ${daysSinceVisit === 0 ? 'today' : `${daysSinceVisit} days ago`}`,
-              confidence: 1.0,
+              description: `Based on ${historical.events.length} recorded heuristic events ${
+                daysSinceVisit === 0 ? 'today' : `${daysSinceVisit} days ago`
+              }`,
+              confidence: 0.6,
             },
           ],
           expectedTrackers: [],
@@ -90,7 +91,7 @@ export class PredictionEngine {
             historical.score,
             historical.events.length
           ),
-          comparisonToAverage: historical.score - 65,
+          comparisonToAverage: 0,
           timestamp: Date.now(),
           isHistorical: true,
           historicalData: {
@@ -100,57 +101,34 @@ export class PredictionEngine {
         };
       }
 
-      // Fall back to prediction for never-visited sites
-      // Check cache first
       const cached = await this.getCachedPrediction();
       if (cached) return cached;
 
-      // Gather risk factors
       const factors: RiskFactor[] = [];
+      factors.push(...(await RiskAnalysis.analyzeDomainReputation(domain)));
+      factors.push(...RiskAnalysis.predictByCategory(url));
+      factors.push(...RiskAnalysis.analyzeTrackerPatterns(domain));
 
-      // Domain reputation analysis
-      const reputationFactors =
-        await RiskAnalysis.analyzeDomainReputation(domain);
-      factors.push(...reputationFactors);
-
-      // Category-based prediction
-      const categoryFactors = RiskAnalysis.predictByCategory(url);
-      factors.push(...categoryFactors);
-
-      // Tracker pattern analysis
-      const trackerFactors = RiskAnalysis.analyzeTrackerPatterns(domain);
-      factors.push(...trackerFactors);
-
-      // Calculate weighted prediction
       const { score, confidence } =
         RiskAnalysis.calculateWeightedPrediction(factors);
 
-      // Generate expected trackers
-      const expectedTrackers = await this.predictTrackers(domain, score);
-
-      // Generate recommendations
-      const recommendations = this.generateRecommendations(score, factors);
-
-      // Create prediction
       const prediction: PrivacyPrediction = {
         url,
         predictedScore: score,
         predictedGrade: this.scoreToGrade(score),
         confidence,
         riskFactors: factors,
-        expectedTrackers,
-        recommendations,
-        comparisonToAverage: score - 65, // Assume 65 is average
+        expectedTrackers: [],
+        recommendations: this.generateRecommendations(score, factors),
+        comparisonToAverage: 0,
         timestamp: Date.now(),
         isHistorical: false,
       };
 
-      // Cache the prediction
       await this.cachePrediction(url, prediction);
-
       return prediction;
     } catch (error) {
-      console.error('[Privacy Predictor] Prediction failed:', error);
+      console.error('[Privacy Predictor] Link heuristic failed:', error);
       return this.getDefaultPrediction(url);
     }
   }
@@ -160,75 +138,41 @@ export class PredictionEngine {
     context: PageContext
   ): Promise<LinkAnalysis> {
     const prediction = await this.predictPrivacyScore(url);
-
     const shouldWarn =
       prediction.predictedScore < 60 ||
-      prediction.riskFactors.some(f => f.impact < -20);
-
-    const displayText = this.generateDisplayText(prediction, context);
+      prediction.riskFactors.some(factor => factor.impact < -20);
 
     return {
       url,
       prediction,
       context,
       shouldWarn,
-      displayText,
+      displayText: this.generateDisplayText(prediction, context),
     };
-  }
-
-  private static async predictTrackers(
-    domain: string,
-    privacyScore: number
-  ): Promise<PredictedTracker[]> {
-    const trackers: PredictedTracker[] = [];
-
-    // Higher probability of trackers for lower privacy scores
-    const baseProb = Math.max(0.1, (100 - privacyScore) / 100);
-
-    // Common tracker types based on domain patterns
-    const commonTrackers = [
-      { type: 'analytics' as TrackerType, baseProbability: 0.8 },
-      { type: 'advertising' as TrackerType, baseProbability: 0.6 },
-      { type: 'social-media' as TrackerType, baseProbability: 0.4 },
-      { type: 'fingerprinting' as TrackerType, baseProbability: 0.3 },
-    ];
-
-    for (const tracker of commonTrackers) {
-      const probability = Math.min(1, tracker.baseProbability * baseProb);
-
-      if (probability > 0.2) {
-        // Only include likely trackers
-        trackers.push({
-          domain: `${tracker.type}.${domain}`,
-          type: tracker.type,
-          probability,
-          riskLevel: this.probabilityToRisk(probability),
-        });
-      }
-    }
-
-    return trackers;
   }
 
   private static generateHistoricalRecommendations(
     score: number,
-    trackerCount: number
+    eventCount: number
   ): string[] {
-    const recommendations: string[] = [];
-
     if (score < 40) {
-      recommendations.push('High tracking detected on previous visits');
-      recommendations.push(
-        'Consider using privacy tools or avoiding this site'
-      );
-    } else if (score < 70) {
-      recommendations.push(`${trackerCount} trackers detected previously`);
-      recommendations.push('Moderate privacy risks observed');
-    } else {
-      recommendations.push('Previously visited with good privacy score');
+      return [
+        'Prior visits produced many high-severity heuristic signals',
+        'Review the recorded evidence before deciding how to proceed',
+      ];
     }
 
-    return recommendations;
+    if (score < 70) {
+      return [
+        `${eventCount} detector events were associated with prior visits`,
+        'The event attribution may include false positives',
+      ];
+    }
+
+    return [
+      'Prior visits produced fewer heuristic penalties',
+      'This does not establish that the destination is privacy-friendly',
+    ];
   }
 
   private static generateRecommendations(
@@ -238,24 +182,25 @@ export class PredictionEngine {
     const recommendations: string[] = [];
 
     if (score < 40) {
-      recommendations.push('Consider using a VPN or privacy-focused browser');
-      recommendations.push('Enable strict tracking protection');
+      recommendations.push('Review the destination before sharing sensitive data');
+      recommendations.push('Use browser privacy controls appropriate to your needs');
     } else if (score < 70) {
-      recommendations.push('Review site privacy policy before sharing data');
-      recommendations.push('Consider using ad blocker');
+      recommendations.push('Treat this URL-pattern estimate as uncertain');
+      recommendations.push('Review the destination privacy policy and permissions');
     } else {
-      recommendations.push('Site appears privacy-friendly');
+      recommendations.push('URL patterns did not produce a strong warning');
+      recommendations.push('No destination audit has been performed');
     }
 
-    // Factor-specific recommendations
-    const hasTrackingFactors = factors.some(
-      f => f.type === 'tracker-patterns' && f.impact < -10
-    );
-    if (hasTrackingFactors) {
-      recommendations.push('Multiple trackers detected - use privacy tools');
+    if (
+      factors.some(
+        factor => factor.type === 'tracker-patterns' && factor.impact < -10
+      )
+    ) {
+      recommendations.push('The hostname matched a maintained tracker string');
     }
 
-    return recommendations.slice(0, 3); // Limit to 3 recommendations
+    return recommendations.slice(0, 3);
   }
 
   private static generateDisplayText(
@@ -265,30 +210,16 @@ export class PredictionEngine {
     const { predictedScore, predictedGrade, isHistorical, historicalData } =
       prediction;
 
-    // Show different messages for historical vs predicted data
     if (isHistorical && historicalData) {
       const daysSince = Math.floor(
         (Date.now() - historicalData.lastVisit) / (24 * 60 * 60 * 1000)
       );
       const timeText = daysSince === 0 ? 'today' : `${daysSince}d ago`;
 
-      if (predictedScore >= 80) {
-        return `✓ Previously visited (${timeText}): ${historicalData.trackerCount} trackers detected (${predictedGrade})`;
-      } else if (predictedScore >= 60) {
-        return `⚠️ Previously visited (${timeText}): ${historicalData.trackerCount} trackers detected (${predictedGrade})`;
-      } else {
-        return `⚠️ High tracking detected on previous visit (${timeText}): ${historicalData.trackerCount} trackers (${predictedGrade})`;
-      }
+      return `Recorded history (${timeText}): ${historicalData.trackerCount} heuristic events; model label ${predictedGrade} (${predictedScore}/100). Attribution is unverified.`;
     }
 
-    // Prediction-based messages (never visited)
-    if (predictedScore >= 80) {
-      return `Prediction: This ${context.isExternal ? 'external ' : ''}link appears privacy-friendly (${predictedGrade})`;
-    } else if (predictedScore >= 60) {
-      return `Prediction: This ${context.isExternal ? 'external ' : ''}link has moderate privacy risks (${predictedGrade})`;
-    } else {
-      return `⚠️ Prediction: This ${context.isExternal ? 'external ' : ''}link may have significant privacy risks (${predictedGrade})`;
-    }
+    return `Experimental ${context.isExternal ? 'external ' : ''}link estimate: model label ${predictedGrade} (${predictedScore}/100), based only on URL and domain patterns.`;
   }
 
   private static scoreToGrade(score: number): string {
@@ -300,14 +231,7 @@ export class PredictionEngine {
     return 'F';
   }
 
-  private static probabilityToRisk(probability: number): RiskLevel {
-    if (probability >= 0.8) return 'high';
-    if (probability >= 0.5) return 'medium';
-    return 'low';
-  }
-
   private static async getCachedPrediction(): Promise<PrivacyPrediction | null> {
-    // Simple cache implementation - would use BaseStorage in full version
     return null;
   }
 
@@ -316,8 +240,7 @@ export class PredictionEngine {
     prediction: PrivacyPrediction
   ): Promise<void> {
     try {
-      // Simple cache implementation - would use BaseStorage in full version
-      console.log('Caching prediction:', prediction);
+      console.log('Caching experimental link estimate:', prediction);
     } catch (error) {
       console.warn('[Privacy Predictor] Cache write failed:', error);
     }
@@ -328,12 +251,13 @@ export class PredictionEngine {
       url,
       predictedScore: 50,
       predictedGrade: 'D',
-      confidence: 0.1,
+      confidence: 0,
       riskFactors: [],
       expectedTrackers: [],
-      recommendations: ['Unable to analyze - proceed with caution'],
-      comparisonToAverage: -15,
+      recommendations: ['Heuristic unavailable; no conclusion can be drawn'],
+      comparisonToAverage: 0,
       timestamp: Date.now(),
+      isHistorical: false,
     };
   }
 }
