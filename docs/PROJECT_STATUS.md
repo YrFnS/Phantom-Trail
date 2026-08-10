@@ -3,7 +3,7 @@
 **Version:** 0.1.0  
 **Assessment date:** August 10, 2026  
 **Release posture:** Experimental prototype  
-**P0 status:** In progress pending final human and external-copy gates
+**P0 status:** In progress pending final human, authenticated external-copy, and publication gates
 
 This matrix separates source presence from validated product behavior.
 “Implemented” means code exists for the stated narrow behavior; it does not mean
@@ -42,6 +42,8 @@ the capability is accurate, complete, secure, or production-ready.
 | Performance targets | Unverified | CPU, memory, bundle, and page-load claims have not been reproduced through a documented benchmark. |
 | Build CI | Established | `validate.yml` checks lockfile consistency, install, type-check, lint, production build, manifest metadata, ZIP creation, and artifact upload. |
 | Runtime smoke evidence | Established / bounded | The exact run #131 artifact completed an isolated Chromium fixture with zero detected defects and zero runtime errors. This is not an accuracy, security, performance, or privacy benchmark. |
+| Public repository copy | Blocking until publication | The public default branch remains `main` and still serves retired README, installation, privacy, version, and licensing claims. The truthful P0 copy is not the public default until reviewed and published. |
+| External listings | Partially audited / unproven | Public exact-name searches found no matching store, demo, submission, or video result, but authenticated release/store/submission surfaces still require owner review. |
 | Behavioral test suite | Not established | No complete unit, detector-accuracy, browser integration, runtime permission, performance, or privacy regression suite. |
 
 ## P0 — Truthfulness baseline
@@ -94,6 +96,8 @@ values, or incomplete modules as measured product facts.
   read-only and deterministic.
 - Record exact-artifact Chromium evidence in
   [P0-RUNTIME-EVIDENCE.md](P0-RUNTIME-EVIDENCE.md).
+- Audit the public repository and public discovery surfaces in
+  [P0-EXTERNAL-COPY-AUDIT.md](P0-EXTERNAL-COPY-AUDIT.md).
 
 ### Evidence available
 
@@ -121,6 +125,13 @@ exercised with a deterministic local fixture. The run verified:
 The fixture completed with zero detected defects and zero runtime errors. See
 [P0 Runtime Evidence](P0-RUNTIME-EVIDENCE.md) for the scope and limitations.
 
+The external-copy audit verified that the public default branch still exposes
+the older README, installation guide, privacy policy, package version,
+description, and license metadata. Public searches did not identify a matching
+Chrome Web Store, demo, submission, or video result, but search absence is not
+proof of nonexistence. See
+[P0 External-Copy Audit](P0-EXTERNAL-COPY-AUDIT.md).
+
 This evidence does not validate detector accuracy, score quality, website
 privacy, performance, security, legal compliance, live OpenRouter behavior, or
 a real peer-to-peer sample exchange.
@@ -132,16 +143,22 @@ a real peer-to-peer sample exchange.
   unmanaged Chrome installation.
 - Human-review the captured views and real-event wording rather than relying
   only on automation.
-- Confirm that no GitHub Release description, external listing, demo, submission
-  page, or store copy repeats the removed claims.
+- Inspect GitHub Releases, Tags, and assets while authenticated and correct or
+  withdraw any stale `1.0.0` object or production-ready copy.
+- Inspect Chrome Web Store drafts/listings, demos, submissions, videos, shared
+  downloads, and other known owner-controlled surfaces.
 - Decide whether live OpenRouter verification belongs in P0 or should remain a
   later feature-completion gate.
 - Decide whether to add a visible clear-data workflow or continue documenting
   uninstall as the most complete current deletion path.
-- Record any final human findings in pull request #1.
+- After human approval, publish the reviewed P0 copy to the default branch and
+  verify it again as an unauthenticated visitor.
+- Record final human, authenticated external-copy, and post-publication findings
+  in pull request #1.
 
-P0 must remain open and the pull request must remain draft until these human and
-external-copy gates are complete.
+P0 must remain open and the pull request must remain draft until these human,
+authenticated external-copy, and publication gates are complete. P0 cannot close
+while the public default branch serves the retired claims.
 
 ## Next phases
 
