@@ -4,24 +4,9 @@ import type {
   TrackingEvent,
   PrivacyScore as PrivacyScoreType,
 } from '../../lib/types';
-
 import { EventsStorage } from '../storage/events-storage';
 
-const EMPTY_PRIVACY_SCORE: PrivacyScoreType = {
-  score: 100,
-  grade: 'A',
-  color: 'green',
-  breakdown: {
-    totalTrackers: 0,
-    highRisk: 0,
-    mediumRisk: 0,
-    lowRisk: 0,
-    criticalRisk: 0,
-    httpsBonus: true,
-    excessiveTrackingPenalty: false,
-  },
-  recommendations: [],
-};
+const EMPTY_PRIVACY_SCORE: PrivacyScoreType = calculatePrivacyScore([]);
 
 export type AppTab =
   | 'narrative'
@@ -31,9 +16,6 @@ export type AppTab =
   | 'coach'
   | 'community';
 
-/**
- * Hook for managing main app state
- */
 export function useAppState() {
   const [activeTab, setActiveTab] = useState<AppTab>('narrative');
   const [showSettings, setShowSettings] = useState(false);
@@ -43,30 +25,19 @@ export function useAppState() {
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
-  // Load initial data
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-
-        // Get current tab URL
         const tabs = await chrome.tabs.query({
           active: true,
           currentWindow: true,
         });
-        if (tabs[0]?.url) {
-          setCurrentUrl(tabs[0].url);
-        }
+        if (tabs[0]?.url) setCurrentUrl(tabs[0].url);
 
-        // Load recent events
         const recentEvents = await EventsStorage.getRecentEvents(50);
         setEvents(recentEvents);
-
-        // Calculate privacy score
-        if (recentEvents.length > 0) {
-          const score = calculatePrivacyScore(recentEvents);
-          setPrivacyScore(score);
-        }
+        setPrivacyScore(calculatePrivacyScore(recentEvents));
       } catch (error) {
         console.error('Failed to load app data:', error);
       } finally {
@@ -74,29 +45,24 @@ export function useAppState() {
       }
     };
 
-    loadData();
+    void loadData();
   }, []);
 
-  // Listen for new events
   useEffect(() => {
     const handleStorageChange = (changes: {
       [key: string]: chrome.storage.StorageChange;
     }) => {
-      if (changes.phantom_trail_events) {
-        const newEvents = changes.phantom_trail_events.newValue || [];
-        setEvents(newEvents.slice(-50)); // Keep last 50 events
+      if (!changes.phantom_trail_events) return;
 
-        // Recalculate privacy score
-        if (newEvents.length > 0) {
-          const score = calculatePrivacyScore(newEvents);
-          setPrivacyScore(score);
-        }
-      }
+      const newEvents: TrackingEvent[] =
+        changes.phantom_trail_events.newValue || [];
+      setEvents(newEvents.slice(-50));
+      setPrivacyScore(calculatePrivacyScore(newEvents));
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
     return () => chrome.storage.onChanged.removeListener(handleStorageChange);
-  }, [currentUrl]);
+  }, []);
 
   return {
     activeTab,
