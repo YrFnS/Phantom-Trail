@@ -1,139 +1,127 @@
 import { calculatePrivacyScore } from '../privacy-score';
-import type { TrackingEvent } from '../types';
+import type {
+  EvidenceCoverageConfidence,
+  EvidenceScoreStatus,
+  TrackingEvent,
+} from '../types';
 import { EventsStorage } from '../storage/events-storage';
+import {
+  eventMatchesPageDomain,
+  getPageDomain,
+  normalizeDomain,
+} from '../event-attribution.mts';
 
-/**
- * User comparison data structure
- */
 export interface UserComparison {
+  status: 'observational-only';
   currentSite: {
     domain: string;
-    privacyScore: number;
+    privacyScore: number | null;
+    scoreStatus: EvidenceScoreStatus;
+    scoreConfidence: EvidenceCoverageConfidence;
   };
   userAverage: {
-    privacyScore: number;
-    totalSites: number;
+    privacyScore: number | null;
+    totalEstimatedSites: number;
   };
-  percentile: number;
+  percentile: null;
   insight: string;
-  betterThanUsual: boolean;
+  betterThanUsual: null;
 }
 
 /**
- * Service for comparing sites to user's browsing average
+ * Summarizes local estimated indices without converting them into a browsing
+ * privacy percentile. Page exposure and evidence coverage are not controlled,
+ * so a ranking would be misleading.
  */
 export class UserComparisonService {
-  /**
-   * Compare site to user's browsing average
-   */
-  static async compare(domain: string): Promise<UserComparison | null> {
+  static async compare(domain: string): Promise<UserComparison> {
     try {
-      // Get current site score
-      const siteEvents = await this.getSiteEvents(domain);
-      const siteScore =
-        siteEvents.length > 0
-          ? calculatePrivacyScore(siteEvents, true).score
-          : 100;
-
-      // Get user's historical data
+      const normalizedDomain = normalizeDomain(domain);
+      const siteEvents = await this.getSiteEvents(normalizedDomain);
+      const siteScore = calculatePrivacyScore(siteEvents, true, {
+        scope: 'page',
+        pageDomain: normalizedDomain,
+      });
       const allEvents = await EventsStorage.getRecentEvents(1000);
-      if (allEvents.length < 10) {
-        return null; // Not enough data for comparison
-      }
-
-      // Calculate user's average privacy score
-      const siteScores = await this.calculateUserSiteAverages(allEvents);
-      if (siteScores.length < 3) {
-        return null; // Need at least 3 different sites
-      }
-
-      const userAverage =
-        siteScores.reduce((sum, score) => sum + score, 0) / siteScores.length;
-      const percentile = this.calculatePercentile(siteScore, siteScores);
-
-      const insight = this.generateInsight(siteScore, userAverage, percentile);
+      const estimatedSiteScores = this.calculateUserSiteEstimates(allEvents);
+      const average =
+        estimatedSiteScores.length > 0
+          ? Math.round(
+              estimatedSiteScores.reduce(
+                (total, entry) => total + entry.score,
+                0
+              ) / estimatedSiteScores.length
+            )
+          : null;
 
       return {
+        status: 'observational-only',
         currentSite: {
-          domain,
-          privacyScore: siteScore,
+          domain: normalizedDomain,
+          privacyScore: siteScore.score,
+          scoreStatus: siteScore.status,
+          scoreConfidence: siteScore.confidence,
         },
         userAverage: {
-          privacyScore: Math.round(userAverage),
-          totalSites: siteScores.length,
+          privacyScore: average,
+          totalEstimatedSites: estimatedSiteScores.length,
         },
-        percentile,
-        insight,
-        betterThanUsual: siteScore > userAverage,
+        percentile: null,
+        insight:
+          average === null
+            ? 'No other page has a local estimated evidence index. A browsing comparison is unavailable.'
+            : `${estimatedSiteScores.length} page${
+                estimatedSiteScores.length === 1 ? '' : 's'
+              } have local estimated indices. Their simple average is shown only as stored-history context; no privacy percentile or better/worse judgment is produced.`,
+        betterThanUsual: null,
       };
     } catch (error) {
-      console.error('Failed to compare to user average:', error);
-      return null;
+      console.error('Failed to prepare browsing-history comparison:', error);
+      return {
+        status: 'observational-only',
+        currentSite: {
+          domain: normalizeDomain(domain),
+          privacyScore: null,
+          scoreStatus: 'insufficient-evidence',
+          scoreConfidence: 'none',
+        },
+        userAverage: {
+          privacyScore: null,
+          totalEstimatedSites: 0,
+        },
+        percentile: null,
+        insight: 'Browsing-history comparison is unavailable.',
+        betterThanUsual: null,
+      };
     }
   }
 
-  /**
-   * Get tracking events for a specific site
-   */
   private static async getSiteEvents(domain: string): Promise<TrackingEvent[]> {
     const allEvents = await EventsStorage.getRecentEvents(500);
-    return allEvents.filter(event => event.domain === domain);
+    return allEvents.filter(event => eventMatchesPageDomain(event, domain));
   }
 
-  /**
-   * Calculate user's site averages
-   */
-  private static async calculateUserSiteAverages(
+  private static calculateUserSiteEstimates(
     events: TrackingEvent[]
-  ): Promise<number[]> {
-    const siteEvents: Record<string, TrackingEvent[]> = {};
+  ): Array<{ domain: string; score: number }> {
+    const siteEvents = new Map<string, TrackingEvent[]>();
 
-    // Group events by domain
-    events.forEach(event => {
-      if (!siteEvents[event.domain]) {
-        siteEvents[event.domain] = [];
-      }
-      siteEvents[event.domain].push(event);
-    });
-
-    // Calculate privacy score for each site
-    const scores: number[] = [];
-    Object.entries(siteEvents).forEach(([, domainEvents]) => {
-      if (domainEvents.length >= 3) {
-        // Minimum events for reliable score
-        const score = calculatePrivacyScore(domainEvents, true).score;
-        scores.push(score);
-      }
-    });
-
-    return scores;
-  }
-
-  /**
-   * Calculate percentile within user's browsing pattern
-   */
-  private static calculatePercentile(
-    score: number,
-    userScores: number[]
-  ): number {
-    const betterCount = userScores.filter(s => score > s).length;
-    return Math.round((betterCount / userScores.length) * 100);
-  }
-
-  /**
-   * Generate user comparison insight
-   */
-  private static generateInsight(
-    siteScore: number,
-    userAverage: number,
-    percentile: number
-  ): string {
-    if (Math.abs(siteScore - userAverage) < 5) {
-      return `Similar privacy to your usual browsing pattern`;
-    } else if (siteScore > userAverage) {
-      return `Better privacy than ${100 - percentile}% of sites you visit`;
-    } else {
-      return `Lower privacy than ${percentile}% of sites you visit`;
+    for (const event of events) {
+      const pageDomain = getPageDomain(event);
+      if (!pageDomain) continue;
+      const grouped = siteEvents.get(pageDomain) || [];
+      grouped.push(event);
+      siteEvents.set(pageDomain, grouped);
     }
+
+    return Array.from(siteEvents.entries()).flatMap(([pageDomain, grouped]) => {
+      const result = calculatePrivacyScore(grouped, true, {
+        scope: 'page',
+        pageDomain,
+      });
+      return result.status === 'estimated' && result.score !== null
+        ? [{ domain: pageDomain, score: result.score }]
+        : [];
+    });
   }
 }
