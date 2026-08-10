@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -41,14 +41,14 @@ export function PrivacyTrendsChart({
 }: PrivacyTrendsChartProps) {
   const [trendData, setTrendData] = useState<TrendData[]>([]);
   const [weeklyReport, setWeeklyReport] = useState<WeeklyReport | null>(null);
-  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
+  const [deviations, setDeviations] = useState<Anomaly[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'score' | 'events'>('score');
 
   const loadTrendData = useCallback(async () => {
     try {
       setLoading(true);
-      const [trends, report, detectedAnomalies] = await Promise.all([
+      const [trends, report, detectedDeviations] = await Promise.all([
         PrivacyTrends.calculateDailyTrends(days),
         PrivacyTrends.getWeeklyReport(),
         PrivacyTrends.detectAnomalies(),
@@ -56,24 +56,24 @@ export function PrivacyTrendsChart({
 
       setTrendData(trends);
       setWeeklyReport(report);
-      setAnomalies(detectedAnomalies);
+      setDeviations(detectedDeviations);
     } catch (error) {
-      console.error('Failed to load trend data:', error);
+      console.error('Failed to load heuristic history:', error);
     } finally {
       setLoading(false);
     }
   }, [days]);
 
   useEffect(() => {
-    loadTrendData();
+    void loadTrendData();
   }, [loadTrendData]);
 
   const scoreChartData = {
-    labels: trendData.map(d => d.date),
+    labels: trendData.map(day => day.date),
     datasets: [
       {
-        label: 'Privacy Score',
-        data: trendData.map(d => d.privacyScore),
+        label: 'Heuristic score',
+        data: trendData.map(day => day.privacyScore),
         borderColor: 'rgb(34, 197, 94)',
         backgroundColor: 'rgba(34, 197, 94, 0.1)',
         tension: 0.3,
@@ -83,11 +83,11 @@ export function PrivacyTrendsChart({
   };
 
   const eventsChartData = {
-    labels: trendData.map(d => d.date),
+    labels: trendData.map(day => day.date),
     datasets: [
       {
-        label: 'Tracking Events',
-        data: trendData.map(d => d.trackingEvents),
+        label: 'Recorded detector signals',
+        data: trendData.map(day => day.trackingEvents),
         backgroundColor: 'rgba(239, 68, 68, 0.6)',
         borderColor: 'rgb(239, 68, 68)',
         borderWidth: 1,
@@ -98,47 +98,31 @@ export function PrivacyTrendsChart({
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: {
-      intersect: false,
-    },
+    interaction: { intersect: false },
     scales: {
       x: {
         type: 'category' as const,
-        title: {
-          display: true,
-          text: 'Date',
-          color: '#9CA3AF',
-        },
-        ticks: {
-          color: '#9CA3AF',
-          maxTicksLimit: 7,
-        },
-        grid: {
-          color: 'rgba(156, 163, 175, 0.1)',
-        },
+        title: { display: true, text: 'Date', color: '#9CA3AF' },
+        ticks: { color: '#9CA3AF', maxTicksLimit: 7 },
+        grid: { color: 'rgba(156, 163, 175, 0.1)' },
       },
       y: {
         beginAtZero: true,
         max: viewMode === 'score' ? 100 : undefined,
         title: {
           display: true,
-          text: viewMode === 'score' ? 'Privacy Score' : 'Events Count',
+          text:
+            viewMode === 'score'
+              ? 'Experimental heuristic'
+              : 'Recorded signal count',
           color: '#9CA3AF',
         },
-        ticks: {
-          color: '#9CA3AF',
-        },
-        grid: {
-          color: 'rgba(156, 163, 175, 0.1)',
-        },
+        ticks: { color: '#9CA3AF' },
+        grid: { color: 'rgba(156, 163, 175, 0.1)' },
       },
     },
     plugins: {
-      legend: {
-        labels: {
-          color: '#9CA3AF',
-        },
-      },
+      legend: { labels: { color: '#9CA3AF' } },
       tooltip: {
         backgroundColor: 'rgba(17, 24, 39, 0.9)',
         titleColor: '#F9FAFB',
@@ -147,16 +131,16 @@ export function PrivacyTrendsChart({
         borderWidth: 1,
         callbacks: {
           afterBody: (context: { dataIndex: number }[]) => {
-            const dataIndex = context[0].dataIndex;
-            const trend = trendData[dataIndex];
-            if (trend) {
-              return [
-                `Top Trackers: ${trend.topTrackers.slice(0, 3).join(', ')}`,
-                `High Risk: ${trend.riskDistribution.high || 0}`,
-                `Critical: ${trend.riskDistribution.critical || 0}`,
-              ];
-            }
-            return [];
+            const trend = trendData[context[0]?.dataIndex ?? -1];
+            if (!trend) return [];
+
+            return [
+              `Top recorded domains: ${trend.topTrackers
+                .slice(0, 3)
+                .join(', ')}`,
+              `High labels: ${trend.riskDistribution.high || 0}`,
+              `Critical labels: ${trend.riskDistribution.critical || 0}`,
+            ];
           },
         },
       },
@@ -167,8 +151,8 @@ export function PrivacyTrendsChart({
     return (
       <div className={`space-y-4 ${className}`}>
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/3 mb-4" />
+          <div className="h-64 bg-gray-700 rounded" />
         </div>
       </div>
     );
@@ -177,9 +161,12 @@ export function PrivacyTrendsChart({
   if (trendData.length === 0) {
     return (
       <div className={`text-center py-8 ${className}`}>
-        <div className="text-gray-400 mb-2">📊</div>
+        <div className="text-gray-400 mb-2">▥</div>
         <p className="text-gray-500 text-sm">
-          No trend data available yet. Check back after browsing for a few days.
+          No stored daily signal snapshots are available yet.
+        </p>
+        <p className="text-[10px] text-gray-500 mt-1">
+          Automatic snapshot generation remains incomplete in version 0.1.0.
         </p>
       </div>
     );
@@ -187,9 +174,15 @@ export function PrivacyTrendsChart({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header with controls */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-200">Privacy Trends</h3>
+      <div className="p-2 rounded border-l-2 border-[var(--warning)] bg-[var(--warning)]/5 text-[10px] leading-relaxed text-[var(--text-secondary)]">
+        This chart visualizes stored prototype snapshots and rule-based scores.
+        It does not measure real-world privacy improvement or website safety.
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-lg font-semibold text-gray-200">
+          Heuristic Signal History
+        </h3>
         <div className="flex gap-2">
           <button
             onClick={() => setViewMode('score')}
@@ -199,7 +192,7 @@ export function PrivacyTrendsChart({
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            Score
+            Heuristic
           </button>
           <button
             onClick={() => setViewMode('events')}
@@ -209,12 +202,11 @@ export function PrivacyTrendsChart({
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
           >
-            Events
+            Signals
           </button>
         </div>
       </div>
 
-      {/* Chart */}
       <div className="h-64 bg-gray-800 rounded-lg p-4">
         {viewMode === 'score' ? (
           <Line data={scoreChartData} options={chartOptions} />
@@ -223,35 +215,31 @@ export function PrivacyTrendsChart({
         )}
       </div>
 
-      {/* Weekly Report */}
       {weeklyReport && (
         <div className="bg-gray-800 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-200 mb-3">
-            Weekly Summary
+          <h4 className="text-sm font-medium text-gray-200 mb-1">
+            Prototype Weekly Aggregation
           </h4>
+          <p className="text-[10px] text-gray-500 mb-3">
+            Derived from stored heuristic snapshots, not an audited report.
+          </p>
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
-              <span className="text-gray-400">Average Score:</span>
+              <span className="text-gray-400">Average heuristic:</span>
               <span className="ml-2 font-medium text-green-400">
                 {weeklyReport.averageScore}
               </span>
             </div>
             <div>
-              <span className="text-gray-400">Change:</span>
-              <span
-                className={`ml-2 font-medium ${
-                  weeklyReport.scoreChange >= 0
-                    ? 'text-green-400'
-                    : 'text-red-400'
-                }`}
-              >
+              <span className="text-gray-400">Recorded change:</span>
+              <span className="ml-2 font-medium text-gray-200">
                 {weeklyReport.scoreChange >= 0 ? '+' : ''}
                 {weeklyReport.scoreChange}
               </span>
             </div>
             {weeklyReport.newTrackers.length > 0 && (
               <div className="col-span-2">
-                <span className="text-gray-400">New Trackers:</span>
+                <span className="text-gray-400">New recorded domains:</span>
                 <span className="ml-2 text-yellow-400">
                   {weeklyReport.newTrackers.slice(0, 3).join(', ')}
                 </span>
@@ -261,26 +249,33 @@ export function PrivacyTrendsChart({
         </div>
       )}
 
-      {/* Anomalies */}
-      {anomalies.length > 0 && (
+      {deviations.length > 0 && (
         <div className="bg-gray-800 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-200 mb-3">
-            Recent Anomalies
+          <h4 className="text-sm font-medium text-gray-200 mb-1">
+            Rule-Based Deviations
           </h4>
+          <p className="text-[10px] text-gray-500 mb-3">
+            Threshold matches are not verified incidents or anomalies.
+          </p>
           <div className="space-y-2">
-            {anomalies.slice(0, 3).map((anomaly, index) => (
-              <div key={index} className="flex items-center gap-2 text-xs">
+            {deviations.slice(0, 3).map((deviation, index) => (
+              <div
+                key={`${deviation.date}-${index}`}
+                className="flex items-center gap-2 text-xs"
+              >
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    anomaly.severity === 'high'
+                    deviation.severity === 'high'
                       ? 'bg-red-500'
-                      : anomaly.severity === 'medium'
+                      : deviation.severity === 'medium'
                         ? 'bg-yellow-500'
                         : 'bg-blue-500'
                   }`}
-                ></span>
-                <span className="text-gray-400">{anomaly.date}:</span>
-                <span className="text-gray-300">{anomaly.description}</span>
+                />
+                <span className="text-gray-400">{deviation.date}:</span>
+                <span className="text-gray-300">
+                  {deviation.description}
+                </span>
               </div>
             ))}
           </div>
