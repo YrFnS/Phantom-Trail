@@ -1,9 +1,9 @@
 import type { TrackingEvent } from '../types';
 import {
-  buildEventDeduplicationKey,
   isTrackingEvent,
   normalizeTrackingEvent,
 } from '../event-attribution.mts';
+import { mergeEventIntoList } from '../event-storage-policy.mts';
 
 export class EventsStorage {
   private static readonly EVENTS_KEY = 'phantom_trail_events';
@@ -34,43 +34,15 @@ export class EventsStorage {
   static async addEvent(event: TrackingEvent): Promise<boolean> {
     return this.runMutation(async () => {
       try {
-        const events = await this.getValidatedEvents();
-        const normalized = normalizeTrackingEvent(event);
-        const signature = buildEventDeduplicationKey(normalized);
-        const now = normalized.lastSeenAt || normalized.timestamp;
-
-        for (let index = events.length - 1; index >= 0; index -= 1) {
-          const existing = events[index];
-          const existingLastSeen = existing.lastSeenAt || existing.timestamp;
-
-          if (now - existingLastSeen > this.DEDUPLICATION_WINDOW_MS) break;
-          if (buildEventDeduplicationKey(existing) !== signature) continue;
-
-          const aggregated: TrackingEvent = {
-            ...existing,
-            timestamp: normalized.timestamp,
-            lastSeenAt: now,
-            occurrences:
-              Math.max(1, existing.occurrences || 1) +
-              Math.max(1, normalized.occurrences || 1),
-            description: normalized.description,
-            detector: normalized.detector,
-            context: normalized.context,
-          };
-
-          events.splice(index, 1);
-          events.push(aggregated);
-          await this.persist(events);
-          return false;
-        }
-
-        events.push(normalized);
-        if (events.length > this.MAX_EVENTS) {
-          events.splice(0, events.length - this.MAX_EVENTS);
-        }
-
-        await this.persist(events);
-        return true;
+        const existingEvents = await this.getValidatedEvents();
+        const result = mergeEventIntoList(
+          existingEvents,
+          event,
+          this.DEDUPLICATION_WINDOW_MS,
+          this.MAX_EVENTS
+        );
+        await this.persist(result.events);
+        return result.appended;
       } catch (error) {
         console.error('Failed to add detector event:', error);
         throw new Error('Failed to add detector event');
