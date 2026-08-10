@@ -4,6 +4,7 @@ import type { TrackingEvent } from '../../lib/types';
 
 export class NetworkMonitor {
   private static isInitialized = false;
+  private static readonly OBSERVABLE_PROTOCOLS = new Set(['http:', 'https:']);
 
   static initialize(): void {
     if (this.isInitialized) return;
@@ -21,7 +22,6 @@ export class NetworkMonitor {
   private static handleRequest(
     details: chrome.webRequest.WebRequestBodyDetails
   ): void {
-    // Make async call without blocking
     this.processRequest(details).catch(error => {
       console.error('[Network Monitor] Request processing failed:', error);
     });
@@ -33,44 +33,43 @@ export class NetworkMonitor {
     try {
       if (!details.url || details.tabId === -1) return;
 
-      // Use comprehensive tracker detection
+      const url = new URL(details.url);
+      if (!this.OBSERVABLE_PROTOCOLS.has(url.protocol) || !url.hostname) {
+        return;
+      }
+
       const trackerInfo = TrackerDatabase.classifyUrl(details.url);
+      if (!trackerInfo) return;
 
-      if (trackerInfo) {
-        const url = new URL(details.url);
-        const domain = url.hostname;
+      const domain = url.hostname.toLowerCase();
+      const categoryLabel = trackerInfo.category.toLowerCase();
+      const event: TrackingEvent = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+        timestamp: Date.now(),
+        url: details.url,
+        domain,
+        trackerType: TrackerDatabase.getTrackerType(trackerInfo.category),
+        riskLevel: trackerInfo.riskLevel,
+        description: `The requested URL or hostname matched a prototype ${categoryLabel} rule; this classification can be wrong and does not prove tracking intent, data collection, sharing, or sale`,
+      };
 
-        const event: TrackingEvent = {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: Date.now(),
-          url: details.url,
-          domain: domain,
-          trackerType: TrackerDatabase.getTrackerType(trackerInfo.category),
-          riskLevel: trackerInfo.riskLevel,
-          description:
-            trackerInfo.description || `${trackerInfo.name} detected`,
-        };
+      await EventsStorage.addEvent(event);
 
-        // Store the event
-        await EventsStorage.addEvent(event);
+      console.log('[Network Monitor] Detector rule matched:', {
+        domain,
+        category: trackerInfo.category,
+        riskLabel: trackerInfo.riskLevel,
+      });
 
-        console.log('[Network Monitor] Tracker detected:', {
-          domain,
-          type: trackerInfo.category,
-          risk: trackerInfo.riskLevel,
-        });
-
-        // Notify content script if needed
-        if (details.tabId > 0) {
-          chrome.tabs
-            .sendMessage(details.tabId, {
-              type: 'TRACKER_DETECTED',
-              event,
-            })
-            .catch(() => {
-              // Ignore errors if content script not ready
-            });
-        }
+      if (details.tabId >= 0) {
+        chrome.tabs
+          .sendMessage(details.tabId, {
+            type: 'TRACKER_DETECTED',
+            event,
+          })
+          .catch(() => {
+            // The page may not have a content script or may still be loading.
+          });
       }
     } catch (error) {
       console.error('[Network Monitor] Request handling failed:', error);
