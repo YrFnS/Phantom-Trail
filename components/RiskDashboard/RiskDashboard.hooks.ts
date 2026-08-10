@@ -9,7 +9,7 @@ import type {
 } from './RiskDashboard.types';
 
 /**
- * Hook for calculating risk metrics from tracking events
+ * Hook for calculating experimental signal metrics from recorded events.
  */
 export function useRiskMetrics(): DashboardState {
   const [events, , eventsLoading] = useStorage<TrackingEvent[]>(
@@ -23,7 +23,7 @@ export function useRiskMetrics(): DashboardState {
     if (!events.length) return null;
 
     try {
-      const recentEvents = events.slice(-100); // Last 100 events
+      const recentEvents = events.slice(-100);
 
       return {
         overallRiskScore: calculateOverallRiskScore(recentEvents),
@@ -33,7 +33,7 @@ export function useRiskMetrics(): DashboardState {
         riskTrend: calculateRiskTrend(recentEvents),
       };
     } catch (err) {
-      console.error('Error calculating risk metrics:', err);
+      console.error('Error calculating signal metrics:', err);
       return null;
     }
   }, [events]);
@@ -45,19 +45,19 @@ export function useRiskMetrics(): DashboardState {
 
     if (metrics.overallRiskScore > 70) {
       recs.push(
-        'High privacy risk detected. Consider using privacy-focused browser extensions.'
+        'The heuristic signal score is high. Review the underlying events before choosing privacy controls.'
       );
     }
 
     if (metrics.riskDistribution.critical > 0) {
       recs.push(
-        'Critical trackers found. Avoid entering sensitive information on these sites.'
+        'Critical-risk signals were recorded. Review their evidence before entering sensitive information.'
       );
     }
 
     if (metrics.topTrackers.length > 5) {
       recs.push(
-        'Multiple tracking domains detected. Consider clearing cookies regularly.'
+        'Several recorded domains appear in recent events. This does not by itself prove cross-site data sharing.'
       );
     }
 
@@ -78,7 +78,7 @@ export function useRiskMetrics(): DashboardState {
 }
 
 /**
- * Calculate overall risk score (0-100)
+ * Calculate an experimental weighted signal score (0-100).
  */
 function calculateOverallRiskScore(events: TrackingEvent[]): number {
   if (!events.length) return 0;
@@ -93,9 +93,6 @@ function calculateOverallRiskScore(events: TrackingEvent[]): number {
   return Math.round((totalWeight / maxPossibleWeight) * 100);
 }
 
-/**
- * Calculate risk level distribution
- */
 function calculateRiskDistribution(events: TrackingEvent[]): RiskDistribution {
   const distribution = { low: 0, medium: 0, high: 0, critical: 0 };
 
@@ -106,9 +103,6 @@ function calculateRiskDistribution(events: TrackingEvent[]): RiskDistribution {
   return distribution;
 }
 
-/**
- * Calculate top trackers by frequency and risk
- */
 function calculateTopTrackers(events: TrackingEvent[]): TrackerSummary[] {
   const trackerMap = new Map<string, TrackerSummary>();
 
@@ -131,15 +125,11 @@ function calculateTopTrackers(events: TrackingEvent[]): TrackerSummary[] {
     .slice(0, 5);
 }
 
-/**
- * Calculate risk trend over time
- */
 function calculateRiskTrend(events: TrackingEvent[]): RiskTrendPoint[] {
   const now = Date.now();
   const hourMs = 60 * 60 * 1000;
   const points: RiskTrendPoint[] = [];
 
-  // Create 12 hourly data points
   for (let i = 11; i >= 0; i--) {
     const timestamp = now - i * hourMs;
     const hourEvents = events.filter(
