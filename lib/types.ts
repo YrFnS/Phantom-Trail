@@ -176,19 +176,85 @@ export interface NotificationSettings {
   quietHours: { start: string; end: string };
 }
 
+export type EvidenceScoreStatus = 'insufficient-evidence' | 'estimated';
+export type EvidenceCoverageConfidence = 'none' | 'low' | 'medium' | 'high';
+export type EvidenceScoreBand = 'A' | 'B' | 'C' | 'D' | 'F' | 'N/A';
+export type EvidenceScoreColor =
+  | 'green'
+  | 'yellow'
+  | 'orange'
+  | 'red'
+  | 'gray';
+export type EvidenceScoreScopeType = 'dataset' | 'page';
+
+export type EvidenceExclusionReason =
+  | 'legacy-event'
+  | 'missing-page-attribution'
+  | 'page-scope-mismatch'
+  | 'unsupported-source'
+  | 'first-party-resource'
+  | 'unknown-party'
+  | 'missing-resource-domain'
+  | 'low-detector-confidence'
+  | 'low-attribution-confidence'
+  | 'low-party-confidence';
+
+export interface EvidenceScoreScope {
+  type: EvidenceScoreScopeType;
+  pageDomain?: string;
+}
+
+export interface EvidenceScoreContribution {
+  id: string;
+  kind: 'third-party-resource' | 'page-api';
+  pageDomain: string;
+  resourceDomain?: string;
+  source: DetectionSource;
+  party: PartyRelationship;
+  detectorIds: string[];
+  detectorRules: string[];
+  evidence: string[];
+  riskLevel: RiskLevel;
+  eventRows: number;
+  occurrences: number;
+  rawPenalty: number;
+  appliedPenalty: number;
+  highQuality: boolean;
+}
+
+export interface EvidenceScoreBreakdown {
+  /** Compatibility field: number of score-qualified stored rows. */
+  totalTrackers: number;
+  highRisk: number;
+  mediumRisk: number;
+  lowRisk: number;
+  criticalRisk: number;
+  /** Compatibility fields retained as explicit false values in P2. */
+  httpsBonus: false;
+  excessiveTrackingPenalty: false;
+  observedRows: number;
+  observedOccurrences: number;
+  qualifyingRows: number;
+  qualifyingOccurrences: number;
+  excludedRows: number;
+  excludedByReason: Record<EvidenceExclusionReason, number>;
+  uniqueThirdPartyParties: number;
+  pageApiUnits: number;
+  evidenceUnits: number;
+  highQualityUnits: number;
+  rawPenalty: number;
+  appliedPenalty: number;
+  contributions: EvidenceScoreContribution[];
+}
+
 export interface PrivacyScore {
-  score: number;
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  color: 'green' | 'yellow' | 'orange' | 'red';
-  breakdown: {
-    totalTrackers: number;
-    highRisk: number;
-    mediumRisk: number;
-    lowRisk: number;
-    criticalRisk: number;
-    httpsBonus: boolean;
-    excessiveTrackingPenalty: boolean;
-  };
+  status: EvidenceScoreStatus;
+  score: number | null;
+  grade: EvidenceScoreBand;
+  color: EvidenceScoreColor;
+  confidence: EvidenceCoverageConfidence;
+  scope: EvidenceScoreScope;
+  breakdown: EvidenceScoreBreakdown;
   recommendations: string[];
 }
 
@@ -211,7 +277,9 @@ export interface SecurityContext {
 
 export interface TrendData {
   date: string;
-  privacyScore: number;
+  privacyScore: number | null;
+  scoreStatus?: EvidenceScoreStatus;
+  scoreConfidence?: EvidenceCoverageConfidence;
   trackingEvents: number;
   riskDistribution: Record<RiskLevel, number>;
   topTrackers: string[];
@@ -219,7 +287,9 @@ export interface TrendData {
 
 export interface DailySnapshot {
   date: string;
-  privacyScore: number;
+  privacyScore: number | null;
+  scoreStatus?: EvidenceScoreStatus;
+  scoreConfidence?: EvidenceCoverageConfidence;
   eventCounts: {
     total: number;
     byRisk: Record<RiskLevel, number>;
@@ -230,8 +300,8 @@ export interface DailySnapshot {
 
 export interface WeeklyReport {
   weekStart: string;
-  averageScore: number;
-  scoreChange: number;
+  averageScore: number | null;
+  scoreChange: number | null;
   newTrackers: string[];
   improvedSites: string[];
   riskySites: string[];
@@ -278,8 +348,11 @@ export interface NetworkMessage {
 }
 
 export interface AnonymousPrivacyData {
+  /** P2P samples may only contain an estimated numeric result. */
   privacyScore: number;
-  grade: string;
+  scoreStatus?: 'estimated';
+  scoreConfidence?: Exclude<EvidenceCoverageConfidence, 'none'>;
+  grade: Exclude<EvidenceScoreBand, 'N/A'> | string;
   trackerCount: number;
   riskDistribution: Record<RiskLevel, number>;
   websiteCategories: string[];
@@ -328,8 +401,10 @@ export interface P2PSettings {
 }
 
 export interface PrivacyData {
-  averageScore: number;
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  averageScore: number | null;
+  scoreStatus?: EvidenceScoreStatus;
+  scoreConfidence?: EvidenceCoverageConfidence;
+  grade: EvidenceScoreBand;
   trackerCount: number;
   events?: TrackingEvent[];
 }
