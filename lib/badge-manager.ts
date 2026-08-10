@@ -25,6 +25,7 @@ export interface PrivacySummary {
 }
 
 const STORAGE_KEY = 'phantom-trail-badge-settings';
+const DEFAULT_TITLE = 'Phantom Trail - Experimental Signal Monitor';
 
 const COLOR_SCHEMES = {
   'traffic-light': {
@@ -110,13 +111,30 @@ export class BadgeManager {
   static async clearBadge(tabId: number): Promise<void> {
     try {
       await chrome.action.setBadgeText({ text: '', tabId });
-      await chrome.action.setTitle({
-        title: 'Phantom Trail - Experimental Signal Monitor',
-        tabId,
-      });
+      await chrome.action.setTitle({ title: DEFAULT_TITLE, tabId });
       this.lastUpdateTime.delete(tabId);
     } catch (error) {
       console.error('Failed to clear experimental badge:', error);
+    }
+  }
+
+  static async clearAllBadges(): Promise<void> {
+    try {
+      await chrome.action.setBadgeText({ text: '' });
+      await chrome.action.setTitle({ title: DEFAULT_TITLE });
+
+      const tabs = await chrome.tabs.query({});
+      await Promise.all(
+        tabs
+          .filter((tab): tab is chrome.tabs.Tab & { id: number } =>
+            Number.isInteger(tab.id)
+          )
+          .map(tab => this.clearBadge(tab.id))
+      );
+
+      this.lastUpdateTime.clear();
+    } catch (error) {
+      console.error('Failed to clear all experimental badges:', error);
     }
   }
 
@@ -133,6 +151,10 @@ export class BadgeManager {
   static async saveBadgeSettings(settings: BadgeSettings): Promise<void> {
     try {
       await chrome.storage.local.set({ [STORAGE_KEY]: settings });
+
+      if (!settings.enabled) {
+        await this.clearAllBadges();
+      }
     } catch (error) {
       console.error('Failed to save badge settings:', error);
     }
