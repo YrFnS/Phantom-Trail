@@ -34,6 +34,12 @@ interface TrysteroRoom {
   leave: () => void;
 }
 
+const ACTION_NAMES = {
+  stats: 'stats',
+  reputationRequest: 'rep_req',
+  reputationResponse: 'rep_res',
+} as const;
+
 export class P2PPrivacyNetwork {
   private static instance: P2PPrivacyNetwork | null = null;
   private room: TrysteroRoom | null = null;
@@ -45,6 +51,7 @@ export class P2PPrivacyNetwork {
   private peers: Map<string, PeerConnection> = new Map();
   private peerStats: Map<string, AnonymousPrivacyData> = new Map();
   private isInitialized = false;
+  private initializationFailed = false;
   private communityStats: CommunityStats | null = null;
   private localStats: AnonymousPrivacyData | null = null;
   private reputationCallbacks: Map<string, (score: number) => void> = new Map();
@@ -81,6 +88,8 @@ export class P2PPrivacyNetwork {
   async initializeNetwork(): Promise<void> {
     if (this.isInitialized) return;
 
+    this.initializationFailed = false;
+
     try {
       const result = await chrome.storage.local.get(['p2pSettings']);
       if (result.p2pSettings) {
@@ -98,12 +107,15 @@ export class P2PPrivacyNetwork {
         'global-discovery'
       ) as unknown as TrysteroRoom;
 
+      // Trystero action names are limited to 12 UTF-8 bytes.
       const [sendStats, getStats] =
-        this.room.makeAction<AnonymousPrivacyData>('stats');
+        this.room.makeAction<AnonymousPrivacyData>(ACTION_NAMES.stats);
       const [sendReputationRequest, getReputationRequest] =
-        this.room.makeAction<ReputationRequest>('reputation_request');
+        this.room.makeAction<ReputationRequest>(ACTION_NAMES.reputationRequest);
       const [sendReputationResponse, getReputationResponse] =
-        this.room.makeAction<ReputationResponse>('reputation_response');
+        this.room.makeAction<ReputationResponse>(
+          ACTION_NAMES.reputationResponse
+        );
 
       this.sendStats = sendStats;
       this.sendReputationRequest = sendReputationRequest;
@@ -156,8 +168,22 @@ export class P2PPrivacyNetwork {
         60000
       );
     } catch (error) {
+      this.initializationFailed = true;
       console.error('Failed to initialize P2P network:', error);
+
+      try {
+        this.room?.leave();
+      } catch (leaveError) {
+        console.warn(
+          'Failed to leave partially initialized P2P room:',
+          leaveError
+        );
+      }
+
       this.room = null;
+      this.sendStats = null;
+      this.sendReputationRequest = null;
+      this.sendReputationResponse = null;
       this.isInitialized = false;
     }
   }
@@ -177,6 +203,7 @@ export class P2PPrivacyNetwork {
 
   getNetworkStatus(): string {
     if (!this.config.joinPrivacyNetwork) return 'Disabled';
+    if (this.initializationFailed) return 'Unavailable in this session';
     if (!this.isInitialized) return 'Connecting...';
     if (this.peers.size === 0) return 'Searching for peers...';
     return `Connected to ${this.peers.size} peer${this.peers.size === 1 ? '' : 's'}`;
@@ -376,6 +403,7 @@ export class P2PPrivacyNetwork {
     this.peerStats.clear();
     this.communityStats = null;
     this.localStats = null;
+    this.initializationFailed = false;
     this.isInitialized = false;
     console.log('Disconnected from P2P network');
   }
