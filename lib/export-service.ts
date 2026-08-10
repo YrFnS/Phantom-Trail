@@ -21,8 +21,8 @@ export interface ExportOptions {
 }
 
 /**
- * Exports attributed prototype detector events.
- * The legacy `pdf` format identifier produces plain text for compatibility.
+ * Exports attributed detector evidence and the P2 evidence-index state.
+ * The legacy `pdf` identifier still produces plain text for compatibility.
  */
 export class ExportService {
   private static sanitizeCSVValue(value: string): string {
@@ -31,6 +31,7 @@ export class ExportService {
   }
 
   static async exportAsCSV(events: TrackingEvent[]): Promise<Blob> {
+    const score = calculatePrivacyScore(events, true);
     const headers = [
       'Timestamp',
       'First Seen',
@@ -57,7 +58,6 @@ export class ExportService {
       'Prototype Severity Label',
       'Recorded Description',
     ];
-
     const normalizedEvents = events.map(normalizeTrackingEvent);
     const rows = normalizedEvents.map(event => {
       const context = event.context;
@@ -91,11 +91,17 @@ export class ExportService {
         .map(value => this.sanitizeCSVValue(String(value)))
         .join(',');
     });
-
     const preamble = [
-      '# Phantom Trail 0.1.0 P1 attributed detector-signal export',
-      '# Page and resource attribution, party labels, detector evidence, and confidence can still be incomplete or wrong.',
-      '# A row does not prove collection, retention, sharing, sale, ownership, identity, tracking intent, or website safety.',
+      '# Phantom Trail 0.1.0 P2 attributed evidence export',
+      `# Evidence index status: ${score.status}`,
+      `# Evidence index value: ${score.score ?? 'N/A'}`,
+      `# Model band: ${score.grade}`,
+      `# Evidence coverage confidence: ${score.confidence}`,
+      `# Evidence units: ${score.breakdown.evidenceUnits}; qualifying rows: ${score.breakdown.qualifyingRows}; excluded rows: ${score.breakdown.excludedRows}`,
+      `# Applied evidence penalty: ${score.breakdown.appliedPenalty}; HTTPS bonus: none; global row-count penalty: none`,
+      '# Page/resource attribution, party labels, detector evidence, and confidence can still be incomplete or wrong.',
+      '# N/A is not favorable and does not show that tracking was absent.',
+      '# A row or model band does not prove collection, retention, sharing, sale, ownership, identity, tracking intent, compliance, or website safety.',
       '# URL fields can contain sensitive paths, query strings, or fragments. Review this file before sharing it.',
     ].join('\n');
 
@@ -106,13 +112,28 @@ export class ExportService {
 
   static async exportAsJSON(events: TrackingEvent[]): Promise<Blob> {
     const normalizedEvents = events.map(normalizeTrackingEvent);
+    const score = calculatePrivacyScore(normalizedEvents, true);
     const exportData = {
-      format: 'phantom-trail-attributed-signal-export',
+      format: 'phantom-trail-p2-attributed-evidence-export',
       schemaVersion: 2,
       productVersion: '0.1.0',
       exportedAt: new Date().toISOString(),
+      evidenceIndex: score,
+      formulaDisclosure: {
+        base: 100,
+        unitGrouping:
+          'third-party resources are grouped by page and resource domain; page API signals are grouped by page and detector',
+        recurrence:
+          'bounded logarithmic factor with a maximum of 1.20; request volume is not penalized linearly',
+        unitPenaltyCap: 22,
+        additionalDistinctDetectorFactor: 0.3,
+        httpsBonus: false,
+        globalRowCountPenalty: false,
+        trustedSiteAdjustment: false,
+        peerReputationAdjustment: false,
+      },
       disclaimer:
-        'Page/resource attribution, party classification, detector rules, and severity labels are experimental and can be incomplete or wrong. They do not prove collection, retention, sharing, sale, identity, ownership, intent, safety, or compliance.',
+        'The evidence index summarizes qualifying experimental detector evidence. N/A is not favorable. Attribution, party classification, detector rules, severity labels, and confidence can be incomplete or wrong. Nothing here proves collection, retention, sharing, sale, identity, ownership, intent, safety, or compliance.',
       dataWarning:
         'Page and resource URL values can include paths, query strings, or fragments. Review this file before sharing it.',
       recordedRowCount: normalizedEvents.length,
@@ -138,40 +159,77 @@ export class ExportService {
   /** Generate a plain-text summary; this is not a PDF document. */
   static async exportAsPDF(
     events: TrackingEvent[],
-    heuristic: PrivacyScore
+    suppliedScore: PrivacyScore
   ): Promise<Blob> {
     const normalizedEvents = events.map(normalizeTrackingEvent);
+    // Recompute from exported rows so an old or mismatched supplied object cannot
+    // create a score that is inconsistent with the export payload.
+    const score = calculatePrivacyScore(normalizedEvents, true);
+    void suppliedScore;
     const generatedAt = new Date().toLocaleString();
-    const timeRange = this.getTimeRange(normalizedEvents);
     const routes = this.groupByRoute(normalizedEvents);
     const occurrenceCount = normalizedEvents.reduce(
       (total, event) => total + getEventOccurrenceCount(event),
       0
     );
+    const indexValue = score.score === null ? 'N/A' : `${score.score}/100`;
 
     const report = `
-PHANTOM TRAIL 0.1.0 - P1 ATTRIBUTED SIGNAL EXPORT
+PHANTOM TRAIL 0.1.0 - P2 ATTRIBUTED EVIDENCE EXPORT
 Generated: ${generatedAt}
-Recorded time range: ${timeRange}
+Recorded time range: ${this.getTimeRange(normalizedEvents)}
 
 IMPORTANT LIMITS
-- This file summarizes stored detector events from an experimental extension.
-- Page/resource attribution, first/third-party labels, rule matches, and confidence can be incomplete or wrong.
-- A recorded event does not prove collection, retention, sharing, sale, fingerprinting, attack, identity, ownership, intent, website safety, or legal non-compliance.
+- This file summarizes stored detector evidence from an experimental extension.
+- Page/resource attribution, first/third-party labels, rules, severity labels, and confidence can be incomplete or wrong.
+- N/A means no score-qualified evidence units were available. It does not mean the page or data set is private or safe.
+- A recorded event or model band does not prove collection, retention, sharing, sale, fingerprinting, attack, identity, ownership, intent, website safety, or legal non-compliance.
 - URL fields can include sensitive paths, query strings, or fragments. Review this file before sharing it.
 
-EXPERIMENTAL HEURISTIC
-- Value: ${heuristic.score}/100
-- Letter label: ${heuristic.grade}
-- This value is produced by hand-written penalties and is not an independently validated privacy rating.
+EXPERIMENTAL OBSERVED-EVIDENCE INDEX
+- Status: ${score.status}
+- Value: ${indexValue}
+- Model band: ${score.grade}
+- Evidence coverage confidence: ${score.confidence}
+- Evidence units: ${score.breakdown.evidenceUnits}
+- Unique third-party resource domains: ${score.breakdown.uniqueThirdPartyParties}
+- Page-local API units: ${score.breakdown.pageApiUnits}
+- Qualifying rows: ${score.breakdown.qualifyingRows}
+- Excluded rows: ${score.breakdown.excludedRows}
+- Qualifying occurrences: ${score.breakdown.qualifyingOccurrences}
+- Raw evidence penalty: ${score.breakdown.rawPenalty}
+- Applied evidence penalty: ${score.breakdown.appliedPenalty}
+- HTTPS bonus: none
+- Global row-count penalty: none
+
+FORMULA SUMMARY
+- Unique third-party parties and page-local API detector units drive penalties, not raw request rows.
+- Detector, attribution, party, and source confidence factors weight contributions.
+- Repeated occurrences use a bounded logarithmic factor capped at 1.20.
+- The strongest detector in a unit counts in full; additional distinct detectors count at 30%.
+- Each evidence unit is capped at 22 penalty points.
+
+EXCLUDED ROWS BY REASON
+${Object.entries(score.breakdown.excludedByReason)
+  .filter(([, count]) => count > 0)
+  .map(([reason, count]) => `- ${reason}: ${count}`)
+  .join('\n') || '- none'}
+
+SCORE CONTRIBUTIONS
+${score.breakdown.contributions
+  .map(
+    contribution =>
+      `- ${contribution.pageDomain} -> ${contribution.resourceDomain || contribution.detectorIds.join('+')}: ${contribution.appliedPenalty} points; kind=${contribution.kind}; source=${contribution.source}; occurrences=${contribution.occurrences}; detectors=${contribution.detectorIds.join(', ')}; high-quality=${contribution.highQuality}`
+  )
+  .join('\n') || '- none'}
 
 RECORDED SIGNAL SUMMARY
 - Stored rows: ${normalizedEvents.length}
 - Aggregated occurrences: ${occurrenceCount}
-- Critical prototype labels: ${heuristic.breakdown.criticalRisk}
-- High prototype labels (including critical): ${heuristic.breakdown.highRisk}
-- Medium prototype labels: ${heuristic.breakdown.mediumRisk}
-- Low prototype labels: ${heuristic.breakdown.lowRisk}
+- Critical prototype labels: ${score.breakdown.criticalRisk}
+- High prototype labels (including critical): ${score.breakdown.highRisk}
+- Medium prototype labels: ${score.breakdown.mediumRisk}
+- Low prototype labels: ${score.breakdown.lowRisk}
 
 ATTRIBUTED PAGE → RESOURCE ROUTES
 ${Object.entries(routes)
@@ -179,12 +237,8 @@ ${Object.entries(routes)
   .map(([route, count]) => `- ${route}: ${count} occurrence${count === 1 ? '' : 's'}`)
   .join('\n') || '- none'}
 
-GENERATED REVIEW NOTES
-${
-  heuristic.recommendations.length > 0
-    ? heuristic.recommendations.map(note => `- ${note}`).join('\n')
-    : '- none'
-}
+EVIDENCE REVIEW NOTES
+${score.recommendations.map(note => `- ${note}`).join('\n') || '- none'}
 
 DETAILED RECORDED EVENTS (FIRST 50)
 ${normalizedEvents
@@ -204,7 +258,7 @@ ${
     : ''
 }
 
-END OF ATTRIBUTED SIGNAL EXPORT
+END OF P2 ATTRIBUTED EVIDENCE EXPORT
     `.trim();
 
     return new Blob([report], { type: 'text/plain;charset=utf-8;' });
@@ -220,10 +274,10 @@ END OF ATTRIBUTED SIGNAL EXPORT
     if (dateRange) {
       const startDate = dateRange.start.toISOString().split('T')[0];
       const endDate = dateRange.end.toISOString().split('T')[0];
-      return `phantom-trail-attributed-signals-${startDate}-to-${endDate}.${extension}`;
+      return `phantom-trail-evidence-${startDate}-to-${endDate}.${extension}`;
     }
 
-    return `phantom-trail-attributed-signals-${timestamp}.${extension}`;
+    return `phantom-trail-evidence-${timestamp}.${extension}`;
   }
 
   static downloadBlob(blob: Blob, filename: string): void {
