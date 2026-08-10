@@ -11,10 +11,10 @@ export interface BadgeSettings {
 }
 
 export enum BadgeStyle {
-  SCORE_ONLY = 'score', // "85"
-  GRADE_ONLY = 'grade', // "A"
-  ICON_COLOR = 'icon', // Colored icon only
-  COMBINED = 'combined', // "A 85"
+  SCORE_ONLY = 'score',
+  GRADE_ONLY = 'grade',
+  ICON_COLOR = 'icon',
+  COMBINED = 'combined',
 }
 
 export interface PrivacySummary {
@@ -28,11 +28,11 @@ const STORAGE_KEY = 'phantom-trail-badge-settings';
 
 const COLOR_SCHEMES = {
   'traffic-light': {
-    excellent: '#22c55e', // Green
-    good: '#84cc16', // Light green
-    moderate: '#eab308', // Yellow
-    poor: '#f97316', // Orange
-    critical: '#ef4444', // Red
+    excellent: '#22c55e',
+    good: '#84cc16',
+    moderate: '#eab308',
+    poor: '#f97316',
+    critical: '#ef4444',
   },
   gradient: {
     excellent: '#10b981',
@@ -42,18 +42,18 @@ const COLOR_SCHEMES = {
     critical: '#f87171',
   },
   minimal: {
-    excellent: '#6b7280', // Gray variations
+    excellent: '#6b7280',
     good: '#6b7280',
     moderate: '#6b7280',
     poor: '#6b7280',
-    critical: '#ef4444', // Only red for critical
+    critical: '#ef4444',
   },
 };
 
 const DEFAULT_BADGE_SETTINGS: BadgeSettings = {
-  enabled: true,
+  enabled: false,
   style: BadgeStyle.GRADE_ONLY,
-  showScore: true,
+  showScore: false,
   showGrade: true,
   colorScheme: 'traffic-light',
   updateFrequency: 'realtime',
@@ -62,7 +62,7 @@ const DEFAULT_BADGE_SETTINGS: BadgeSettings = {
 
 export class BadgeManager {
   private static lastUpdateTime = new Map<number, number>();
-  private static readonly UPDATE_THROTTLE_MS = 1000; // Max 1 update per second per tab
+  private static readonly UPDATE_THROTTLE_MS = 1000;
 
   static async updateBadge(tabId: number, score: PrivacyScore): Promise<void> {
     try {
@@ -72,43 +72,32 @@ export class BadgeManager {
         return;
       }
 
-      // Throttle updates
       const now = Date.now();
       const lastUpdate = this.lastUpdateTime.get(tabId) || 0;
-      if (now - lastUpdate < this.UPDATE_THROTTLE_MS) {
-        return;
-      }
+      if (now - lastUpdate < this.UPDATE_THROTTLE_MS) return;
       this.lastUpdateTime.set(tabId, now);
 
-      // Skip if showing only risks and score is good
       if (settings.showOnlyRisks && score.score >= 80) {
         await this.clearBadge(tabId);
         return;
       }
 
-      const badgeText = this.generateBadgeText(score, settings.style);
-      const badgeColor = this.getScoreColor(score.score, settings.colorScheme);
-
-      // Update badge text and color
       await chrome.action.setBadgeText({
-        text: badgeText,
-        tabId: tabId,
+        text: this.generateBadgeText(score, settings.style),
+        tabId,
       });
-
       await chrome.action.setBadgeBackgroundColor({
-        color: badgeColor,
-        tabId: tabId,
+        color: this.getScoreColor(score.score, settings.colorScheme),
+        tabId,
       });
-
-      // Update tooltip
       await this.updateTooltip(tabId, {
         score: score.score,
         grade: score.grade,
         trackerCount: score.breakdown.totalTrackers,
-        riskLevel: this.getRiskLevel(score.score),
+        riskLevel: this.getSignalLabel(score.score),
       });
     } catch (error) {
-      console.error('Failed to update badge:', error);
+      console.error('Failed to update experimental badge:', error);
     }
   }
 
@@ -120,19 +109,14 @@ export class BadgeManager {
 
   static async clearBadge(tabId: number): Promise<void> {
     try {
-      await chrome.action.setBadgeText({
-        text: '',
-        tabId: tabId,
-      });
-
+      await chrome.action.setBadgeText({ text: '', tabId });
       await chrome.action.setTitle({
-        title: 'Phantom Trail - Privacy Monitor',
-        tabId: tabId,
+        title: 'Phantom Trail - Experimental Signal Monitor',
+        tabId,
       });
-
       this.lastUpdateTime.delete(tabId);
     } catch (error) {
-      console.error('Failed to clear badge:', error);
+      console.error('Failed to clear experimental badge:', error);
     }
   }
 
@@ -142,7 +126,7 @@ export class BadgeManager {
       return { ...DEFAULT_BADGE_SETTINGS, ...result[STORAGE_KEY] };
     } catch (error) {
       console.error('Failed to get badge settings:', error);
-      return DEFAULT_BADGE_SETTINGS;
+      return { ...DEFAULT_BADGE_SETTINGS };
     }
   }
 
@@ -157,11 +141,11 @@ export class BadgeManager {
   static async showQuickTooltip(tabId: number, summary: string): Promise<void> {
     try {
       await chrome.action.setTitle({
-        title: summary,
-        tabId: tabId,
+        title: `Experimental detector summary: ${summary}`,
+        tabId,
       });
     } catch (error) {
-      console.error('Failed to show tooltip:', error);
+      console.error('Failed to show experimental tooltip:', error);
     }
   }
 
@@ -177,7 +161,7 @@ export class BadgeManager {
       case BadgeStyle.COMBINED:
         return `${score.grade}${score.score}`;
       case BadgeStyle.ICON_COLOR:
-        return ''; // No text, just colored icon
+        return '';
       default:
         return score.grade;
     }
@@ -188,7 +172,6 @@ export class BadgeManager {
     colorScheme: BadgeSettings['colorScheme']
   ): string {
     const colors = COLOR_SCHEMES[colorScheme];
-
     if (score >= 90) return colors.excellent;
     if (score >= 80) return colors.good;
     if (score >= 70) return colors.moderate;
@@ -196,30 +179,26 @@ export class BadgeManager {
     return colors.critical;
   }
 
-  private static getRiskLevel(score: number): string {
-    if (score >= 90) return 'Minimal';
-    if (score >= 80) return 'Low';
-    if (score >= 70) return 'Moderate';
-    if (score >= 60) return 'High';
-    return 'Critical';
+  private static getSignalLabel(score: number): string {
+    if (score >= 90) return 'minimal penalty';
+    if (score >= 80) return 'low penalty';
+    if (score >= 70) return 'moderate penalty';
+    if (score >= 60) return 'high penalty';
+    return 'critical penalty';
   }
 
   private static async updateTooltip(
     tabId: number,
     summary: PrivacySummary
   ): Promise<void> {
-    const tooltipText = `Privacy Score: ${summary.score} (${summary.grade})
-Trackers: ${summary.trackerCount}
-Risk Level: ${summary.riskLevel}
-Click for details`;
+    const tooltipText = `Experimental heuristic: ${summary.score} (${summary.grade})
+Recorded signals: ${summary.trackerCount}
+Model label: ${summary.riskLevel}
+Not a verified privacy or safety rating`;
 
-    await chrome.action.setTitle({
-      title: tooltipText,
-      tabId: tabId,
-    });
+    await chrome.action.setTitle({ title: tooltipText, tabId });
   }
 
-  // Clean up badge data when tabs are closed
   static cleanupTab(tabId: number): void {
     this.lastUpdateTime.delete(tabId);
   }
