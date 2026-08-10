@@ -29,7 +29,7 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
         );
         setStatus(toolStatus);
       } catch (error) {
-        console.error('Failed to analyze privacy tools:', error);
+        console.error('Failed to inspect privacy tools:', error);
       } finally {
         setLoading(false);
       }
@@ -51,70 +51,60 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
     return null;
   }
 
-  const getEffectivenessColor = (effectiveness: number) => {
-    if (effectiveness >= 80) return 'text-[var(--success)]';
-    if (effectiveness >= 60) return 'text-[var(--warning)]';
-    return 'text-[var(--error)]';
-  };
-
-  const getEffectivenessIcon = (effectiveness: number) => {
-    if (effectiveness >= 80) return '🛡️';
-    if (effectiveness >= 60) return '⚠️';
-    return '🚨';
-  };
+  const enabledToolCount =
+    status.enabledToolCount ??
+    status.tools.filter(tool => tool.enabled).length;
+  const observedSignals = status.observedSignals ?? events.length;
 
   return (
     <div
       className={`${className} bg-[var(--bg-secondary)] rounded-lg p-3 border border-[var(--border-primary)]`}
     >
-      {/* Header with overall effectiveness */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">
-            {getEffectivenessIcon(status.overallEffectiveness)}
-          </span>
+        <div>
           <h3 className="text-sm font-medium text-[var(--text-primary)]">
-            Privacy Protection
+            Recognized Privacy Tools
           </h3>
+          <p className="text-[10px] text-[var(--text-secondary)]">
+            Installation state only
+          </p>
         </div>
-        <div className="text-right">
-          <div
-            className={`text-lg font-bold ${getEffectivenessColor(status.overallEffectiveness)}`}
-          >
-            {status.overallEffectiveness}%
-          </div>
-          <div className="text-[10px] text-[var(--text-secondary)]">
-            Effectiveness
-          </div>
-        </div>
+        <span className="text-[10px] uppercase tracking-wide text-[var(--warning)]">
+          Experimental
+        </span>
       </div>
 
-      {/* Protection stats */}
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div className="text-center p-2 bg-[var(--bg-tertiary)] rounded">
-          <div className="text-lg font-bold text-[var(--success)]">
-            {status.blockedTrackers}
+          <div className="text-lg font-bold text-[var(--text-primary)]">
+            {enabledToolCount}
           </div>
           <div className="text-[10px] text-[var(--text-secondary)]">
-            Blocked
+            Enabled tools
           </div>
         </div>
         <div className="text-center p-2 bg-[var(--bg-tertiary)] rounded">
-          <div className="text-lg font-bold text-[var(--error)]">
-            {status.missedTrackers}
+          <div className="text-lg font-bold text-[var(--text-primary)]">
+            {observedSignals}
           </div>
-          <div className="text-[10px] text-[var(--text-secondary)]">Missed</div>
+          <div className="text-[10px] text-[var(--text-secondary)]">
+            Recorded signals
+          </div>
         </div>
       </div>
 
-      {/* Detected tools */}
+      <div className="p-2 mb-3 text-[10px] rounded border border-[var(--warning)]/30 bg-[var(--warning)]/10 text-[var(--text-secondary)]">
+        Phantom Trail cannot observe another extension’s filtering decisions.
+        It does not measure effectiveness, blocked requests, or missed trackers.
+      </div>
+
       <div className="space-y-2 mb-3">
         <h4 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">
-          Detected Tools
+          Supported tool discovery
         </h4>
-        {status.tools.slice(0, 3).map((tool, index) => (
+        {status.tools.slice(0, 5).map(tool => (
           <div
-            key={index}
+            key={tool.name}
             className="flex items-center justify-between p-2 bg-[var(--bg-tertiary)] rounded"
           >
             <div className="flex items-center gap-2">
@@ -129,40 +119,36 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
                 {tool.name}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              {tool.enabled ? (
-                <span className="text-xs text-[var(--success)]">
-                  {tool.effectiveness}%
-                </span>
-              ) : (
-                <button
-                  onClick={() =>
-                    tool.installUrl &&
-                    ChromeTabs.createTab({ url: tool.installUrl })
-                  }
-                  className="text-xs px-2 py-1 bg-[var(--accent-primary)] text-white rounded hover:opacity-80 transition-opacity"
-                >
-                  Install
-                </button>
-              )}
-            </div>
+
+            {tool.enabled ? (
+              <span className="text-xs text-[var(--success)]">Enabled</span>
+            ) : (
+              <button
+                onClick={() =>
+                  tool.installUrl &&
+                  ChromeTabs.createTab({ url: tool.installUrl })
+                }
+                className="text-xs px-2 py-1 bg-[var(--accent-primary)] text-white rounded hover:opacity-80 transition-opacity"
+              >
+                Review
+              </button>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Recommendations */}
       {status.recommendations.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">
-            Improve Protection
+            Notes
           </h4>
-          {status.recommendations.slice(0, 2).map((rec, index) => (
+          {status.recommendations.slice(0, 3).map(recommendation => (
             <div
-              key={index}
-              className="p-2 bg-[var(--bg-primary)] rounded border-l-2 border-[var(--accent-primary)]"
+              key={recommendation}
+              className="p-2 bg-[var(--bg-primary)] rounded border-l-2 border-[var(--warning)]"
             >
               <p className="text-xs text-[var(--text-primary)] leading-relaxed">
-                💡 {rec}
+                {recommendation}
               </p>
             </div>
           ))}
