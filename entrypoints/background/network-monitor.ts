@@ -1,6 +1,7 @@
 import { EventsStorage } from '../../lib/storage/events-storage';
 import { TrackerDatabase } from '../../lib/tracker-db';
 import { resolveNetworkAttribution } from '../../lib/event-attribution.mts';
+import { shouldStoreNetworkMatch } from '../../lib/network-match-policy.mts';
 import type { TrackingEvent } from '../../lib/types';
 
 interface AttributableRequestDetails
@@ -49,12 +50,7 @@ export class NetworkMonitor {
         requestId: details.requestId,
       });
 
-      // A first-party resource is not evidence of third-party tracking merely
-      // because its hostname or path resembles a detector rule.
-      if (context.party === 'first-party') return;
-
-      // Broad path/hostname rules require page attribution before P1 stores them.
-      if (context.party === 'unknown' && match.confidence === 'low') return;
+      if (!shouldStoreNetworkMatch(context, match.confidence)) return;
 
       const resourceDomain = context.resourceDomain;
       if (!resourceDomain) return;
