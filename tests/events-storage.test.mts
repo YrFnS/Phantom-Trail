@@ -1,36 +1,11 @@
-import test, { beforeEach } from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveNetworkAttribution } from '../lib/event-attribution.mts';
+import {
+  normalizeTrackingEvent,
+  resolveNetworkAttribution,
+} from '../lib/event-attribution.mts';
+import { mergeEventIntoList } from '../lib/event-storage-policy.mts';
 import type { TrackingEvent } from '../lib/types.ts';
-
-const values = new Map<string, unknown>();
-const storageLocal = {
-  async get(key: string | string[]): Promise<Record<string, unknown>> {
-    const keys = Array.isArray(key) ? key : [key];
-    return Object.fromEntries(
-      keys.map(storageKey => [
-        storageKey,
-        structuredClone(values.get(storageKey)),
-      ])
-    );
-  },
-  async set(entries: Record<string, unknown>): Promise<void> {
-    for (const [key, value] of Object.entries(entries)) {
-      values.set(key, structuredClone(value));
-    }
-  },
-};
-
-(globalThis as typeof globalThis & {
-  chrome: { storage: { local: typeof storageLocal } };
-}).chrome = { storage: { local: storageLocal } };
-
-const { EventsStorage } = await import('../lib/storage/events-storage.ts');
-
-beforeEach(async () => {
-  values.clear();
-  await EventsStorage.clearEvents();
-});
 
 function createEvent(
   id: string,
@@ -68,72 +43,91 @@ function createEvent(
   };
 }
 
-test('aggregates equivalent short-window events', async () => {
-  assert.equal(
-    await EventsStorage.addEvent(
-      createEvent('first', 1_000, 'https://page.test/one')
-    ),
-    true
+test('aggregates equivalent short-window events', () => {
+  const first = mergeEventIntoList(
+    [],
+    createEvent('first', 1_000, 'https://page.test/one')
   );
-  assert.equal(
-    await EventsStorage.addEvent(
-      createEvent('second', 1_250, 'https://page.test/one')
-    ),
-    false
+  const second = mergeEventIntoList(
+    first.events,
+    createEvent('second', 1_250, 'https://page.test/one')
   );
 
-  const stored = await EventsStorage.getTrackingEvents();
-  assert.equal(stored.length, 1);
-  assert.equal(stored[0].occurrences, 2);
-  assert.equal(stored[0].firstSeenAt, 1_000);
-  assert.equal(stored[0].lastSeenAt, 1_250);
+  assert.equal(first.appended, true);
+  assert.equal(second.appended, false);
+  assert.equal(second.events.length, 1);
+  assert.equal(second.events[0].occurrences, 2);
+  assert.equal(second.events[0].firstSeenAt, 1_000);
+  assert.equal(second.events[0].lastSeenAt, 1_250);
 });
 
-test('does not merge the same resource across different pages', async () => {
-  await EventsStorage.addEvent(
+test('does not merge the same resource across different pages', () => {
+  const first = mergeEventIntoList(
+    [],
     createEvent('first', 1_000, 'https://one.test/')
   );
-  await EventsStorage.addEvent(
+  const second = mergeEventIntoList(
+    first.events,
     createEvent('second', 1_100, 'https://two.test/')
   );
 
-  const stored = await EventsStorage.getTrackingEvents();
-  assert.equal(stored.length, 2);
+  assert.equal(second.events.length, 2);
   assert.deepEqual(
-    stored.map(event => event.context?.pageDomain).sort(),
+    second.events.map(event => event.context?.pageDomain).sort(),
     ['one.test', 'two.test']
   );
 });
 
-test('does not merge events outside the short window', async () => {
-  await EventsStorage.addEvent(
+test('does not merge events outside the short window', () => {
+  const first = mergeEventIntoList(
+    [],
     createEvent('first', 1_000, 'https://page.test/')
   );
-  await EventsStorage.addEvent(
+  const second = mergeEventIntoList(
+    first.events,
     createEvent('second', 7_000, 'https://page.test/')
   );
 
-  assert.equal((await EventsStorage.getTrackingEvents()).length, 2);
+  assert.equal(second.events.length, 2);
 });
 
-test('migrates legacy rows without inventing a visited page', async () => {
-  values.set('phantom_trail_events', [
-    {
-      id: 'legacy',
-      timestamp: 100,
-      url: 'https://tracker.test/pixel',
-      domain: 'tracker.test',
-      trackerType: 'analytics',
-      riskLevel: 'low',
-      description: 'legacy fixture',
-    },
-  ]);
+test('enforces the bounded event-row cap', () => {
+  let events: TrackingEvent[] = [];
 
-  const stored = await EventsStorage.getTrackingEvents();
-  assert.equal(stored.length, 1);
-  assert.equal(stored[0].schemaVersion, 2);
-  assert.equal(stored[0].context?.source, 'legacy');
-  assert.equal(stored[0].context?.pageDomain, '');
-  assert.equal(stored[0].context?.resourceDomain, 'tracker.test');
-  assert.equal(stored[0].detector?.confidence, 'low');
+  for (let index = 0; index < 4; index += 1) {
+    events = mergeEventIntoList(
+      events,
+      createEvent(
+        `event-${index}`,
+        index * 10_000,
+        `https://page-${index}.test/`
+      ),
+      5_000,
+      3
+    ).events;
+  }
+
+  assert.equal(events.length, 3);
+  assert.deepEqual(
+    events.map(event => event.id),
+    ['event-1', 'event-2', 'event-3']
+  );
+});
+
+test('legacy normalization does not invent a visited page', () => {
+  const migrated = normalizeTrackingEvent({
+    id: 'legacy',
+    timestamp: 100,
+    url: 'https://tracker.test/pixel',
+    domain: 'tracker.test',
+    trackerType: 'analytics',
+    riskLevel: 'low',
+    description: 'legacy fixture',
+  });
+
+  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.context?.source, 'legacy');
+  assert.equal(migrated.context?.pageDomain, '');
+  assert.equal(migrated.context?.resourceDomain, 'tracker.test');
+  assert.equal(migrated.detector?.confidence, 'low');
 });
