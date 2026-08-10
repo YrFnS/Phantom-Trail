@@ -39,8 +39,13 @@ export interface RiskData {
     score: PrivacyScore;
     events: number;
   }>;
+  insufficientPages?: Array<{
+    domain: string;
+    score: PrivacyScore;
+    events: number;
+  }>;
   criticalEvents: TrackingEvent[];
-  historicalScores: number[];
+  historicalScores: Array<number | null>;
 }
 
 export interface TrackerData {
