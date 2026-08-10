@@ -1,35 +1,31 @@
 /**
- * Simple test to verify trusted sites functionality
- * Run this in the browser console to test the implementation
+ * Simple browser-console check for personal site annotations.
+ * Personal annotations must never change detector evidence or P2 scoring.
  */
 
 import { TrustedSitesManager, TrustLevel } from '../lib/trusted-sites-manager';
 import { calculatePrivacyScoreWithTrust } from '../lib/privacy-score';
 
 export async function testTrustedSites() {
-  console.log('🧪 Testing Trusted Sites Management...');
+  console.log('🧪 Testing Personal Site Annotations...');
 
   try {
-    // Test 1: Add a trusted site
-    console.log('1. Adding github.com as trusted site...');
+    console.log('1. Adding github.com annotation...');
     await TrustedSitesManager.addTrustedSite(
       'github.com',
       TrustLevel.PARTIAL_TRUST,
       'Development platform'
     );
 
-    // Test 2: Check if site is trusted
-    console.log('2. Checking if github.com is trusted...');
+    console.log('2. Checking annotation lookup...');
     const isTrusted = await TrustedSitesManager.isTrustedSite('github.com');
-    console.log(`✅ github.com trusted: ${isTrusted}`);
+    console.log(`✅ github.com annotated: ${isTrusted}`);
 
-    // Test 3: Get trusted site details
-    console.log('3. Getting trusted site details...');
+    console.log('3. Getting annotation details...');
     const trustedSite = await TrustedSitesManager.getTrustedSite('github.com');
-    console.log('✅ Trusted site details:', trustedSite);
+    console.log('✅ Annotation details:', trustedSite);
 
-    // Test 4: Test privacy score adjustment
-    console.log('4. Testing privacy score adjustment...');
+    console.log('4. Confirming annotations do not alter evidence scoring...');
     const mockEvents = [
       {
         id: '1',
@@ -38,62 +34,53 @@ export async function testTrustedSites() {
         domain: 'github.com',
         trackerType: 'analytics' as const,
         riskLevel: 'medium' as const,
-        description: 'Test tracker',
+        description: 'Legacy test signal',
       },
     ];
 
-    const scoreWithoutTrust = await calculatePrivacyScoreWithTrust(
+    const scoreWithoutAnnotation = await calculatePrivacyScoreWithTrust(
       mockEvents,
       true
     );
-    const scoreWithTrust = await calculatePrivacyScoreWithTrust(
+    const scoreWithAnnotation = await calculatePrivacyScoreWithTrust(
       mockEvents,
       true,
       'github.com'
     );
 
-    console.log('✅ Score without trust:', scoreWithoutTrust.score);
-    console.log('✅ Score with trust:', scoreWithTrust.score);
+    console.log('✅ Score without annotation:', scoreWithoutAnnotation);
+    console.log('✅ Score with annotation:', scoreWithAnnotation);
     console.log(
-      '✅ Trust adjustment applied:',
-      scoreWithTrust.breakdown.trustAdjustment
+      '✅ Annotation left score unchanged:',
+      JSON.stringify(scoreWithoutAnnotation) === JSON.stringify(scoreWithAnnotation)
     );
 
-    // Test 5: Generate trust suggestions
-    console.log('5. Testing trust suggestions...');
+    console.log('5. Confirming automatic suggestions remain disabled...');
     const suggestions =
       await TrustedSitesManager.generateTrustSuggestions('google.com');
-    console.log('✅ Trust suggestions:', suggestions);
+    console.log('✅ Automatic annotation suggestions:', suggestions);
 
-    // Test 6: List all trusted sites
-    console.log('6. Listing all trusted sites...');
+    console.log('6. Listing annotations...');
     const allTrustedSites = await TrustedSitesManager.getTrustedSites();
-    console.log('✅ All trusted sites:', allTrustedSites);
+    console.log('✅ All annotations:', allTrustedSites);
 
-    // Test 7: Update trust level
-    console.log('7. Updating trust level...');
+    console.log('7. Updating annotation label...');
     await TrustedSitesManager.updateTrustLevel(
       'github.com',
       TrustLevel.FULL_TRUST
     );
     const updatedSite = await TrustedSitesManager.getTrustedSite('github.com');
-    console.log('✅ Updated trust level:', updatedSite?.trustLevel);
+    console.log('✅ Updated annotation label:', updatedSite?.trustLevel);
 
-    // Test 8: Remove trusted site
-    console.log('8. Removing trusted site...');
+    console.log('8. Removing annotation...');
     await TrustedSitesManager.removeTrustedSite('github.com');
     const removedCheck = await TrustedSitesManager.isTrustedSite('github.com');
-    console.log('✅ Site removed, still trusted:', removedCheck);
-
-    console.log(
-      '🎉 All tests passed! Trusted Sites functionality is working correctly.'
-    );
+    console.log('✅ Annotation removed:', !removedCheck);
   } catch (error) {
-    console.error('❌ Test failed:', error);
+    console.error('❌ Annotation check failed:', error);
   }
 }
 
-// Export for use in browser console
 (
   window as unknown as { testTrustedSites: typeof testTrustedSites }
 ).testTrustedSites = testTrustedSites;
