@@ -1,9 +1,10 @@
 # P1 Detection and Attribution
 
-**Status:** In progress — source/build slice implemented; Chromium runtime gate pending  
+**Status:** Implementation complete on branch — stacked review/merge pending  
 **Branch:** `agent/p1-detection-attribution`  
 **Stacked base:** `agent/p0-truthfulness-baseline`  
-**Started:** August 10, 2026
+**Started:** August 10, 2026  
+**Implementation gate completed:** August 10, 2026
 
 ## Purpose
 
@@ -94,7 +95,7 @@ disclosed approximate site-key heuristic for sibling subdomains. It is not a
 full Public Suffix List implementation. The basis and confidence are retained
 on every event so consumers do not have to treat the label as certain.
 
-## False-positive controls in this slice
+## False-positive controls
 
 - main-frame and attributed first-party network matches are not stored as
   third-party tracking evidence;
@@ -145,19 +146,20 @@ on every event so consumers do not have to treat the label as certain.
 
 ### P1.4 — Runtime evidence
 
-- [x] Build and package the current source slice.
+- [x] Build and package the source slice.
 - [x] Exercise pure first-party, third-party, main-frame, fallback-attribution,
   legacy-migration, tracker-rule, network-policy, duplicate, and event-cap
   fixtures.
-- [ ] Exercise the exact artifact in Chromium with network, DOM-resource,
-  API-threshold, migration, duplicate, graph, feed, and export assertions.
-- [ ] Record runtime false-positive and false-negative limitations.
+- [x] Exercise the exact artifact in Chromium with network, DOM-resource,
+  API-threshold, migration, duplicate, graph, feed, action-popup, and export
+  assertions.
+- [x] Record runtime false-positive and false-negative limitations.
 
 ## Automated source/build evidence
 
-GitHub Actions **Validate run #208** completed successfully on source head:
+GitHub Actions **Validate run #210** completed successfully on tested head:
 
-`60b95bd995f7d502d0ba65dc1e76a2ac68b4d2cb`
+`02a4f5fa56dbd558135271bc491a3c36c4531e0c`
 
 Passed gates:
 
@@ -173,11 +175,10 @@ Passed gates:
 
 Artifact:
 
-- name: `phantom-trail-chrome-0c7243c594dceef4c304a234d144913fb99a98bb`
-- GitHub artifact ID: `9079556186`
-- artifact SHA-256: `c287fc7fd344ddbd43e3f12b11f59234ef724b002cc604112a39c31cd15519a3`
-- packaged extension ZIP SHA-256:
-  `7d5cbcf50f5a9dd5092c68c4a0eaf56396728965bff04d5a1165081071ead6e1`
+- name: `phantom-trail-chrome-4ac3c87af39ba487a0fc0a1b172df27c79e20bc7`
+- GitHub artifact ID: `9079628500`
+- artifact SHA-256:
+  `6243adf3e9e4050968cab2bd84a0d863e2e90fed37f372e250b69d50e2ce843d`
 
 The generated manifest reports:
 
@@ -189,9 +190,44 @@ The generated manifest reports:
 
 The built background, content-script, and popup bundles contain the explicit
 `pageDomain`, `resourceDomain`, `attributionBasis`, `partyBasis`, and detector
-evidence paths. This confirms packaging, not runtime correctness.
+evidence paths.
 
-## Known limitations after this slice
+## Exact-artifact Chromium evidence
+
+The run #210 artifact was loaded in Chromium `144.0.7559.96` with an isolated
+profile and deterministic local page/resource fixtures.
+
+The final fixture completed with:
+
+- 33 assertions passed;
+- 0 assertions failed;
+- 0 page/runtime errors;
+- 13 final storage rows;
+- 14 aggregated occurrences; and
+- a successfully opened browser-action popup target.
+
+Verified runtime behavior included:
+
+- schema-v2 migration without invented page context;
+- zero rows on a no-signal control page;
+- explicit `page.test` → resource routes;
+- first-party network-rule suppression;
+- query-parameter-only suppression;
+- high-confidence catalog evidence;
+- low-confidence attributed path evidence;
+- separate DOM-resource attribution;
+- duplicate occurrence aggregation;
+- mouse/form interaction-only suppression;
+- separate routes for the same resource across `page.test` and `other.test`;
+- active-page filtering in the popup;
+- visible route, evidence, basis, and confidence metadata;
+- page/resource graph nodes and inferred links; and
+- schema-v2 CSV, JSON, and plain-text exports.
+
+Full evidence, hashes, fixture scope, and limitations are recorded in
+[P1-RUNTIME-EVIDENCE.md](P1-RUNTIME-EVIDENCE.md).
+
+## Known limitations
 
 - party classification uses an approximate site-key heuristic, not a complete
   Public Suffix List;
@@ -223,17 +259,21 @@ Those remain later phases.
 
 ## Completion gate
 
-P1 can be marked complete only when:
+P1 requires:
 
-- all new events use schema v2;
-- legacy rows migrate without invented page context;
-- page and resource domains remain distinct through storage, UI, graph, pattern,
-  analysis, and export paths;
-- first-party and broad-rule false-positive fixtures pass;
-- duplicate aggregation is tested;
-- type-check, lint, unit fixtures, production build, and package validation pass;
-- a real Chromium run confirms the stored context and visible route labels; and
-- the PR records remaining known attribution limitations.
+- all new events to use schema v2;
+- legacy rows to migrate without invented page context;
+- page and resource domains to remain distinct through storage, UI, graph,
+  pattern, analysis, and export paths;
+- first-party and broad-rule false-positive fixtures to pass;
+- duplicate aggregation to be tested;
+- type-check, lint, unit fixtures, production build, and package validation to
+  pass;
+- a real Chromium run to confirm stored context and visible route labels; and
+- remaining attribution limitations to be documented.
 
-The source/build slice satisfies the first six gates. P1 remains **IN PROGRESS**
-until exact-artifact Chromium evidence is recorded.
+All P1 implementation gates are satisfied on this branch. P1 is therefore
+**implementation complete**.
+
+PR #2 remains a stacked draft because PR #1 and the P0 base remain under review.
+This status does not authorize merging either pull request.
