@@ -1,11 +1,11 @@
 import type { TrackingEvent } from '../../lib/types';
+import { buildEventDeduplicationKey } from '../../lib/event-attribution.mts';
 
-// Event deduplication
 const recentEventSignatures = new Map<string, number>();
-const SIGNATURE_TTL = 10000; // 10 seconds
+const SIGNATURE_TTL = 5000;
 
 export function getEventSignature(event: TrackingEvent): string {
-  return `${event.domain}-${event.trackerType}-${event.riskLevel}`;
+  return buildEventDeduplicationKey(event);
 }
 
 export function isDuplicateEvent(event: TrackingEvent): boolean {
