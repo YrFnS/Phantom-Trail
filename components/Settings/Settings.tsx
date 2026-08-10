@@ -1,13 +1,11 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useSettings } from '../../lib/hooks';
 import { AI_MODELS, DEFAULT_MODEL } from '../../lib/ai-models';
 import type { RiskLevel } from '../../lib/types';
 import { Card, CardHeader, CardContent, Button } from '../ui';
 import { TrustedSitesSettings } from './TrustedSitesSettings';
-import { NotificationSettings } from './NotificationSettings';
 import { ShortcutSettings } from './ShortcutSettings';
 import { ThemeSettings } from './ThemeSettings';
-import { ExportScheduling } from './ExportScheduling';
 import { BadgeSettingsComponent } from './BadgeSettings';
 import { P2PSettingsComponent } from './P2PSettings';
 
@@ -25,10 +23,49 @@ interface SettingsProps {
   onClose: () => void;
 }
 
+interface TabButtonProps {
+  id: SettingsTab;
+  label: string;
+  activeTab: SettingsTab;
+  onSelect: (tab: SettingsTab) => void;
+}
+
+function TabButton({ id, label, activeTab, onSelect }: TabButtonProps) {
+  return (
+    <button
+      onClick={() => onSelect(id)}
+      className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+        activeTab === id
+          ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+          : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+interface FeatureNoticeProps {
+  title: string;
+  children: ReactNode;
+}
+
+function FeatureNotice({ title, children }: FeatureNoticeProps) {
+  return (
+    <div className="rounded-lg border border-[var(--warning)]/40 bg-[var(--warning)]/10 p-4">
+      <h3 className="text-sm font-medium text-[var(--warning)] mb-1">
+        {title}
+      </h3>
+      <div className="text-xs text-[var(--text-secondary)] leading-relaxed">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function Settings({ onClose }: SettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
 
-  // Use custom hook for settings management
   const {
     settings,
     setSettings,
@@ -42,12 +79,6 @@ export function Settings({ onClose }: SettingsProps) {
 
   const handleSave = async () => {
     await saveSettings();
-    if (saveSuccess) {
-      // Brief delay to show success, then close
-      setTimeout(() => {
-        onClose();
-      }, 500);
-    }
   };
 
   return (
@@ -55,125 +86,104 @@ export function Settings({ onClose }: SettingsProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-              Settings
-            </h2>
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                Settings
+              </h2>
+              <p className="text-[10px] text-[var(--warning)] mt-1">
+                Version 0.1.0 experimental prototype
+              </p>
+            </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
               ✕
             </Button>
           </div>
 
-          {/* Tab Navigation */}
           <div className="flex gap-1 mt-4 border-b border-[var(--border-primary)] overflow-x-auto pb-1">
-            <button
-              onClick={() => setActiveTab('general')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'general'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              General
-            </button>
-            <button
-              onClick={() => setActiveTab('appearance')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'appearance'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Theme
-            </button>
-            <button
-              onClick={() => setActiveTab('badge')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'badge'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Badge
-            </button>
-            <button
-              onClick={() => setActiveTab('export')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'export'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Export
-            </button>
-            <button
-              onClick={() => setActiveTab('notifications')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'notifications'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Alerts
-            </button>
-            <button
-              onClick={() => setActiveTab('trusted-sites')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'trusted-sites'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Sites
-            </button>
-            <button
-              onClick={() => setActiveTab('shortcuts')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'shortcuts'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Keys
-            </button>
-            <button
-              onClick={() => setActiveTab('p2p')}
-              className={`px-3 py-2 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === 'p2p'
-                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              P2P
-            </button>
+            <TabButton
+              id="general"
+              label="General"
+              activeTab={activeTab}
+              onSelect={setActiveTab}
+            />
+            <TabButton
+              id="appearance"
+              label="Theme"
+              activeTab={activeTab}
+              onSelect={setActiveTab}
+            />
+            <TabButton
+              id="badge"
+              label="Badge*"
+              activeTab={activeTab}
+              onSelect={setActiveTab}
+            />
+            <TabButton
+              id="export"
+              label="Export*"
+              activeTab={activeTab}
+              onSelect={setActiveTab}
+            />
+            <TabButton
+              id="notifications"
+              label="Alerts*"
+              activeTab={activeTab}
+              onSelect={setActiveTab}
+            />
+            <TabButton
+              id="trusted-sites"
+              label="Sites"
+              activeTab={activeTab}
+              onSelect={setActiveTab}
+            />
+            <TabButton
+              id="shortcuts"
+              label="Keys"
+              activeTab={activeTab}
+              onSelect={setActiveTab}
+            />
+            <TabButton
+              id="p2p"
+              label="P2P*"
+              activeTab={activeTab}
+              onSelect={setActiveTab}
+            />
           </div>
         </CardHeader>
+
         <CardContent>
-          {/* General Tab */}
           {activeTab === 'general' && (
             <div className="space-y-6">
-              {/* API Key */}
+              <FeatureNotice title="Interpret results cautiously">
+                Detector events, grades, predictions, and recommendations are
+                heuristic prototype output. They can be wrong and are not a
+                security verdict, privacy certification, or legal assessment.
+              </FeatureNotice>
+
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                  OpenRouter API Key (Optional)
+                  OpenRouter API Key (Experimental, Optional)
                 </label>
                 <div className="relative">
                   <input
                     type="password"
                     value={apiKey}
-                    onChange={e => setApiKey(e.target.value)}
+                    onChange={event => setApiKey(event.target.value)}
                     placeholder="sk-or-v1-..."
                     className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] font-mono"
                     autoComplete="off"
                     spellCheck="false"
                   />
                   {apiKey && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-green-500">
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[var(--success)]">
                       ✓
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-[var(--text-secondary)] mt-1">
-                  Get your free key from{' '}
+                <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                  When AI summaries are enabled, sanitized event summaries are
+                  sent directly to OpenRouter. Review the data disclosure before
+                  enabling this feature. Manage keys at{' '}
                   <a
                     href="https://openrouter.ai/keys"
                     target="_blank"
@@ -182,18 +192,18 @@ export function Settings({ onClose }: SettingsProps) {
                   >
                     openrouter.ai
                   </a>
+                  .
                 </p>
               </div>
 
-              {/* Model Selection */}
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                  AI Model
+                  OpenRouter Model
                 </label>
                 <select
                   value={settings.aiModel || DEFAULT_MODEL}
-                  onChange={e =>
-                    setSettings({ ...settings, aiModel: e.target.value })
+                  onChange={event =>
+                    setSettings({ ...settings, aiModel: event.target.value })
                   }
                   className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
                 >
@@ -201,97 +211,99 @@ export function Settings({ onClose }: SettingsProps) {
                     <option key={model.id} value={model.id}>
                       {model.name}{' '}
                       {model.category === 'free'
-                        ? '(Free)'
+                        ? '(Free tier)'
                         : model.category === 'fast'
                           ? '(Fast)'
-                          : '(Premium)'}
+                          : '(Paid/Premium)'}
                     </option>
                   ))}
                 </select>
                 <p className="text-xs text-[var(--text-secondary)] mt-1">
-                  Free models have usage limits
+                  Availability, limits, and cost are controlled by OpenRouter.
                 </p>
               </div>
 
-              {/* AI Toggle */}
-              <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
+              <div className="flex items-center justify-between gap-4 p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
                 <div>
                   <label className="text-sm font-medium text-[var(--text-primary)]">
-                    AI Analysis
+                    OpenRouter event summaries
                   </label>
-                  <p className="text-xs text-[var(--text-secondary)]">
-                    Enable AI-powered tracking analysis
+                  <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                    Experimental. Summarizes recorded event counts and domains;
+                    it is not a complete or independently verified privacy
+                    analysis. Off by default.
                   </p>
                 </div>
                 <input
                   type="checkbox"
                   checked={settings.enableAI}
-                  onChange={e =>
-                    setSettings({ ...settings, enableAI: e.target.checked })
+                  onChange={event =>
+                    setSettings({ ...settings, enableAI: event.target.checked })
                   }
                   className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                 />
               </div>
 
-              {/* Privacy Predictions Toggle */}
-              <div className="flex items-center justify-between p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
+              <div className="flex items-center justify-between gap-4 p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
                 <div>
                   <label className="text-sm font-medium text-[var(--text-primary)]">
-                    Link Privacy Predictions
+                    Link signal estimates
                   </label>
-                  <p className="text-xs text-[var(--text-secondary)]">
-                    Show privacy warnings when hovering over links
+                  <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                    Experimental and unvalidated. Hover cards use domain-name
+                    patterns and prior recorded signals, not a live audit of the
+                    destination. Off by default.
                   </p>
                 </div>
                 <input
                   type="checkbox"
-                  checked={settings.enablePrivacyPredictions ?? true}
-                  onChange={e =>
+                  checked={settings.enablePrivacyPredictions ?? false}
+                  onChange={event =>
                     setSettings({
                       ...settings,
-                      enablePrivacyPredictions: e.target.checked,
+                      enablePrivacyPredictions: event.target.checked,
                     })
                   }
                   className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                 />
               </div>
 
-              {/* Risk Threshold */}
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                  Risk Alert Threshold
+                  Signal Severity Threshold
                 </label>
                 <select
                   value={settings.riskThreshold}
-                  onChange={e =>
+                  onChange={event =>
                     setSettings({
                       ...settings,
-                      riskThreshold: e.target.value as RiskLevel,
+                      riskThreshold: event.target.value as RiskLevel,
                     })
                   }
                   className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
                 >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical Only</option>
+                  <option value="low">Low heuristic severity</option>
+                  <option value="medium">Medium heuristic severity</option>
+                  <option value="high">High heuristic severity</option>
+                  <option value="critical">Critical label only</option>
                 </select>
                 <p className="text-xs text-[var(--text-secondary)] mt-1">
-                  Only show alerts for risks at or above this level
+                  These labels are assigned by prototype rules, not a verified
+                  threat assessment.
                 </p>
               </div>
 
-              {/* Save Button */}
               {saveError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+                <div className="p-3 bg-[var(--error)]/10 border border-[var(--error)]/30 rounded-lg text-sm text-[var(--error)]">
                   {saveError}
                 </div>
               )}
               {saveSuccess && (
-                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-sm text-green-400">
-                  ✓ Settings saved successfully!
+                <div className="p-3 bg-[var(--success)]/10 border border-[var(--success)]/30 rounded-lg text-sm text-[var(--success)]">
+                  ✓ Settings saved
                 </div>
               )}
+
               <Button
                 onClick={handleSave}
                 disabled={saving || saveSuccess}
@@ -301,32 +313,57 @@ export function Settings({ onClose }: SettingsProps) {
                 {saving
                   ? 'Saving...'
                   : saveSuccess
-                    ? '✓ Saved!'
+                    ? '✓ Saved'
                     : 'Save Settings'}
               </Button>
             </div>
           )}
 
-          {/* Appearance Tab */}
           {activeTab === 'appearance' && <ThemeSettings />}
 
-          {/* Badge Tab */}
-          {activeTab === 'badge' && <BadgeSettingsComponent />}
+          {activeTab === 'badge' && (
+            <div className="space-y-4">
+              <FeatureNotice title="Experimental heuristic badge">
+                The toolbar value inherits the unvalidated scoring model and is
+                disabled by default for new installations. It must not be read
+                as a safety or privacy certification.
+              </FeatureNotice>
+              <BadgeSettingsComponent />
+            </div>
+          )}
 
-          {/* Export Tab */}
-          {activeTab === 'export' && <ExportScheduling />}
+          {activeTab === 'export' && (
+            <FeatureNotice title="Scheduled export unavailable in 0.1.0">
+              Automatic alarm routing and date-range selection are incomplete.
+              Use the manual export button in the popup header for CSV or JSON.
+              The current “PDF” path is a plain-text report and is not exposed
+              here as a finished PDF feature.
+            </FeatureNotice>
+          )}
 
-          {/* Notifications Tab */}
-          {activeTab === 'notifications' && <NotificationSettings />}
+          {activeTab === 'notifications' && (
+            <FeatureNotice title="Automatic alerts unavailable in 0.1.0">
+              Notification utilities exist, but detector events, daily summaries,
+              and trend snapshots are not consistently wired into the extension
+              lifecycle. Controls remain hidden until that behavior is completed
+              and tested.
+            </FeatureNotice>
+          )}
 
-          {/* Trusted Sites Tab */}
           {activeTab === 'trusted-sites' && <TrustedSitesSettings />}
-
-          {/* Shortcuts Tab */}
           {activeTab === 'shortcuts' && <ShortcutSettings />}
 
-          {/* P2P Network Tab */}
-          {activeTab === 'p2p' && <P2PSettingsComponent />}
+          {activeTab === 'p2p' && (
+            <div className="space-y-4">
+              <FeatureNotice title="Unauthenticated experimental peer network">
+                Peer identity, sample authenticity, population
+                representativeness, and reputation integrity are not established.
+                Enabling this feature may expose normal WebRTC and signaling
+                metadata to peers and infrastructure providers.
+              </FeatureNotice>
+              <P2PSettingsComponent />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
