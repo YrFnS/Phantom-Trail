@@ -6,65 +6,60 @@ import {
 import type { TrackingEvent, PrivacyScore } from '../types';
 
 /**
- * Specialized analyzer for privacy risk assessment
+ * Formats the experimental score and recorded detector signals.
  */
 export class RiskAnalyzer {
-  /**
-   * Analyze privacy risks over a given timeframe
-   */
   static async analyze(timeframe?: number): Promise<AnalysisResult> {
     return await TrackingAnalysis.analyzeRisk(timeframe);
   }
 
-  /**
-   * Format risk analysis results into readable text
-   */
   static formatResponse(result: AnalysisResult): string {
-    let response = `# Privacy Risk Assessment\n\n`;
+    let response = `# Experimental Signal-Risk Summary\n\n`;
+    response += `> This output applies prototype labels to recorded detector events. It is not a website safety, security, or privacy assessment.\n\n`;
     response += `${result.summary}\n\n`;
     response += this.formatRiskData(result.data as RiskData);
 
     if (result.recommendations.length > 0) {
-      response += `\n## Recommendations\n`;
-      result.recommendations.forEach((rec: string, i: number) => {
-        response += `${i + 1}. ${rec}\n`;
+      response += `\n## Review Notes\n`;
+      result.recommendations.forEach((recommendation: string, index: number) => {
+        response += `${index + 1}. ${recommendation}\n`;
       });
     }
 
     return response;
   }
 
-  /**
-   * Format risk data into readable sections
-   */
   private static formatRiskData(data: RiskData): string {
-    let output = `## Overall Privacy Score: ${data.overallScore.score}/100 (${data.overallScore.grade})\n`;
-    output += `**Trend:** ${data.trend}\n\n`;
+    let output = `## Experimental Heuristic: ${data.overallScore.score}/100 (${data.overallScore.grade})\n`;
+    output += `**Stored trend label:** ${data.trend}\n\n`;
 
     if (data.riskySites.length > 0) {
-      output += `## High-Risk Websites\n`;
+      output += `## URL-Host Groups Below the Prototype Threshold\n`;
       data.riskySites.forEach(
         (
           site: { domain: string; score: PrivacyScore; events: number },
-          i: number
+          index: number
         ) => {
-          output += `${i + 1}. **${site.domain}** - Score: ${site.score.score}/100 (${site.score.grade})\n`;
-          output += `   - ${site.events} tracking events\n`;
+          output += `${index + 1}. **${site.domain}** — heuristic ${site.score.score}/100 (${site.score.grade})\n`;
+          output += `   - ${site.events} recorded detector signals\n`;
         }
       );
+      output += `\nThese groups can contain attribution errors, repeated requests, and false positives.\n`;
     }
 
     if (data.criticalEvents.length > 0) {
-      output += `\n## Critical Events (Last 24h)\n`;
-      const eventCounts = new Map();
+      output += `\n## Signals Carrying the Critical Prototype Label\n`;
+      const eventCounts = new Map<string, number>();
       data.criticalEvents.forEach((event: TrackingEvent) => {
         const key = event.inPageTracking?.method || event.trackerType;
         eventCounts.set(key, (eventCounts.get(key) || 0) + 1);
       });
 
-      Array.from(eventCounts.entries()).forEach(([method, count]) => {
-        output += `- ${count as number} ${method as string} attempts\n`;
-      });
+      for (const [method, count] of eventCounts.entries()) {
+        output += `- ${count} recorded ${method.replace(/-/g, ' ')} signal${
+          count === 1 ? '' : 's'
+        }\n`;
+      }
     }
 
     return output;
