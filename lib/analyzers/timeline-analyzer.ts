@@ -5,67 +5,51 @@ import {
 } from '../tracking-analysis';
 
 /**
- * Specialized analyzer for tracking timeline and temporal patterns
+ * Formats counts from stored detector events over time.
  */
 export class TimelineAnalyzer {
-  /**
-   * Analyze tracking activity over time
-   */
   static async analyze(timeframe?: number): Promise<AnalysisResult> {
     return await TrackingAnalysis.analyzeTimeline(timeframe);
   }
 
-  /**
-   * Format timeline analysis results into readable text
-   */
   static formatResponse(result: AnalysisResult): string {
-    let response = `# Tracking Timeline Analysis\n\n`;
+    let response = `# Recorded Signal Timeline\n\n`;
+    response += `> Counts reflect stored detector events. They do not measure total browsing, confirmed tracking, or user behavior.\n\n`;
     response += `${result.summary}\n\n`;
     response += this.formatTimelineData(result.data as TimelineData);
 
     if (result.recommendations.length > 0) {
-      response += `\n## Recommendations\n`;
-      result.recommendations.forEach((rec: string, i: number) => {
-        response += `${i + 1}. ${rec}\n`;
+      response += `\n## Review Notes\n`;
+      result.recommendations.forEach((recommendation: string, index: number) => {
+        response += `${index + 1}. ${recommendation}\n`;
       });
     }
 
     return response;
   }
 
-  /**
-   * Format timeline data into readable sections
-   */
   private static formatTimelineData(data: TimelineData): string {
-    let output = `## Tracking Volume\n`;
-    output += `- **Total Events:** ${data.totalEvents}\n`;
-    output += `- **Daily Average:** ${data.dailyAverage} events\n`;
-    output += `- **Peak Day:** ${data.peakDay}\n`;
-    output += `- **Lowest Day:** ${data.lowestDay}\n\n`;
+    let output = `## Stored Signal Counts\n`;
+    output += `- **Total recorded signals:** ${data.totalEvents}\n`;
+    output += `- **Average per represented day:** ${data.dailyAverage}\n`;
+    output += `- **Highest-count day:** ${data.peakDay}\n`;
+    output += `- **Lowest-count day:** ${data.lowestDay}\n\n`;
 
     const peakHour = data.hourlyPatterns.reduce(
-      (
-        max: { hour: number; events: number },
-        curr: { hour: number; events: number }
-      ) => (curr.events > max.events ? curr : max)
+      (current, entry) =>
+        entry.events > current.events ? entry : current,
+      { hour: 0, events: 0 }
     );
-    output += `## Peak Activity\n`;
-    output += `- **Peak Hour:** ${peakHour.hour}:00 (${peakHour.events} events)\n\n`;
+    output += `## Largest Hourly Bucket\n`;
+    output += `- **Hour:** ${peakHour.hour}:00 (${peakHour.events} stored signals)\n\n`;
 
     if (data.anomalies.length > 0) {
-      output += `## Anomalies Detected\n`;
-      data.anomalies.forEach(
-        (
-          anomaly: { timestamp: number; description: string; cause?: string },
-          i: number
-        ) => {
-          const date = new Date(anomaly.timestamp).toLocaleDateString();
-          output += `${i + 1}. **${date}** - ${anomaly.description}\n`;
-          if (anomaly.cause) {
-            output += `   - Likely cause: ${anomaly.cause}\n`;
-          }
-        }
-      );
+      output += `## Simple Count-Threshold Matches\n`;
+      data.anomalies.forEach((deviation, index) => {
+        const date = new Date(deviation.timestamp).toLocaleDateString();
+        output += `${index + 1}. **${date}** — ${deviation.description}\n`;
+      });
+      output += `\nThese threshold matches are not verified incidents or behavioral anomalies.\n`;
     }
 
     return output;
