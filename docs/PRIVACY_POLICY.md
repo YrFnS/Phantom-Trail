@@ -3,122 +3,179 @@
 **Status:** Experimental development disclosure  
 **Last updated:** August 10, 2026
 
-This document describes the behavior visible in the current Phantom Trail source. It is not a certification of GDPR, CCPA, or any other legal compliance, and it is not legal advice.
+This document describes behavior visible in the current Phantom Trail source. It
+is not a certification of GDPR, CCPA, or any other legal compliance, and it is
+not legal advice.
 
 ## Project status
 
-Phantom Trail is an experimental Chrome extension. It does not currently operate a project-owned backend for storing user browsing data, but optional features can send data to third-party services or connected peers.
+Phantom Trail is an experimental Chrome extension. It does not currently
+operate a project-owned backend for storing user browsing data, but optional
+features can send data to third-party services or connected peers.
 
-The extension has not completed an independent privacy, security, or legal review.
+The extension has not completed an independent privacy, security, or legal
+review.
 
 ## Data stored in the browser
 
-The prototype can store the following in Chrome extension storage:
+### Recorded detector events
 
-### Tracking events
+A stored event can include:
 
-A tracking event can include:
+- a full URL;
+- a domain;
+- timestamp;
+- tracker type and heuristic severity label;
+- human-readable description;
+- in-page signal method; and
+- API-call or frequency details.
 
-- A full URL
-- A domain
-- Timestamp
-- Tracker type and risk label
-- Human-readable description
-- In-page signal method
-- API-call or frequency details
+Depending on the event source, a URL can include a path, query string, or
+fragment. The network monitor stores the requested resource URL, while in-page
+events can store the current page URL. The current event model does not always
+reliably distinguish page and resource attribution.
 
-Depending on the event source, a URL may include paths, query parameters, or fragments. The current network monitor stores the requested resource URL, while in-page events can store the current page URL.
-
-The event store is capped at 1,000 records. Cleanup code removes events older than 30 days when its scheduled alarm runs.
+The event store is capped at 1,000 records. Cleanup code targets events older
+than 30 days when its alarm runs. This is not an absolute retention guarantee
+until browser lifecycle tests verify it.
 
 ### Settings and feature data
 
-The extension may also store:
+The extension can also store:
 
-- Extension and notification settings
-- OpenRouter API key
-- Trusted-site configuration
-- Badge and theme preferences
-- Privacy goals and coaching data
-- Trend snapshots and reports
-- Export schedules and history
-- Sync settings and device identifiers
-- P2P settings
-- Cached AI responses and recovery state
+- extension settings and heuristic thresholds;
+- an OpenRouter API key;
+- personal site annotations;
+- badge and theme preferences;
+- coaching goals and heuristic history;
+- trend snapshots and reports;
+- export schedules and history from incomplete modules;
+- sync settings and device identifiers;
+- P2P settings;
+- cached analysis responses; and
+- error-recovery and rate-limit state.
 
-Chrome extension storage is managed by the browser. Phantom Trail does not claim that every stored value is independently encrypted by the extension.
+Chrome extension storage is managed by the browser. Phantom Trail does not
+claim to add independent encryption to every stored value.
 
 ## Data that can leave the browser
 
-### OpenRouter AI
+Optional external features default off.
 
-When a user supplies an OpenRouter API key and an AI code path runs:
+### OpenRouter event summaries
 
-- The API key is sent to OpenRouter for authentication.
-- Event objects are sanitized before AI processing.
-- The current prompt is primarily a summary of tracker domains, counts, types, and risk levels.
+An OpenRouter request is allowed only when both conditions are true:
+
+1. the user explicitly enables OpenRouter event summaries; and
+2. an API key is stored.
+
+A stored key alone is not treated as consent.
+
+When the feature is enabled:
+
+- the API key is sent to OpenRouter for authentication;
+- event URLs are sanitized before analysis by removing query strings and
+  fragments;
+- the current prompt primarily summarizes domains, event counts, tracker types,
+  and heuristic labels; and
 - OpenRouter processes the request under its own terms and privacy practices.
 
-Phantom Trail does not proxy these requests through a project-owned server.
+The current general Q&A path summarizes event data rather than reliably using
+the wording of every question. Phantom Trail does not proxy OpenRouter requests
+through a project-owned server.
 
-### Peer-to-peer network
+### Experimental P2P transport
 
-When the experimental community network is enabled, Phantom Trail can share aggregate fields with connected peers, including:
+After the user joins the experimental network and enables aggregate sharing,
+Phantom Trail can exchange reduced fields such as:
 
-- Privacy score and grade
-- Tracker count
-- Risk distribution
-- Website categories
-- Rounded timestamp
-- Optional broad region
+- heuristic score and grade;
+- capped event count;
+- risk-label distribution;
+- website category labels;
+- rounded timestamp; and
+- optional broad region.
 
-Peer data is self-reported and unauthenticated. Connected peers must be treated as untrusted. The Trystero transport may rely on third-party signaling infrastructure even though Phantom Trail does not operate a central application server.
+Peer identity and data authenticity are not established. Connected peers must
+be treated as untrusted, and received samples are not representative community
+benchmarks.
+
+Trystero/WebRTC can depend on third-party signaling, relay, and NAT traversal
+infrastructure. Connected peers and infrastructure providers may observe normal
+connection metadata such as IP addresses. “Peer-to-peer” does not mean that no
+servers or third parties are involved.
 
 ### Chrome sync
 
-When cross-device sync is enabled, selected settings or feature data can be written to `chrome.storage.sync` and handled by the user’s browser account provider. The current sync implementation is experimental and has known data-shape and key inconsistencies.
+If the experimental sync module is enabled, selected settings or feature data
+can be written to `chrome.storage.sync` and handled by the user’s browser account
+provider. The current sync implementation has known storage-key, data-shape,
+conflict, and application inconsistencies.
 
 ### Exports and downloads
 
-CSV and JSON exports can contain raw stored tracking events, including URLs. The current PDF option produces a plain-text report. Scheduled downloads use Chrome’s downloads API.
+CSV and JSON exports can contain raw stored event values, including URLs and
+descriptions. Users should inspect files before sharing them.
 
-Users are responsible for protecting exported files.
+The legacy export format named `pdf` in source produces a plain-text `.txt`
+report, not a PDF document. Scheduled export, email delivery, and cloud delivery
+remain incomplete and are hidden from the P0 settings UI.
+
+## Personal site annotations
+
+The feature historically called “trusted sites” now stores personal domain
+annotations only.
+
+An annotation does not:
+
+- establish that a site is safe, private, or reputable;
+- improve a heuristic score;
+- suppress detector output;
+- automatically apply to subdomains; or
+- verify a site’s identity or privacy practices.
+
+Automatic hard-coded reputation suggestions are disabled.
 
 ## Requested permissions
 
 The current manifest requests:
 
-- `webRequest` to observe requests
-- `storage` to persist events and settings
-- `activeTab` and `tabs` to read active-tab information and communicate with pages
-- `alarms` for cleanup and scheduled tasks
-- `notifications` for browser alerts
-- `downloads` for exports
-- `management` to inspect installed extension names and enabled state
-- `<all_urls>` host access to run on websites and inspect requests
+- `webRequest` to observe requests;
+- `storage` to persist events and settings;
+- `activeTab` and `tabs` to read active-tab information and communicate with
+  pages;
+- `alarms` for cleanup and incomplete scheduled tasks;
+- `notifications` for incomplete browser-alert workflows;
+- `downloads` for exports;
+- `management` to inspect installed extension names and enabled state; and
+- `<all_urls>` host access to run on websites and inspect requests.
 
-These permissions are broad and are scheduled for minimization before any production release.
+These permissions are broad and must be minimized before any production
+release.
 
 ## Retention and deletion
 
-- Tracking-event cleanup targets data older than 30 days.
+- Event cleanup targets records older than 30 days.
 - The event store keeps at most 1,000 records.
-- Other settings and feature data can remain until cleared or the extension is removed.
-- Uninstalling the extension is the most complete current way to remove its extension-local storage.
-- Export data before deletion if you need a copy.
+- Settings and other feature data can remain until cleared or the extension is
+  removed.
+- Uninstalling the extension is the most complete current way to remove its
+  extension-local storage.
+- Export anything needed before deletion or removal.
 
-Scheduled cleanup depends on the extension alarm and service-worker lifecycle; it should not be treated as an absolute retention guarantee until runtime tests verify it.
-
-## What the project does not currently claim
+## What the project does not claim
 
 Phantom Trail does not claim that:
 
-- A detected signal proves personal data collection or sale.
-- A privacy grade is independently validated.
-- Community data is representative or trustworthy.
-- Installed privacy tools’ blocking effectiveness is measured.
-- The extension is GDPR or CCPA compliant.
-- The extension prevents tracking or secures the browser.
+- a signal proves personal-data collection, sharing, or sale;
+- a grade is an independently validated privacy rating;
+- a graph edge is a verified data flow;
+- coaching output measures user behavior or safety;
+- link estimates audit a destination;
+- peer data is authentic, representative, or trustworthy;
+- installed privacy tools’ blocking effectiveness is measured;
+- the extension is GDPR or CCPA compliant; or
+- the extension prevents tracking or secures the browser.
 
 ## Security limitations
 
@@ -126,14 +183,17 @@ Phantom Trail does not claim that:
 - Stored URLs can contain sensitive information.
 - API keys are stored in extension-local storage.
 - P2P messages are unauthenticated.
-- Optional third-party services have their own security and privacy risks.
+- Optional third-party services and peers introduce additional risks.
 - The project has not completed an independent security audit.
 
-Do not use the prototype for sensitive browsing without understanding these limitations.
+Do not rely on the prototype for sensitive browsing.
 
 ## Project-operated data collection
 
-The current repository does not include a project-owned analytics backend or a mechanism for selling user data. This statement does not cover OpenRouter, browser sync providers, Trystero infrastructure, websites visited by the user, or connected peers.
+The current repository does not include a project-owned analytics backend or a
+mechanism for selling user data. This statement does not cover OpenRouter,
+browser sync providers, Trystero infrastructure, websites visited by the user,
+or connected peers.
 
 ## Contact and source review
 
@@ -141,4 +201,5 @@ The current repository does not include a project-owned analytics backend or a m
 - Issues: https://github.com/YrFnS/Phantom-Trail/issues
 - Capability status: [PROJECT_STATUS.md](PROJECT_STATUS.md)
 
-The source code is the authoritative reference when this disclosure and runtime behavior differ. Please report discrepancies as issues.
+The source code is the authoritative reference when this disclosure and runtime
+behavior differ. Report discrepancies as issues.
