@@ -38,7 +38,11 @@ export class NotificationManager {
     chrome.notifications.onClicked.addListener(notificationId => {
       if (!notificationId.startsWith(NOTIFICATION_PREFIX)) return;
       void chrome.action.openPopup().catch(() => undefined);
-      void chrome.notifications.clear(notificationId).catch(() => undefined);
+      try {
+        chrome.notifications.clear(notificationId);
+      } catch {
+        // Notification cleanup is best-effort after the popup opens.
+      }
     });
   }
 
@@ -105,6 +109,7 @@ export class NotificationManager {
       if (this.isThrottled(domain, throttle)) return false;
 
       const notificationId = `${NOTIFICATION_PREFIX}-${event.id}`.slice(0, 120);
+      const detectorLabel = event.detector?.id || 'unknown detector';
       await chrome.notifications.create(notificationId, {
         type: 'basic',
         iconUrl: '/icon/icon-48.png',
@@ -112,7 +117,7 @@ export class NotificationManager {
           event.riskLevel === 'critical'
             ? 'Critical-label evidence recorded'
             : 'High-label evidence recorded',
-        message: `${domain}: ${event.description} This is not proof of collection, an attack, or website danger.`,
+        message: `${domain}: ${event.trackerType} evidence from ${detectorLabel}. This is not proof of collection, an attack, or website danger.`,
         contextMessage: `Detector confidence: ${event.detector?.confidence || 'unknown'}`,
         priority: event.riskLevel === 'critical' ? 2 : 1,
       });
