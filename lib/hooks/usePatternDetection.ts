@@ -1,4 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import {
+  getEventOccurrenceCount,
+  getPageDomain,
+  getResourceDomain,
+  normalizeTrackingEvent,
+} from '../../lib/event-attribution.mts';
 import type { TrackingEvent } from '../../lib/types';
 import type {
   TrackingPattern,
@@ -6,10 +12,10 @@ import type {
 } from '../../components/LiveNarrative/LiveNarrative.types';
 
 /**
- * Detect possible patterns in recorded events.
+ * Detect possible patterns in attributed recorded events.
  *
  * These are heuristic groupings, not proof that tracking, fingerprinting, or
- * data sharing actually occurred.
+ * data sharing occurred.
  */
 export function usePatternDetection(events: TrackingEvent[]) {
   const [patterns, setPatterns] = useState<TrackingPattern[]>([]);
@@ -28,20 +34,11 @@ export function usePatternDetection(events: TrackingEvent[]) {
     const crossSitePattern = detectCrossSiteTracking(events);
     if (crossSitePattern) {
       detectedPatterns.push(crossSitePattern);
-
       newAlerts.push({
-        pattern: {
-          id: `cross-site-${Date.now()}`,
-          type: 'cross-site',
-          domains: crossSitePattern.domains,
-          events: crossSitePattern.events,
-          riskLevel: 'medium',
-          description: crossSitePattern.description,
-          detectedAt: Date.now(),
-        },
+        pattern: crossSitePattern,
         severity: 'warning',
         message:
-          'Possible repeated-domain pattern across recorded page contexts',
+          'The same attributed third-party resource domain appeared on multiple recorded pages',
         actionable: true,
       });
     }
@@ -49,19 +46,11 @@ export function usePatternDetection(events: TrackingEvent[]) {
     const fingerprintingPattern = detectFingerprintingPattern(events);
     if (fingerprintingPattern) {
       detectedPatterns.push(fingerprintingPattern);
-
       newAlerts.push({
-        pattern: {
-          id: `fingerprinting-${Date.now()}`,
-          type: 'fingerprinting',
-          domains: fingerprintingPattern.domains,
-          events: fingerprintingPattern.events,
-          riskLevel: 'high',
-          description: fingerprintingPattern.description,
-          detectedAt: Date.now(),
-        },
+        pattern: fingerprintingPattern,
         severity: 'warning',
-        message: 'Possible fingerprinting-related signals recorded',
+        message:
+          'Fingerprinting-related API thresholds were recorded; normal API use can still trigger these rules',
         actionable: true,
       });
     }
@@ -84,41 +73,59 @@ export function usePatternDetection(events: TrackingEvent[]) {
 function detectCrossSiteTracking(
   events: TrackingEvent[]
 ): TrackingPattern | null {
-  const eventsByRecordedDomain = new Map<string, TrackingEvent[]>();
+  const resources = new Map<
+    string,
+    { events: TrackingEvent[]; pages: Set<string> }
+  >();
 
-  for (const event of events) {
-    if (!eventsByRecordedDomain.has(event.domain)) {
-      eventsByRecordedDomain.set(event.domain, []);
+  for (const rawEvent of events) {
+    const event = normalizeTrackingEvent(rawEvent);
+    const pageDomain = getPageDomain(event);
+    const resourceDomain = getResourceDomain(event);
+
+    if (
+      !pageDomain ||
+      !resourceDomain ||
+      event.context?.party !== 'third-party'
+    ) {
+      continue;
     }
-    eventsByRecordedDomain.get(event.domain)!.push(event);
+
+    const current = resources.get(resourceDomain) || {
+      events: [],
+      pages: new Set<string>(),
+    };
+    current.events.push(event);
+    current.pages.add(pageDomain);
+    resources.set(resourceDomain, current);
   }
 
-  const repeatedAcrossPages = Array.from(eventsByRecordedDomain.entries()).filter(
-    ([, domainEvents]) => {
-      const pageContexts = new Set(domainEvents.map(event => extractDomain(event.url)));
-      return pageContexts.size > 1;
-    }
+  const repeatedResources = Array.from(resources.entries()).filter(
+    ([, data]) => data.pages.size > 1
   );
+  if (repeatedResources.length === 0) return null;
 
-  if (repeatedAcrossPages.length === 0) return null;
-
-  const repeatedEvents = repeatedAcrossPages.flatMap(([, domainEvents]) =>
-    domainEvents
+  const repeatedEvents = repeatedResources.flatMap(([, data]) => data.events);
+  const pageDomains = new Set(
+    repeatedResources.flatMap(([, data]) => Array.from(data.pages))
   );
-  const pageContexts = new Set(
-    repeatedEvents.map(event => extractDomain(event.url))
+  const resourceDomains = repeatedResources.map(([domain]) => domain);
+  const occurrences = repeatedEvents.reduce(
+    (total, event) => total + getEventOccurrenceCount(event),
+    0
   );
-  const recordedDomains = repeatedAcrossPages.map(([domain]) => domain);
 
   return {
     id: `cross-site-${Date.now()}`,
     type: 'cross-site',
-    domains: recordedDomains,
+    domains: resourceDomains,
     events: repeatedEvents,
-    riskLevel: pageContexts.size > 3 ? 'high' : 'medium',
-    description: `${recordedDomains.length} recorded domain${
-      recordedDomains.length === 1 ? '' : 's'
-    } appeared across ${pageContexts.size} page contexts; data sharing is not confirmed`,
+    riskLevel: pageDomains.size > 3 ? 'high' : 'medium',
+    description: `${resourceDomains.length} attributed third-party resource domain${
+      resourceDomains.length === 1 ? '' : 's'
+    } appeared across ${pageDomains.size} recorded page contexts in ${occurrences} occurrence${
+      occurrences === 1 ? '' : 's'
+    }; common ownership, user identity, and data sharing are not established`,
     detectedAt: Date.now(),
   };
 }
@@ -126,29 +133,35 @@ function detectCrossSiteTracking(
 function detectFingerprintingPattern(
   events: TrackingEvent[]
 ): TrackingPattern | null {
-  const fingerprintingEvents = events.filter(
-    event => event.trackerType === 'fingerprinting'
-  );
+  const fingerprintingEvents = events
+    .map(normalizeTrackingEvent)
+    .filter(
+      event =>
+        event.trackerType === 'fingerprinting' &&
+        event.detector?.matchType === 'api-threshold'
+    );
 
   if (fingerprintingEvents.length === 0) return null;
+
+  const pageDomains = Array.from(
+    new Set(fingerprintingEvents.map(getPageDomain).filter(Boolean))
+  );
+  const occurrences = fingerprintingEvents.reduce(
+    (total, event) => total + getEventOccurrenceCount(event),
+    0
+  );
 
   return {
     id: `fingerprinting-${Date.now()}`,
     type: 'fingerprinting',
-    domains: Array.from(new Set(fingerprintingEvents.map(event => event.domain))),
+    domains: pageDomains,
     events: fingerprintingEvents,
     riskLevel: 'high',
-    description: `${fingerprintingEvents.length} event${
-      fingerprintingEvents.length === 1 ? '' : 's'
-    } classified as possible fingerprinting-related signals`,
+    description: `${occurrences} occurrence${
+      occurrences === 1 ? '' : 's'
+    } crossed fingerprinting-related API thresholds on ${pageDomains.length} attributed page${
+      pageDomains.length === 1 ? '' : 's'
+    }; the thresholds do not prove that a stable fingerprint was created, retained, or transmitted`,
     detectedAt: Date.now(),
   };
-}
-
-function extractDomain(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
 }

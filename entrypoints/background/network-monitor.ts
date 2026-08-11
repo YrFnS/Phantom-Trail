@@ -1,78 +1,126 @@
 import { EventsStorage } from '../../lib/storage/events-storage';
 import { TrackerDatabase } from '../../lib/tracker-db';
+import { resolveNetworkAttribution } from '../../lib/event-attribution.mts';
+import { shouldStoreNetworkMatch } from '../../lib/network-match-policy.mts';
 import type { TrackingEvent } from '../../lib/types';
+
+interface AttributableRequestDetails
+  extends chrome.webRequest.WebRequestBodyDetails {
+  documentUrl?: string;
+  initiator?: string;
+}
 
 export class NetworkMonitor {
   private static isInitialized = false;
-  private static readonly OBSERVABLE_PROTOCOLS = new Set(['http:', 'https:']);
 
   static initialize(): void {
     if (this.isInitialized) return;
 
     chrome.webRequest.onBeforeRequest.addListener(
-      this.handleRequest.bind(this),
-      { urls: ['<all_urls>'] },
-      ['requestBody']
+      details => {
+        void this.processRequest(details as AttributableRequestDetails);
+      },
+      { urls: ['<all_urls>'] }
     );
 
     this.isInitialized = true;
     console.log('[Phantom Trail] Network monitoring initialized');
   }
 
-  private static handleRequest(
-    details: chrome.webRequest.WebRequestBodyDetails
-  ): void {
-    this.processRequest(details).catch(error => {
-      console.error('[Network Monitor] Request processing failed:', error);
-    });
-  }
-
   private static async processRequest(
-    details: chrome.webRequest.WebRequestBodyDetails
+    details: AttributableRequestDetails
   ): Promise<void> {
     try {
-      if (!details.url || details.tabId === -1) return;
+      if (!details.url || details.tabId < 0) return;
 
-      const url = new URL(details.url);
-      if (!this.OBSERVABLE_PROTOCOLS.has(url.protocol) || !url.hostname) {
-        return;
-      }
+      const match = TrackerDatabase.matchUrl(details.url);
+      if (!match) return;
 
-      const trackerInfo = TrackerDatabase.classifyUrl(details.url);
-      if (!trackerInfo) return;
-
-      const domain = url.hostname.toLowerCase();
-      const categoryLabel = trackerInfo.category.toLowerCase();
-      const event: TrackingEvent = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
-        timestamp: Date.now(),
-        url: details.url,
-        domain,
-        trackerType: TrackerDatabase.getTrackerType(trackerInfo.category),
-        riskLevel: trackerInfo.riskLevel,
-        description: `The requested URL or hostname matched a prototype ${categoryLabel} rule; this classification can be wrong and does not prove tracking intent, data collection, sharing, or sale`,
-      };
-
-      await EventsStorage.addEvent(event);
-
-      console.log('[Network Monitor] Detector rule matched:', {
-        domain,
-        category: trackerInfo.category,
-        riskLabel: trackerInfo.riskLevel,
+      const tabUrl = await this.getTabUrl(details);
+      const context = resolveNetworkAttribution({
+        requestUrl: details.url,
+        requestType: details.type,
+        requestMethod: details.method,
+        initiator: details.initiator,
+        documentUrl: details.documentUrl,
+        tabUrl,
+        tabId: details.tabId,
+        frameId: details.frameId,
+        parentFrameId: details.parentFrameId,
+        requestId: details.requestId,
       });
 
-      if (details.tabId >= 0) {
-        chrome.tabs
-          .sendMessage(details.tabId, {
-            type: 'TRACKER_DETECTED',
-            event,
-          })
-          .catch(() => {
-            // The page may not have a content script or may still be loading.
-          });
-      }
+      if (!shouldStoreNetworkMatch(context, match.confidence)) return;
+
+      const resourceDomain = context.resourceDomain;
+      if (!resourceDomain) return;
+
+      const partyLabel =
+        context.party === 'third-party' ? 'Third-party' : 'Unattributed';
+      const now = Date.now();
+      const event: TrackingEvent = {
+        schemaVersion: 2,
+        id: `${details.requestId}-${now}`,
+        timestamp: now,
+        url: context.resourceUrl || details.url,
+        domain: resourceDomain,
+        trackerType: TrackerDatabase.getTrackerType(match.tracker.category),
+        riskLevel: match.tracker.riskLevel,
+        description: `${partyLabel} ${details.type} resource ${resourceDomain} matched the ${match.matchType} rule “${match.rule}” with ${match.confidence} detector confidence; this evidence does not establish tracking intent, collection, retention, sharing, or sale`,
+        context,
+        detector: {
+          id: match.detectorId,
+          matchType: match.matchType,
+          confidence: match.confidence,
+          rule: match.rule,
+          evidence: match.evidence,
+        },
+        occurrences: 1,
+        firstSeenAt: now,
+        lastSeenAt: now,
+      };
+
+      const stored = await EventsStorage.addEvent(event);
+      if (!stored) return;
+
+      console.log('[Network Monitor] Attributed detector rule match:', {
+        pageDomain: context.pageDomain || 'unknown',
+        resourceDomain,
+        party: context.party,
+        partyBasis: context.partyBasis,
+        attributionBasis: context.attributionBasis,
+        detector: match.detectorId,
+        confidence: match.confidence,
+      });
+
+      chrome.tabs
+        .sendMessage(details.tabId, {
+          type: 'TRACKER_DETECTED',
+          event,
+        })
+        .catch(() => {
+          // The page may not have a content script or may still be loading.
+        });
     } catch (error) {
       console.error('[Network Monitor] Request handling failed:', error);
+    }
+  }
+
+  private static async getTabUrl(
+    details: AttributableRequestDetails
+  ): Promise<string | undefined> {
+    if (
+      details.type === 'main_frame' ||
+      details.documentUrl ||
+      (details.initiator && details.initiator !== 'null')
+    ) {
+      return undefined;
+    }
+
+    try {
+      return (await chrome.tabs.get(details.tabId)).url;
+    } catch {
+      return undefined;
     }
   }
 }

@@ -10,11 +10,12 @@
     "dev": "wxt",
     "build": "wxt build",
     "zip": "wxt zip",
+    "test": "node --experimental-strip-types --test tests/*.test.mts",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "validate": "pnpm type-check && pnpm lint && pnpm build",
+    "format": "prettier --write \"**/*.{ts,tsx,mts,mtsx,js,jsx,json,md}\"",
+    "validate": "pnpm test && pnpm type-check && pnpm lint && pnpm build",
     "fix-deps": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\fix-dependencies.ps1"
   },
   "repository": {

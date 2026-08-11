@@ -1,4 +1,9 @@
 import type { TrackingEvent } from '../../lib/types';
+import {
+  eventMatchesPageDomain,
+  getDomainFromUrl,
+  normalizeTrackingEvent,
+} from '../../lib/event-attribution.mts';
 
 export class MessageHandler {
   static initialize(): void {
@@ -67,19 +72,50 @@ export class MessageHandler {
         return;
       }
 
+      const event = this.enrichSenderAttribution(message.event, sender);
       const { EventsStorage } =
         await import('../../lib/storage/events-storage');
-      await EventsStorage.addEvent(message.event);
+      const appended = await EventsStorage.addEvent(event);
 
-      if (sender.tab?.id !== undefined) {
-        await this.updateBadgeForTab(sender.tab.id, message.event);
+      if (appended && sender.tab?.id !== undefined) {
+        await this.updateBadgeForTab(sender.tab.id, event);
       }
 
-      sendResponse({ success: true });
+      sendResponse({ success: true, appended });
     } catch (error) {
       console.error('[Message Handler] Failed to store detector signal:', error);
       sendResponse({ error: 'Failed to store detector signal' });
     }
+  }
+
+  private static enrichSenderAttribution(
+    event: TrackingEvent,
+    sender: chrome.runtime.MessageSender
+  ): TrackingEvent {
+    const normalized = normalizeTrackingEvent(event);
+    const pageUrl = sender.tab?.url || normalized.context?.pageUrl || '';
+    const pageDomain = getDomainFromUrl(pageUrl);
+
+    if (!normalized.context) return normalized;
+
+    return {
+      ...normalized,
+      context: {
+        ...normalized.context,
+        pageUrl: normalized.context.pageUrl || pageUrl,
+        pageDomain: normalized.context.pageDomain || pageDomain,
+        tabId: sender.tab?.id ?? normalized.context.tabId,
+        frameId: sender.frameId ?? normalized.context.frameId,
+        attributionBasis:
+          normalized.context.attributionBasis === 'legacy' && pageDomain
+            ? 'content-script'
+            : normalized.context.attributionBasis,
+        attributionConfidence:
+          normalized.context.attributionBasis === 'legacy' && pageDomain
+            ? 'high'
+            : normalized.context.attributionConfidence,
+      },
+    };
   }
 
   private static async updateBadgeForTab(
@@ -88,19 +124,19 @@ export class MessageHandler {
   ): Promise<void> {
     try {
       const tab = await chrome.tabs.get(tabId);
-      if (!tab.url) return;
+      const pageDomain = getDomainFromUrl(tab.url);
+      if (!tab.url || !pageDomain) return;
 
-      const pageDomain = new URL(tab.url).hostname;
       const { EventsStorage } =
         await import('../../lib/storage/events-storage');
       const events = await EventsStorage.getRecentEvents(1000);
-      const domainEvents = events.filter(candidate =>
-        this.matchesPageDomain(candidate, pageDomain)
+      const pageEvents = events.filter(candidate =>
+        eventMatchesPageDomain(candidate, pageDomain)
       );
 
       const { calculatePrivacyScore } = await import('../../lib/privacy-score');
       const score = calculatePrivacyScore(
-        domainEvents,
+        pageEvents,
         tab.url.startsWith('https://')
       );
 
@@ -140,34 +176,38 @@ export class MessageHandler {
     sendResponse: (response?: unknown) => void
   ): Promise<void> {
     try {
-      if (!sender.tab?.id) {
+      if (sender.tab?.id === undefined) {
         sendResponse({ error: 'No active tab' });
         return;
       }
 
       const tab = await chrome.tabs.get(sender.tab.id);
-      if (!tab.url) {
-        sendResponse({ error: 'No tab URL' });
+      const domain = getDomainFromUrl(tab.url);
+      if (!tab.url || !domain) {
+        sendResponse({ error: 'No attributable HTTP(S) page' });
         return;
       }
 
-      const domain = new URL(tab.url).hostname;
       const { PrivacyScoreClass } = await import('../../lib/privacy-score');
       const { EventsStorage } =
         await import('../../lib/storage/events-storage');
 
       const score = await PrivacyScoreClass.calculateDomainScore(domain);
       const events = await EventsStorage.getTrackingEvents();
-      const domainEvents = events.filter(event =>
-        this.matchesPageDomain(event, domain)
+      const pageEvents = events.filter(event =>
+        eventMatchesPageDomain(event, domain)
       );
 
       const analysisData = {
         domain,
         score,
-        eventCount: domainEvents.length,
+        eventCount: pageEvents.length,
+        occurrenceCount: pageEvents.reduce(
+          (total, event) => total + Math.max(1, event.occurrences || 1),
+          0
+        ),
         disclaimer:
-          'Experimental local heuristic based on recorded detector signals; not a website audit.',
+          'Experimental local heuristic based on explicitly attributed detector signals; not a website audit.',
       };
 
       await chrome.tabs
@@ -183,17 +223,6 @@ export class MessageHandler {
     } catch (error) {
       console.error('[Message Handler] Quick heuristic failed:', error);
       sendResponse({ error: 'Quick heuristic failed' });
-    }
-  }
-
-  private static matchesPageDomain(
-    event: TrackingEvent,
-    pageDomain: string
-  ): boolean {
-    try {
-      return new URL(event.url).hostname === pageDomain;
-    } catch {
-      return event.domain === pageDomain;
     }
   }
 }

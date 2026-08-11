@@ -8,52 +8,58 @@ import type {
 import type { TrackingEvent } from '../types';
 import { EventsStorage } from '../storage/events-storage';
 import { calculatePrivacyScore } from '../privacy-score';
+import {
+  eventMatchesPageDomain,
+  getEventOccurrenceCount,
+  getPageUrl,
+} from '../event-attribution.mts';
 
 export class PredictionEngine {
   /**
-   * Return recent recorded detector events associated with a destination.
+   * Return recent detector events explicitly attributed to a destination page.
    *
-   * The current event model has known attribution limitations, so this data is
-   * historical heuristic context rather than a verified destination audit.
+   * This remains historical heuristic context, not a verified destination audit.
    */
   private static async getHistoricalData(
     domain: string
   ): Promise<{
     score: number;
     events: TrackingEvent[];
+    occurrenceCount: number;
     lastVisit: number;
   } | null> {
     try {
       const allEvents = await EventsStorage.getTrackingEvents();
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const normalizedDomain = domain.toLowerCase();
 
-      const domainEvents = allEvents.filter(event => {
-        try {
-          const eventDomain = new URL(event.url).hostname;
-          return (
-            (eventDomain === domain ||
-              eventDomain.endsWith(`.${domain}`) ||
-              domain.endsWith(`.${eventDomain}`)) &&
-            event.timestamp > sevenDaysAgo
-          );
-        } catch {
-          return false;
-        }
-      });
-
+      const domainEvents = allEvents.filter(
+        event =>
+          eventMatchesPageDomain(event, normalizedDomain) &&
+          (event.lastSeenAt || event.timestamp) > sevenDaysAgo
+      );
       if (domainEvents.length === 0) return null;
 
-      const isHttps = domainEvents.some(event => event.url.startsWith('https://'));
+      const isHttps = domainEvents.some(event =>
+        getPageUrl(event).startsWith('https://')
+      );
       const heuristicScore = calculatePrivacyScore(domainEvents, isHttps);
+      const occurrenceCount = domainEvents.reduce(
+        (total, event) => total + getEventOccurrenceCount(event),
+        0
+      );
 
       return {
         score: heuristicScore.score,
         events: domainEvents,
-        lastVisit: Math.max(...domainEvents.map(event => event.timestamp)),
+        occurrenceCount,
+        lastVisit: Math.max(
+          ...domainEvents.map(event => event.lastSeenAt || event.timestamp)
+        ),
       };
     } catch (error) {
       console.error(
-        '[Privacy Predictor] Failed to get recorded heuristic data:',
+        '[Privacy Predictor] Failed to get attributed heuristic history:',
         error
       );
       return null;
@@ -80,7 +86,7 @@ export class PredictionEngine {
             {
               type: 'historical-data',
               impact: 0,
-              description: `Based on ${historical.events.length} recorded heuristic events ${
+              description: `Based on ${historical.events.length} attributed rows and ${historical.occurrenceCount} occurrences ${
                 daysSinceVisit === 0 ? 'today' : `${daysSinceVisit} days ago`
               }`,
               confidence: 0.6,
@@ -89,13 +95,13 @@ export class PredictionEngine {
           expectedTrackers: [],
           recommendations: this.generateHistoricalRecommendations(
             historical.score,
-            historical.events.length
+            historical.occurrenceCount
           ),
           comparisonToAverage: 0,
           timestamp: Date.now(),
           isHistorical: true,
           historicalData: {
-            trackerCount: historical.events.length,
+            trackerCount: historical.occurrenceCount,
             lastVisit: historical.lastVisit,
           },
         };
@@ -153,19 +159,19 @@ export class PredictionEngine {
 
   private static generateHistoricalRecommendations(
     score: number,
-    eventCount: number
+    occurrenceCount: number
   ): string[] {
     if (score < 40) {
       return [
         'Prior visits produced many high-severity heuristic signals',
-        'Review the recorded evidence before deciding how to proceed',
+        'Review the attributed page and resource evidence before deciding how to proceed',
       ];
     }
 
     if (score < 70) {
       return [
-        `${eventCount} detector events were associated with prior visits`,
-        'The event attribution may include false positives',
+        `${occurrenceCount} detector occurrences were attributed to prior visits`,
+        'Page attribution and detector rules can still contain errors',
       ];
     }
 
@@ -216,7 +222,7 @@ export class PredictionEngine {
       );
       const timeText = daysSince === 0 ? 'today' : `${daysSince}d ago`;
 
-      return `Recorded history (${timeText}): ${historicalData.trackerCount} heuristic events; model label ${predictedGrade} (${predictedScore}/100). Attribution is unverified.`;
+      return `Attributed history (${timeText}): ${historicalData.trackerCount} detector occurrences; model label ${predictedGrade} (${predictedScore}/100). This remains an experimental heuristic.`;
     }
 
     return `Experimental ${context.isExternal ? 'external ' : ''}link estimate: model label ${predictedGrade} (${predictedScore}/100), based only on URL and domain patterns.`;

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStorage } from '../../lib/hooks/useStorage';
+import { normalizeTrackingEvent } from '../../lib/event-attribution.mts';
 import type { TrackingEvent } from '../../lib/types';
 
 /**
- * Hook for managing tracking events with real-time updates
+ * Hook for managing detector events with real-time aggregation updates.
  */
 export function useTrackingEvents() {
   const [events, , eventsLoading] = useStorage<TrackingEvent[]>(
@@ -11,23 +12,29 @@ export function useTrackingEvents() {
     []
   );
 
-  // Use stable reference to prevent unnecessary re-renders
   const [recentEvents, setRecentEvents] = useState<TrackingEvent[]>([]);
-  const lastEventCountRef = useRef(0);
+  const lastRevisionRef = useRef('');
 
   useEffect(() => {
-    // Only update if event count changed
-    if (events.length !== lastEventCountRef.current) {
-      const recent = events.slice(-20); // Last 20 events
-      setRecentEvents(recent);
-      lastEventCountRef.current = events.length;
+    const lastEvent = events[events.length - 1];
+    const revision = `${events.length}:${lastEvent?.id || ''}:${
+      lastEvent?.lastSeenAt || lastEvent?.timestamp || 0
+    }:${lastEvent?.occurrences || 1}`;
+
+    if (revision !== lastRevisionRef.current) {
+      setRecentEvents(events.slice(-20).map(normalizeTrackingEvent));
+      lastRevisionRef.current = revision;
     }
   }, [events]);
 
   return {
     events: recentEvents,
-    allEvents: events,
+    allEvents: events.map(normalizeTrackingEvent),
     loading: eventsLoading,
     totalCount: events.length,
+    occurrenceCount: events.reduce(
+      (total, event) => total + Math.max(1, event.occurrences || 1),
+      0
+    ),
   };
 }

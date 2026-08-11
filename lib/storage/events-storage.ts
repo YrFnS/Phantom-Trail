@@ -1,175 +1,151 @@
 import type { TrackingEvent } from '../types';
+import {
+  isTrackingEvent,
+  normalizeTrackingEvent,
+} from '../event-attribution.mts';
+import { mergeEventIntoList } from '../event-storage-policy.mts';
 
-/**
- * Manages tracking events storage
- */
 export class EventsStorage {
   private static readonly EVENTS_KEY = 'phantom_trail_events';
+  private static readonly MAX_EVENTS = 1000;
+  private static readonly DEDUPLICATION_WINDOW_MS = 5000;
+  private static mutationQueue: Promise<void> = Promise.resolve();
 
-  /**
-   * Get recent tracking events
-   */
   static async getRecentEvents(limit = 100): Promise<TrackingEvent[]> {
-    try {
-      const result = await chrome.storage.local.get(this.EVENTS_KEY);
-      let events = result[this.EVENTS_KEY] || [];
-
-      // Validate and repair corrupted data
-      if (!Array.isArray(events)) {
-        console.warn('Events storage corrupted, resetting to empty array');
-        events = [];
-        await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
-      }
-
-      return events.slice(-limit);
-    } catch (error) {
-      console.error('Failed to get recent events:', error);
-      return [];
-    }
+    const events = await this.getValidatedEvents();
+    return events.slice(-limit);
   }
 
-  /**
-   * Get events by date range
-   */
   static async getEventsByDateRange(
     startDate: Date,
     endDate: Date
   ): Promise<TrackingEvent[]> {
+    const events = await this.getValidatedEvents();
+    return events.filter(event => {
+      const eventDate = new Date(event.timestamp);
+      return eventDate >= startDate && eventDate <= endDate;
+    });
+  }
+
+  /**
+   * Add an event or aggregate a duplicate seen in the short dedupe window.
+   * Returns true only when a new row was appended.
+   */
+  static async addEvent(event: TrackingEvent): Promise<boolean> {
+    return this.runMutation(async () => {
+      try {
+        const existingEvents = await this.getValidatedEvents();
+        const result = mergeEventIntoList(
+          existingEvents,
+          event,
+          this.DEDUPLICATION_WINDOW_MS,
+          this.MAX_EVENTS
+        );
+        await this.persist(result.events);
+        return result.appended;
+      } catch (error) {
+        console.error('Failed to add detector event:', error);
+        throw new Error('Failed to add detector event');
+      }
+    });
+  }
+
+  static async cleanupOldEvents(): Promise<number> {
+    return this.runMutation(async () => {
+      try {
+        const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        const events = await this.getValidatedEvents();
+        const filteredEvents = events.filter(
+          event => (event.lastSeenAt || event.timestamp) > cutoff
+        );
+
+        await this.persist(filteredEvents);
+        return events.length - filteredEvents.length;
+      } catch (error) {
+        console.error('Failed to cleanup old events:', error);
+        return 0;
+      }
+    });
+  }
+
+  static async clearEvents(): Promise<void> {
+    return this.runMutation(async () => {
+      try {
+        await this.persist([]);
+      } catch (error) {
+        console.error('Failed to clear events:', error);
+        throw new Error('Failed to clear events');
+      }
+    });
+  }
+
+  static async getTrackingEvents(): Promise<TrackingEvent[]> {
+    return this.getValidatedEvents();
+  }
+
+  static async setTrackingEvents(events: TrackingEvent[]): Promise<void> {
+    return this.runMutation(async () => {
+      try {
+        const normalized = events
+          .filter(isTrackingEvent)
+          .map(normalizeTrackingEvent)
+          .slice(-this.MAX_EVENTS);
+        await this.persist(normalized);
+      } catch (error) {
+        console.error('Failed to set tracking events:', error);
+        throw new Error('Failed to set tracking events');
+      }
+    });
+  }
+
+  private static async getValidatedEvents(): Promise<TrackingEvent[]> {
     try {
       const result = await chrome.storage.local.get(this.EVENTS_KEY);
-      let events = result[this.EVENTS_KEY] || [];
+      const rawEvents = result[this.EVENTS_KEY];
 
-      // Validate and repair corrupted data
-      if (!Array.isArray(events)) {
-        console.warn('Events storage corrupted, resetting to empty array');
-        events = [];
-        await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
+      if (!Array.isArray(rawEvents)) {
+        if (rawEvents !== undefined) {
+          console.warn('Events storage was not an array; resetting it');
+          await this.persist([]);
+        }
         return [];
       }
 
-      return events.filter((event: TrackingEvent) => {
-        const eventDate = new Date(event.timestamp);
-        return eventDate >= startDate && eventDate <= endDate;
-      });
+      const validEvents = rawEvents.filter(isTrackingEvent);
+      const normalizedEvents = validEvents.map(normalizeTrackingEvent);
+      const needsRepair =
+        validEvents.length !== rawEvents.length ||
+        validEvents.some(
+          event =>
+            event.schemaVersion !== 2 || !event.context || !event.detector
+        );
+
+      if (needsRepair) {
+        console.warn(
+          '[Phantom Trail] Migrated legacy or invalid detector-event storage to schema version 2'
+        );
+        await this.persist(normalizedEvents.slice(-this.MAX_EVENTS));
+      }
+
+      return normalizedEvents.slice(-this.MAX_EVENTS);
     } catch (error) {
-      console.error('Failed to get events by date range:', error);
+      console.error('Failed to read detector events:', error);
       return [];
     }
   }
 
-  /**
-   * Add a new tracking event
-   */
-  static async addEvent(event: TrackingEvent): Promise<void> {
-    try {
-      const result = await chrome.storage.local.get(this.EVENTS_KEY);
-      let events = result[this.EVENTS_KEY] || [];
-
-      // Validate and repair corrupted data
-      if (!Array.isArray(events)) {
-        console.warn('Events storage corrupted, resetting to empty array');
-        events = [];
-      }
-
-      events.push(event);
-
-      // Keep only last 1000 events to prevent storage bloat
-      if (events.length > 1000) {
-        events.splice(0, events.length - 1000);
-      }
-
-      await chrome.storage.local.set({
-        [this.EVENTS_KEY]: events,
-      });
-    } catch (error) {
-      console.error('Failed to add event:', error);
-      throw new Error('Failed to add tracking event');
-    }
+  private static runMutation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.mutationQueue.then(operation, operation);
+    this.mutationQueue = result.then(
+      () => undefined,
+      () => undefined
+    );
+    return result;
   }
 
-  /**
-   * Clean up old events (older than 30 days)
-   */
-  static async cleanupOldEvents(): Promise<number> {
-    try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const result = await chrome.storage.local.get(this.EVENTS_KEY);
-      let events = result[this.EVENTS_KEY] || [];
-
-      // Validate and repair corrupted data
-      if (!Array.isArray(events)) {
-        console.warn('Events storage corrupted, resetting to empty array');
-        events = [];
-        await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
-        return 0;
-      }
-
-      const originalCount = events.length;
-
-      const filteredEvents = events.filter((event: TrackingEvent) => {
-        return new Date(event.timestamp) > thirtyDaysAgo;
-      });
-
-      await chrome.storage.local.set({
-        [this.EVENTS_KEY]: filteredEvents,
-      });
-
-      return originalCount - filteredEvents.length;
-    } catch (error) {
-      console.error('Failed to cleanup old events:', error);
-      return 0;
-    }
-  }
-
-  /**
-   * Clear all events
-   */
-  static async clearEvents(): Promise<void> {
-    try {
-      await chrome.storage.local.set({
-        [this.EVENTS_KEY]: [],
-      });
-    } catch (error) {
-      console.error('Failed to clear events:', error);
-      throw new Error('Failed to clear events');
-    }
-  }
-
-  /**
-   * Get all tracking events
-   */
-  static async getTrackingEvents(): Promise<TrackingEvent[]> {
-    try {
-      const result = await chrome.storage.local.get(this.EVENTS_KEY);
-      let events = result[this.EVENTS_KEY] || [];
-
-      // Validate and repair corrupted data
-      if (!Array.isArray(events)) {
-        console.warn('Events storage corrupted, resetting to empty array');
-        events = [];
-        await chrome.storage.local.set({ [this.EVENTS_KEY]: [] });
-      }
-
-      return events;
-    } catch (error) {
-      console.error('Failed to get tracking events:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Set tracking events (replace all)
-   */
-  static async setTrackingEvents(events: TrackingEvent[]): Promise<void> {
-    try {
-      await chrome.storage.local.set({
-        [this.EVENTS_KEY]: events,
-      });
-    } catch (error) {
-      console.error('Failed to set tracking events:', error);
-      throw new Error('Failed to set tracking events');
-    }
+  private static async persist(events: TrackingEvent[]): Promise<void> {
+    await chrome.storage.local.set({
+      [this.EVENTS_KEY]: events,
+    });
   }
 }

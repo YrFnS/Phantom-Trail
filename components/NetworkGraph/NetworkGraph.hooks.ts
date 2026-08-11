@@ -1,5 +1,9 @@
 import { useMemo, useRef } from 'react';
 import { useStorage } from '../../lib/hooks/useStorage';
+import {
+  getPageDomain,
+  getResourceDomain,
+} from '../../lib/event-attribution.mts';
 import type { TrackingEvent, RiskLevel } from '../../lib/types';
 import type {
   NetworkData,
@@ -14,21 +18,25 @@ export function useTrackingEvents() {
     []
   );
 
-  // Debounce rapid updates to prevent constant graph recreation
   const lastUpdateRef = useRef<number>(0);
   const stableEventsRef = useRef<TrackingEvent[]>([]);
+  const lastRevisionRef = useRef('');
 
   const stableEvents = useMemo(() => {
+    const lastEvent = events[events.length - 1];
+    const revision = `${events.length}:${lastEvent?.id || ''}:${
+      lastEvent?.lastSeenAt || lastEvent?.timestamp || 0
+    }:${lastEvent?.occurrences || 1}`;
     const now = Date.now();
-    const timeSinceLastUpdate = now - lastUpdateRef.current;
 
-    // Only update if 2+ seconds have passed or significant change
     if (
-      timeSinceLastUpdate > 2000 ||
-      Math.abs(events.length - stableEventsRef.current.length) > 5
+      revision !== lastRevisionRef.current &&
+      (now - lastUpdateRef.current > 1000 ||
+        Math.abs(events.length - stableEventsRef.current.length) > 5)
     ) {
       lastUpdateRef.current = now;
-      stableEventsRef.current = events.slice(-50); // Show last 50 events
+      lastRevisionRef.current = revision;
+      stableEventsRef.current = events.slice(-50);
     }
 
     return stableEventsRef.current;
@@ -43,15 +51,29 @@ export function useTrackingEvents() {
 function getRiskColor(riskLevel: RiskLevel): string {
   switch (riskLevel) {
     case 'low':
-      return '#10b981'; // green-500
+      return '#10b981';
     case 'medium':
-      return '#f59e0b'; // yellow-500
+      return '#f59e0b';
     case 'high':
-      return '#f97316'; // orange-500
+      return '#f97316';
     case 'critical':
-      return '#ef4444'; // red-500
+      return '#ef4444';
     default:
-      return '#6b7280'; // gray-500
+      return '#6b7280';
+  }
+}
+
+function updateHighestRisk(
+  riskLevels: Map<string, RiskLevel>,
+  domain: string,
+  riskLevel: RiskLevel
+): void {
+  const currentRisk = riskLevels.get(domain);
+  if (
+    !currentRisk ||
+    getRiskPriority(riskLevel) > getRiskPriority(currentRisk)
+  ) {
+    riskLevels.set(domain, riskLevel);
   }
 }
 
@@ -60,28 +82,31 @@ function processTrackingEvents(events: TrackingEvent[]): ProcessedTrackingData {
   const connections = new Map<string, Set<string>>();
   const riskLevels = new Map<string, RiskLevel>();
 
-  events.forEach(event => {
-    const { domain, riskLevel } = event;
-    domains.add(domain);
+  for (const event of events) {
+    const pageDomain = getPageDomain(event);
+    const resourceDomain = getResourceDomain(event);
 
-    // Track highest risk level for each domain
-    const currentRisk = riskLevels.get(domain);
-    if (
-      !currentRisk ||
-      getRiskPriority(riskLevel) > getRiskPriority(currentRisk)
-    ) {
-      riskLevels.set(domain, riskLevel);
+    if (pageDomain) {
+      domains.add(pageDomain);
+      updateHighestRisk(
+        riskLevels,
+        pageDomain,
+        resourceDomain && resourceDomain !== pageDomain ? 'low' : event.riskLevel
+      );
     }
 
-    // Create connections between domains (simplified: connect to current page domain)
-    const pageDomain = new URL(event.url).hostname;
-    if (pageDomain !== domain) {
+    if (resourceDomain) {
+      domains.add(resourceDomain);
+      updateHighestRisk(riskLevels, resourceDomain, event.riskLevel);
+    }
+
+    if (pageDomain && resourceDomain && pageDomain !== resourceDomain) {
       if (!connections.has(pageDomain)) {
         connections.set(pageDomain, new Set());
       }
-      connections.get(pageDomain)!.add(domain);
+      connections.get(pageDomain)!.add(resourceDomain);
     }
-  });
+  }
 
   return { domains, connections, riskLevels };
 }
@@ -103,66 +128,43 @@ function getRiskPriority(riskLevel: RiskLevel): number {
 
 export function useNetworkData(): { data: NetworkData; loading: boolean } {
   const { events, loading } = useTrackingEvents();
-  const previousDataRef = useRef<NetworkData>({ nodes: [], edges: [] });
 
   const networkData = useMemo((): NetworkData => {
-    if (events.length === 0) {
-      return { nodes: [], edges: [] };
-    }
+    if (events.length === 0) return { nodes: [], edges: [] };
 
     const { domains, connections, riskLevels } = processTrackingEvents(events);
-
-    // Create nodes
-    const nodes: NetworkNode[] = Array.from(domains).map(domain => {
-      const riskLevel = riskLevels.get(domain) || 'low';
-      return {
-        id: domain,
-        label: domain,
-        color: getRiskColor(riskLevel),
-        shape: 'dot',
-        size: 20 + getRiskPriority(riskLevel) * 5,
-        riskLevel,
-      };
-    });
-
-    // Create edges
-    const edges: NetworkEdge[] = [];
-    let edgeId = 0;
-
-    connections.forEach((targetDomains, sourceDomain) => {
-      targetDomains.forEach(targetDomain => {
-        const sourceRisk = riskLevels.get(sourceDomain) || 'low';
-        const targetRisk = riskLevels.get(targetDomain) || 'low';
-        const maxRisk =
-          getRiskPriority(sourceRisk) > getRiskPriority(targetRisk)
-            ? sourceRisk
-            : targetRisk;
-
-        edges.push({
-          id: `edge-${edgeId++}`,
-          from: sourceDomain,
-          to: targetDomain,
-          color: getRiskColor(maxRisk),
-          width: 2 + getRiskPriority(maxRisk),
-          arrows: 'to',
-        });
+    const nodes: NetworkNode[] = Array.from(domains)
+      .sort()
+      .map(domain => {
+        const riskLevel = riskLevels.get(domain) || 'low';
+        return {
+          id: domain,
+          label: domain,
+          color: getRiskColor(riskLevel),
+          shape: 'dot',
+          size: 20 + getRiskPriority(riskLevel) * 5,
+          riskLevel,
+        };
       });
+
+    const edges: NetworkEdge[] = [];
+    connections.forEach((targetDomains, sourceDomain) => {
+      Array.from(targetDomains)
+        .sort()
+        .forEach(targetDomain => {
+          const targetRisk = riskLevels.get(targetDomain) || 'low';
+          edges.push({
+            id: `${sourceDomain}->${targetDomain}`,
+            from: sourceDomain,
+            to: targetDomain,
+            color: getRiskColor(targetRisk),
+            width: 2 + getRiskPriority(targetRisk),
+            arrows: 'to',
+          });
+        });
     });
 
-    const newData = { nodes, edges };
-
-    // Only return new data if structure significantly changed
-    const hasSignificantChange =
-      Math.abs(newData.nodes.length - previousDataRef.current.nodes.length) >
-        2 ||
-      Math.abs(newData.edges.length - previousDataRef.current.edges.length) > 3;
-
-    if (hasSignificantChange) {
-      previousDataRef.current = newData;
-      return newData;
-    }
-
-    return previousDataRef.current;
+    return { nodes, edges };
   }, [events]);
 
   return { data: networkData, loading };

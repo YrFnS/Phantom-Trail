@@ -2,15 +2,97 @@
  * Core types for Phantom Trail extension
  */
 
+export type DetectionSource =
+  | 'network-request'
+  | 'dom-resource'
+  | 'main-world-api'
+  | 'user-interaction'
+  | 'extension-internal'
+  | 'legacy';
+
+export type DetectionConfidence = 'low' | 'medium' | 'high';
+
+export type PartyRelationship = 'first-party' | 'third-party' | 'unknown';
+
+export type PartyBasis =
+  | 'same-host'
+  | 'subdomain'
+  | 'same-site-heuristic'
+  | 'different-site-heuristic'
+  | 'missing-context';
+
+export type AttributionBasis =
+  | 'main-frame'
+  | 'document-url'
+  | 'initiator'
+  | 'tab-url'
+  | 'content-script'
+  | 'legacy'
+  | 'unknown';
+
+export type DetectorMatchType =
+  | 'catalog-exact-domain'
+  | 'catalog-subdomain'
+  | 'path-pattern'
+  | 'url-heuristic'
+  | 'dom-url-token'
+  | 'api-threshold'
+  | 'user-interaction'
+  | 'internal'
+  | 'legacy';
+
+export interface TrackingEventContext {
+  source: DetectionSource;
+  pageUrl: string;
+  pageDomain: string;
+  resourceUrl?: string;
+  resourceDomain?: string;
+  initiator?: string;
+  tabId?: number;
+  frameId?: number;
+  parentFrameId?: number;
+  requestId?: string;
+  requestType?: string;
+  requestMethod?: string;
+  party: PartyRelationship;
+  partyBasis: PartyBasis;
+  partyConfidence: DetectionConfidence;
+  attributionBasis: AttributionBasis;
+  attributionConfidence: DetectionConfidence;
+}
+
+export interface DetectorEvidence {
+  id: string;
+  matchType: DetectorMatchType;
+  confidence: DetectionConfidence;
+  rule?: string;
+  evidence: string[];
+}
+
 export interface TrackingEvent {
+  /** P1 events use schema version 2. Missing means a legacy pre-P1 event. */
+  schemaVersion?: 1 | 2;
   id: string;
   timestamp: number;
+  /**
+   * Compatibility alias retained for existing consumers and exports.
+   * Network/DOM events use the resource URL; in-page events use the page URL.
+   */
   url: string;
+  /**
+   * Compatibility alias retained for existing consumers and exports.
+   * Network/DOM events use the resource domain; in-page events use the page domain.
+   */
   domain: string;
   trackerType: TrackerType;
   riskLevel: RiskLevel;
   description: string;
-  privacyScore?: number; // Optional privacy score for the event
+  context?: TrackingEventContext;
+  detector?: DetectorEvidence;
+  occurrences?: number;
+  firstSeenAt?: number;
+  lastSeenAt?: number;
+  privacyScore?: number;
   inPageTracking?: {
     method: InPageTrackingMethod;
     details: string;
@@ -25,6 +107,15 @@ export interface TrackerInfo {
   category: TrackerCategory;
   description: string;
   riskLevel: RiskLevel;
+}
+
+export interface TrackerMatch {
+  tracker: TrackerInfo;
+  detectorId: string;
+  matchType: DetectorMatchType;
+  rule: string;
+  confidence: DetectionConfidence;
+  evidence: string[];
 }
 
 export interface AIAnalysis {
@@ -106,7 +197,7 @@ export interface UserTrustedSite {
   addedAt: number;
   reason?: string;
   allowedMethods?: InPageTrackingMethod[];
-  temporary?: boolean; // Session-only whitelist
+  temporary?: boolean;
 }
 
 export interface SecurityContext {
@@ -187,13 +278,13 @@ export interface NetworkMessage {
 }
 
 export interface AnonymousPrivacyData {
-  privacyScore: number; // Rounded to nearest 5
+  privacyScore: number;
   grade: string;
-  trackerCount: number; // Capped at 50
+  trackerCount: number;
   riskDistribution: Record<RiskLevel, number>;
-  websiteCategories: string[]; // Top 5 only
-  timestamp: number; // Rounded to nearest hour
-  region?: string; // Optional broad region
+  websiteCategories: string[];
+  timestamp: number;
+  region?: string;
 }
 
 export interface CommunityStats {
@@ -202,7 +293,7 @@ export interface CommunityStats {
   scoreDistribution: Record<string, number>;
   regionalData: Record<string, RegionalStats>;
   lastUpdated: number;
-  dataFreshness: number; // How recent the data is
+  dataFreshness: number;
 }
 
 export interface RegionalStats {
@@ -215,8 +306,8 @@ export interface RegionalStats {
 export interface CommunityComparison {
   userScore: number;
   networkAverage: number;
-  percentile: number; // Based on connected peers
-  betterThan: number; // Percentage of connected users
+  percentile: number;
+  betterThan: number;
   recommendations: P2PRecommendation[];
 }
 
@@ -224,7 +315,7 @@ export interface P2PRecommendation {
   type: 'tool' | 'setting' | 'behavior';
   title: string;
   description: string;
-  adoptionRate: number; // Percentage of high-scoring peers using this
+  adoptionRate: number;
   impact: 'low' | 'medium' | 'high';
 }
 
@@ -232,7 +323,7 @@ export interface P2PSettings {
   joinPrivacyNetwork: boolean;
   shareAnonymousData: boolean;
   shareRegionalData: boolean;
-  maxConnections: number; // 1-20 peers
+  maxConnections: number;
   autoReconnect: boolean;
 }
 

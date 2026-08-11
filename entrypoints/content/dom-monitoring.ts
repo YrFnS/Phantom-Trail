@@ -1,12 +1,21 @@
 import type {
+  DetectorEvidence,
+  InPageTrackingMethod,
   TrackingEvent,
   TrackerType,
-  InPageTrackingMethod,
 } from '../../lib/types';
+import {
+  createContentAttribution,
+  parseHttpUrl,
+} from '../../lib/event-attribution.mts';
 import { isDuplicateEvent } from './event-detection';
 
 const recentDetections = new Map<string, number>();
 const DETECTION_THROTTLE_MS = 3000;
+const UNSUPPORTED_INTERACTION_SIGNALS = new Set([
+  'mouse-tracking',
+  'form-monitoring',
+]);
 
 function isContextValid(): boolean {
   try {
@@ -50,11 +59,6 @@ export function setupDOMMonitoring(): void {
     subtree: true,
   });
 
-  // These handlers record that Phantom Trail observed the user's interaction.
-  // They do not establish that the page itself monitored or transmitted it.
-  document.addEventListener('input', handleFormInput, true);
-  document.addEventListener('submit', handleFormSubmit, true);
-
   window.addEventListener('phantom-trail-detection', handleMainWorldDetection);
 }
 
@@ -63,27 +67,59 @@ async function checkForPossibleSignal(element: HTMLElement): Promise<void> {
     if (!isContextValid()) return;
 
     const source = element.getAttribute('src') || '';
-    const detectionKey = `${element.tagName}:${source}`;
-    const lastDetection = recentDetections.get(detectionKey);
+    const absoluteSource = parseHttpUrl(
+      source ? new URL(source, window.location.href).href : undefined
+    );
+    if (!absoluteSource) return;
 
+    const context = createContentAttribution({
+      source: 'dom-resource',
+      pageUrl: window.location.href,
+      resourceUrl: absoluteSource.href,
+    });
+
+    // A broad DOM URL-token rule is only retained for attributed third-party
+    // resources. First-party assets with "analytics" in their path are ignored.
+    if (context.party !== 'third-party') return;
+
+    const detectionKey = `${element.tagName}:${absoluteSource.href}`;
+    const lastDetection = recentDetections.get(detectionKey);
     if (lastDetection && Date.now() - lastDetection < DETECTION_THROTTLE_MS) {
       return;
     }
 
-    if (source.toLowerCase().includes('analytics')) {
-      const event: TrackingEvent = {
-        id: `dom-${Date.now()}`,
-        timestamp: Date.now(),
-        url: window.location.href,
-        domain: window.location.hostname,
-        trackerType: 'analytics',
-        riskLevel: 'medium',
-        description:
-          'A script or iframe URL contained the token “analytics”; this broad URL rule can produce false positives',
-      };
+    if (!absoluteSource.href.toLowerCase().includes('analytics')) return;
 
+    const now = Date.now();
+    const event: TrackingEvent = {
+      schemaVersion: 2,
+      id: `dom-${now}`,
+      timestamp: now,
+      url: absoluteSource.href,
+      domain: absoluteSource.hostname.toLowerCase(),
+      trackerType: 'analytics',
+      riskLevel: 'low',
+      description:
+        'A third-party script or iframe URL contained the token “analytics”; this low-confidence token rule can produce false positives',
+      context,
+      detector: {
+        id: 'dom-resource-analytics-token',
+        matchType: 'dom-url-token',
+        confidence: 'low',
+        rule: 'analytics-token',
+        evidence: [
+          `Element type: ${element.tagName.toLowerCase()}`,
+          `Resource URL: ${absoluteSource.href}`,
+        ],
+      },
+      occurrences: 1,
+      firstSeenAt: now,
+      lastSeenAt: now,
+    };
+
+    if (!isDuplicateEvent(event)) {
       await sendTrackingEvent(event);
-      recentDetections.set(detectionKey, Date.now());
+      recentDetections.set(detectionKey, now);
     }
   } catch (error) {
     console.warn('[Phantom Trail] DOM signal check failed:', error);
@@ -98,15 +134,31 @@ function handleMainWorldDetection(event: Event): void {
     const data = customEvent.detail;
     if (!data || typeof data.type !== 'string') return;
 
+    // The old mouse/form hooks observe the user's own interaction, not evidence
+    // that a page listener collected or transmitted it. P1 no longer stores
+    // those signals until a detector can identify the observing code.
+    if (UNSUPPORTED_INTERACTION_SIGNALS.has(data.type)) return;
+
+    const now = typeof data.timestamp === 'number' ? data.timestamp : Date.now();
+    const context = createContentAttribution({
+      source: 'main-world-api',
+      pageUrl: window.location.href,
+    });
+    const detector = getDetectorEvidence(data.type, data);
     const trackingEvent: TrackingEvent = {
-      id: `${data.type}-${Date.now()}`,
-      timestamp:
-        typeof data.timestamp === 'number' ? data.timestamp : Date.now(),
-      url: window.location.href,
-      domain: window.location.hostname,
+      schemaVersion: 2,
+      id: `${data.type}-${now}`,
+      timestamp: now,
+      url: context.pageUrl,
+      domain: context.pageDomain,
       trackerType: mapDetectionType(data.type),
       riskLevel: getRiskLevel(data.type),
       description: getDescription(data.type, data),
+      context,
+      detector,
+      occurrences: 1,
+      firstSeenAt: now,
+      lastSeenAt: now,
       inPageTracking: {
         method: data.type as InPageTrackingMethod,
         details: JSON.stringify(data),
@@ -129,12 +181,31 @@ function handleMainWorldDetection(event: Event): void {
   }
 }
 
+function getDetectorEvidence(type: string, data: unknown): DetectorEvidence {
+  const evidence: string[] = [`Instrumented API signal: ${type}`];
+  const count =
+    (data as { count?: number }).count ||
+    (data as { operations?: unknown[] }).operations?.length ||
+    (data as { eventCount?: number }).eventCount ||
+    (data as { parameters?: unknown[] }).parameters?.length;
+
+  if (typeof count === 'number') {
+    evidence.push(`Observed threshold count: ${count}`);
+  }
+
+  return {
+    id: `main-world-${type}`,
+    matchType: 'api-threshold',
+    confidence: 'low',
+    rule: type,
+    evidence,
+  };
+}
+
 function mapDetectionType(type: string): TrackerType {
   const typeMap: Record<string, TrackerType> = {
     'canvas-fingerprint': 'fingerprinting',
     'storage-access': 'analytics',
-    'mouse-tracking': 'analytics',
-    'form-monitoring': 'analytics',
     'device-api': 'fingerprinting',
     'webrtc-leak': 'fingerprinting',
     'font-fingerprint': 'fingerprinting',
@@ -150,8 +221,6 @@ function getRiskLevel(type: string): 'low' | 'medium' | 'high' | 'critical' {
   const riskMap: Record<string, 'low' | 'medium' | 'high' | 'critical'> = {
     'canvas-fingerprint': 'high',
     'storage-access': 'medium',
-    'mouse-tracking': 'medium',
-    'form-monitoring': 'high',
     'device-api': 'high',
     'webrtc-leak': 'critical',
     'font-fingerprint': 'high',
@@ -165,15 +234,13 @@ function getRiskLevel(type: string): 'low' | 'medium' | 'high' | 'critical' {
 
 function getDescription(type: string, data: unknown): string {
   const descriptions: Record<string, string> = {
-    'canvas-fingerprint': `Canvas operations matched the prototype fingerprinting rule (${(data as { operations?: unknown[] })?.operations?.length || 0} operations); normal rendering can trigger this signal`,
+    'canvas-fingerprint': `Canvas operations crossed the prototype threshold (${(data as { operations?: unknown[] })?.operations?.length || 0} operations); normal rendering can trigger this low-confidence signal`,
     'storage-access': `Storage API activity crossed the prototype threshold (${(data as { uniqueOperations?: number })?.uniqueOperations || 0} unique operations); this does not establish tracking intent`,
-    'mouse-tracking': `High-frequency mouse events were observed by Phantom Trail (${(data as { eventCount?: number })?.eventCount || 0} events); this does not show who used the events`,
-    'form-monitoring': `Form-field input activity was observed by Phantom Trail (${(data as { fields?: unknown[] })?.fields?.length || 0} fields); this does not prove page or third-party monitoring`,
-    'device-api': `Device-related API access matched a prototype rule (${(data as { apiCalls?: unknown[] })?.apiCalls?.length || 0} calls); purpose and recipient are unknown`,
+    'device-api': `Device-related API access crossed a prototype threshold (${(data as { apiCalls?: unknown[] })?.apiCalls?.length || 0} calls); purpose and recipient are unknown`,
     'webrtc-leak':
       'An RTCPeerConnection was created; WebRTC can expose connection metadata in some contexts, but creation alone does not prove an IP leak',
     'font-fingerprint': `Font-related measurements crossed the prototype threshold (${(data as { count?: number })?.count || 0} checks); normal layout work can trigger this signal`,
-    'audio-fingerprint': `AudioContext operations matched the prototype fingerprinting rule (${(data as { operations?: unknown[] })?.operations?.length || 0} operations); normal audio use can trigger it`,
+    'audio-fingerprint': `AudioContext operations crossed the prototype threshold (${(data as { operations?: unknown[] })?.operations?.length || 0} operations); normal audio use can trigger it`,
     'webgl-fingerprint': `WebGL parameter reads crossed the prototype threshold (${(data as { parameters?: unknown[] })?.parameters?.length || 0} reads); normal rendering can trigger this signal`,
     'battery-api':
       'The Battery API was called; the call alone does not establish fingerprinting or data transmission',
@@ -184,50 +251,6 @@ function getDescription(type: string, data: unknown): string {
     descriptions[type] ||
     `${type} instrumentation signal recorded; attribution and purpose are unverified`
   );
-}
-
-function handleFormInput(event: Event): void {
-  const target = event.target;
-  if (!(target instanceof HTMLInputElement)) return;
-
-  if (target.type === 'password' || target.type === 'email') {
-    void recordSensitiveFieldInteraction(target.type);
-  }
-}
-
-function handleFormSubmit(): void {
-  void recordFormSubmitInteraction();
-}
-
-async function recordSensitiveFieldInteraction(
-  inputType: string
-): Promise<void> {
-  const event: TrackingEvent = {
-    id: `sensitive-${Date.now()}`,
-    timestamp: Date.now(),
-    url: window.location.href,
-    domain: window.location.hostname,
-    trackerType: 'analytics',
-    riskLevel: 'high',
-    description: `Phantom Trail observed user input in a ${inputType} field; this does not prove that the page or a third party monitored or transmitted the value`,
-  };
-
-  if (!isDuplicateEvent(event)) await sendTrackingEvent(event);
-}
-
-async function recordFormSubmitInteraction(): Promise<void> {
-  const event: TrackingEvent = {
-    id: `form-${Date.now()}`,
-    timestamp: Date.now(),
-    url: window.location.href,
-    domain: window.location.hostname,
-    trackerType: 'analytics',
-    riskLevel: 'medium',
-    description:
-      'Phantom Trail observed a form submission event; this does not prove that submission data was retained, shared, or used for tracking',
-  };
-
-  if (!isDuplicateEvent(event)) await sendTrackingEvent(event);
 }
 
 async function sendTrackingEvent(event: TrackingEvent): Promise<void> {

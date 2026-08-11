@@ -1,5 +1,13 @@
 import type { TrackingEvent, PrivacyScore } from './types';
 import { calculatePrivacyScore } from './privacy-score';
+import {
+  getEventOccurrenceCount,
+  getPageDomain,
+  getPageUrl,
+  getResourceDomain,
+  getResourceUrl,
+  normalizeTrackingEvent,
+} from './event-attribution.mts';
 
 export type ExportFormat = 'csv' | 'json' | 'pdf';
 
@@ -13,7 +21,7 @@ export interface ExportOptions {
 }
 
 /**
- * Exports recorded prototype detector events.
+ * Exports attributed prototype detector events.
  * The legacy `pdf` format identifier produces plain text for compatibility.
  */
 export class ExportService {
@@ -25,30 +33,70 @@ export class ExportService {
   static async exportAsCSV(events: TrackingEvent[]): Promise<Blob> {
     const headers = [
       'Timestamp',
-      'Event Domain Label',
+      'First Seen',
+      'Last Seen',
+      'Occurrences',
+      'Source',
+      'Page Domain',
+      'Page URL',
+      'Resource Domain',
+      'Resource URL',
+      'Party Relationship',
+      'Party Basis',
+      'Party Confidence',
+      'Attribution Basis',
+      'Attribution Confidence',
+      'Request Type',
+      'Request Method',
+      'Detector ID',
+      'Detector Match Type',
+      'Detector Rule',
+      'Detector Confidence',
+      'Detector Evidence',
       'Prototype Category Label',
       'Prototype Severity Label',
       'Recorded Description',
-      'Stored URL',
     ];
 
-    const rows = events.map(event =>
-      [
+    const normalizedEvents = events.map(normalizeTrackingEvent);
+    const rows = normalizedEvents.map(event => {
+      const context = event.context;
+      const detector = event.detector;
+      return [
         new Date(event.timestamp).toISOString(),
-        event.domain,
+        new Date(event.firstSeenAt || event.timestamp).toISOString(),
+        new Date(event.lastSeenAt || event.timestamp).toISOString(),
+        String(getEventOccurrenceCount(event)),
+        context?.source || 'legacy',
+        getPageDomain(event),
+        getPageUrl(event),
+        getResourceDomain(event),
+        getResourceUrl(event),
+        context?.party || 'unknown',
+        context?.partyBasis || 'missing-context',
+        context?.partyConfidence || 'low',
+        context?.attributionBasis || 'unknown',
+        context?.attributionConfidence || 'low',
+        context?.requestType || '',
+        context?.requestMethod || '',
+        detector?.id || 'legacy-event',
+        detector?.matchType || 'legacy',
+        detector?.rule || '',
+        detector?.confidence || 'low',
+        detector?.evidence?.join(' | ') || '',
         event.trackerType,
         event.riskLevel,
         event.description,
-        event.url,
       ]
         .map(value => this.sanitizeCSVValue(String(value)))
-        .join(',')
-    );
+        .join(',');
+    });
 
     const preamble = [
-      '# Phantom Trail 0.1.0 experimental detector-signal export',
-      '# Rows can contain false positives, false negatives, duplicates, attribution errors, and full stored URLs.',
-      '# A row does not prove data collection, sharing, sale, tracking intent, or website safety.',
+      '# Phantom Trail 0.1.0 P1 attributed detector-signal export',
+      '# Page and resource attribution, party labels, detector evidence, and confidence can still be incomplete or wrong.',
+      '# A row does not prove collection, retention, sharing, sale, ownership, identity, tracking intent, or website safety.',
+      '# URL fields can contain sensitive paths, query strings, or fragments. Review this file before sharing it.',
     ].join('\n');
 
     return new Blob([[preamble, headers.join(','), ...rows].join('\n')], {
@@ -57,18 +105,28 @@ export class ExportService {
   }
 
   static async exportAsJSON(events: TrackingEvent[]): Promise<Blob> {
+    const normalizedEvents = events.map(normalizeTrackingEvent);
     const exportData = {
-      format: 'phantom-trail-experimental-signal-export',
-      version: '0.1.0',
+      format: 'phantom-trail-attributed-signal-export',
+      schemaVersion: 2,
+      productVersion: '0.1.0',
       exportedAt: new Date().toISOString(),
       disclaimer:
-        'Recorded detector events can be wrong or misattributed and do not prove data collection, sharing, sale, tracking intent, website safety, or legal compliance.',
+        'Page/resource attribution, party classification, detector rules, and severity labels are experimental and can be incomplete or wrong. They do not prove collection, retention, sharing, sale, identity, ownership, intent, safety, or compliance.',
       dataWarning:
-        'Stored URL values can include paths, query strings, or fragments. Review this file before sharing it.',
-      recordedEventCount: events.length,
-      events: events.map(event => ({
+        'Page and resource URL values can include paths, query strings, or fragments. Review this file before sharing it.',
+      recordedRowCount: normalizedEvents.length,
+      recordedOccurrenceCount: normalizedEvents.reduce(
+        (total, event) => total + getEventOccurrenceCount(event),
+        0
+      ),
+      events: normalizedEvents.map(event => ({
         ...event,
         timestamp: new Date(event.timestamp).toISOString(),
+        firstSeenAt: new Date(
+          event.firstSeenAt || event.timestamp
+        ).toISOString(),
+        lastSeenAt: new Date(event.lastSeenAt || event.timestamp).toISOString(),
       })),
     };
 
@@ -77,28 +135,30 @@ export class ExportService {
     });
   }
 
-  /**
-   * Generate a plain-text summary. This is intentionally not represented as a
-   * PDF document in the filename or UI.
-   */
+  /** Generate a plain-text summary; this is not a PDF document. */
   static async exportAsPDF(
     events: TrackingEvent[],
     heuristic: PrivacyScore
   ): Promise<Blob> {
+    const normalizedEvents = events.map(normalizeTrackingEvent);
     const generatedAt = new Date().toLocaleString();
-    const timeRange = this.getTimeRange(events);
-    const domainStats = this.groupByDomain(events);
+    const timeRange = this.getTimeRange(normalizedEvents);
+    const routes = this.groupByRoute(normalizedEvents);
+    const occurrenceCount = normalizedEvents.reduce(
+      (total, event) => total + getEventOccurrenceCount(event),
+      0
+    );
 
     const report = `
-PHANTOM TRAIL 0.1.0 - EXPERIMENTAL SIGNAL EXPORT
+PHANTOM TRAIL 0.1.0 - P1 ATTRIBUTED SIGNAL EXPORT
 Generated: ${generatedAt}
 Recorded time range: ${timeRange}
 
 IMPORTANT LIMITS
 - This file summarizes stored detector events from an experimental extension.
-- Events can include false positives, false negatives, duplicates, and incorrect page/resource attribution.
-- A recorded event does not prove collection, sharing, sale, fingerprinting, attack, intent, ownership, website safety, or legal non-compliance.
-- Stored URLs can include sensitive paths, query strings, or fragments. Review this file before sharing it.
+- Page/resource attribution, first/third-party labels, rule matches, and confidence can be incomplete or wrong.
+- A recorded event does not prove collection, retention, sharing, sale, fingerprinting, attack, identity, ownership, intent, website safety, or legal non-compliance.
+- URL fields can include sensitive paths, query strings, or fragments. Review this file before sharing it.
 
 EXPERIMENTAL HEURISTIC
 - Value: ${heuristic.score}/100
@@ -106,23 +166,17 @@ EXPERIMENTAL HEURISTIC
 - This value is produced by hand-written penalties and is not an independently validated privacy rating.
 
 RECORDED SIGNAL SUMMARY
-- Total detector events: ${heuristic.breakdown.totalTrackers}
+- Stored rows: ${normalizedEvents.length}
+- Aggregated occurrences: ${occurrenceCount}
 - Critical prototype labels: ${heuristic.breakdown.criticalRisk}
 - High prototype labels (including critical): ${heuristic.breakdown.highRisk}
 - Medium prototype labels: ${heuristic.breakdown.mediumRisk}
 - Low prototype labels: ${heuristic.breakdown.lowRisk}
-- Context marked HTTPS: ${heuristic.breakdown.httpsBonus ? 'yes' : 'no'}
-- More-than-ten-events penalty applied: ${
-      heuristic.breakdown.excessiveTrackingPenalty ? 'yes' : 'no'
-    }
 
-EVENT-DOMAIN LABEL COUNTS
-${Object.entries(domainStats)
-  .sort(([, first], [, second]) => second.count - first.count)
-  .map(
-    ([domain, stats]) =>
-      `- ${domain}: ${stats.count} recorded event${stats.count === 1 ? '' : 's'}`
-  )
+ATTRIBUTED PAGE → RESOURCE ROUTES
+${Object.entries(routes)
+  .sort(([, first], [, second]) => second - first)
+  .map(([route, count]) => `- ${route}: ${count} occurrence${count === 1 ? '' : 's'}`)
   .join('\n') || '- none'}
 
 GENERATED REVIEW NOTES
@@ -133,25 +187,24 @@ ${
 }
 
 DETAILED RECORDED EVENTS (FIRST 50)
-${events
+${normalizedEvents
   .slice(0, 50)
-  .map(
-    event =>
-      `[${new Date(event.timestamp).toLocaleString()}] domain label=${
-        event.domain
-      }; category label=${event.trackerType}; severity label=${
-        event.riskLevel
-      }; description=${event.description}; stored URL=${event.url}`
-  )
+  .map(event => {
+    const context = event.context;
+    const detector = event.detector;
+    const page = getPageDomain(event) || 'unknown-page';
+    const resource = getResourceDomain(event) || 'page-api';
+    return `[${new Date(event.timestamp).toLocaleString()}] ${page} -> ${resource}; occurrences=${getEventOccurrenceCount(event)}; source=${context?.source || 'legacy'}; party=${context?.party || 'unknown'} (${context?.partyBasis || 'missing-context'}, ${context?.partyConfidence || 'low'}); attribution=${context?.attributionBasis || 'unknown'} (${context?.attributionConfidence || 'low'}); detector=${detector?.id || 'legacy-event'} / ${detector?.matchType || 'legacy'} / ${detector?.confidence || 'low'}; category=${event.trackerType}; severity=${event.riskLevel}; description=${event.description}; page URL=${getPageUrl(event)}; resource URL=${getResourceUrl(event)}`;
+  })
   .join('\n') || 'No recorded events.'}
 
 ${
-  events.length > 50
-    ? `Additional recorded events omitted from this text summary: ${events.length - 50}`
+  normalizedEvents.length > 50
+    ? `Additional stored rows omitted: ${normalizedEvents.length - 50}`
     : ''
 }
 
-END OF EXPERIMENTAL SIGNAL EXPORT
+END OF ATTRIBUTED SIGNAL EXPORT
     `.trim();
 
     return new Blob([report], { type: 'text/plain;charset=utf-8;' });
@@ -167,10 +220,10 @@ END OF EXPERIMENTAL SIGNAL EXPORT
     if (dateRange) {
       const startDate = dateRange.start.toISOString().split('T')[0];
       const endDate = dateRange.end.toISOString().split('T')[0];
-      return `phantom-trail-signals-${startDate}-to-${endDate}.${extension}`;
+      return `phantom-trail-attributed-signals-${startDate}-to-${endDate}.${extension}`;
     }
 
-    return `phantom-trail-signals-${timestamp}.${extension}`;
+    return `phantom-trail-attributed-signals-${timestamp}.${extension}`;
   }
 
   static downloadBlob(blob: Blob, filename: string): void {
@@ -249,8 +302,8 @@ END OF EXPERIMENTAL SIGNAL EXPORT
 
     const { min, max } = events.reduce(
       (range, event) => ({
-        min: Math.min(range.min, event.timestamp),
-        max: Math.max(range.max, event.timestamp),
+        min: Math.min(range.min, event.firstSeenAt || event.timestamp),
+        max: Math.max(range.max, event.lastSeenAt || event.timestamp),
       }),
       { min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY }
     );
@@ -258,20 +311,16 @@ END OF EXPERIMENTAL SIGNAL EXPORT
     return `${new Date(min).toLocaleString()} - ${new Date(max).toLocaleString()}`;
   }
 
-  private static groupByDomain(
+  private static groupByRoute(
     events: TrackingEvent[]
-  ): Record<string, { count: number; riskLevels: string[] }> {
-    return events.reduce(
-      (groups, event) => {
-        const domain = event.domain || 'unknown';
-        if (!groups[domain]) {
-          groups[domain] = { count: 0, riskLevels: [] };
-        }
-        groups[domain].count++;
-        groups[domain].riskLevels.push(event.riskLevel);
-        return groups;
-      },
-      {} as Record<string, { count: number; riskLevels: string[] }>
-    );
+  ): Record<string, number> {
+    return events.reduce<Record<string, number>>((groups, event) => {
+      const page = getPageDomain(event) || 'unknown-page';
+      const resource = getResourceDomain(event) || 'page-api';
+      const route = `${page} -> ${resource}`;
+      groups[route] =
+        (groups[route] || 0) + getEventOccurrenceCount(event);
+      return groups;
+    }, {});
   }
 }
