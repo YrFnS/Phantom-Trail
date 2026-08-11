@@ -1,6 +1,13 @@
 import type { AIAnalysis, TrackingEvent, RiskLevel } from '../types';
 import { DEFAULT_MODEL, FALLBACK_MODEL } from '../ai-models';
 import { SettingsStorage } from '../storage/settings-storage';
+import { DataProtectionStorage } from '../storage/data-protection-storage';
+import { OpenRouterCredentialStorage } from '../storage/openrouter-credential-storage';
+import { calculatePrivacyScore } from '../privacy-score';
+import {
+  buildAISummaryPayload,
+  type AISummaryPayload,
+} from './outbound-payload.mts';
 import { RateLimiter } from './rate-limiter';
 import { jsonrepair } from 'jsonrepair';
 
@@ -11,7 +18,11 @@ export interface APIError extends Error {
 }
 
 /**
- * OpenRouter client for optional summaries of recorded detector signals.
+ * OpenRouter client for optional aggregate summaries.
+ *
+ * P3 builds the request body from the same canonical payload shown in the
+ * settings preview. Raw detector events and URLs are never serialized into the
+ * OpenRouter prompt.
  */
 export class AIClient {
   private static readonly API_BASE = 'https://openrouter.ai/api/v1';
@@ -22,8 +33,11 @@ export class AIClient {
     events: TrackingEvent[],
     modelId: string = DEFAULT_MODEL
   ): Promise<AIAnalysis> {
-    const settings = await SettingsStorage.getSettings();
-    const apiKey = settings.openRouterApiKey;
+    const [settings, protectionSettings, apiKey] = await Promise.all([
+      SettingsStorage.getSettings(),
+      DataProtectionStorage.getSettings(),
+      OpenRouterCredentialStorage.getCredential(),
+    ]);
 
     if (!settings.enableAI || !apiKey) {
       throw new Error(
@@ -40,11 +54,17 @@ export class AIClient {
       throw error;
     }
 
+    const score = calculatePrivacyScore(events);
+    const outboundPayload = buildAISummaryPayload(
+      events,
+      score,
+      protectionSettings.aiOutboundMode
+    );
     const requestBody = {
       model: modelId,
       messages: [
         { role: 'system', content: this.buildSystemPrompt() },
-        { role: 'user', content: this.buildUserPrompt(events) },
+        { role: 'user', content: this.buildUserPrompt(outboundPayload) },
       ],
       max_tokens: 500,
       temperature: 0.3,
@@ -123,10 +143,7 @@ export class AIClient {
           break;
         }
 
-        console.warn(
-          `OpenRouter summary attempt ${attempt} failed:`,
-          error
-        );
+        console.warn(`OpenRouter summary attempt ${attempt} failed`);
         await this.delay(2 ** attempt * 1000);
       } finally {
         clearTimeout(timeoutId);
@@ -149,67 +166,33 @@ export class AIClient {
   }
 
   private static buildSystemPrompt(): string {
-    return `You summarize possible tracking-related detector signals from an experimental browser extension.
+    return `You summarize aggregate possible tracking-related detector signals from an experimental browser extension.
 
-The input is incomplete and can contain false positives, false negatives, duplicate events, and incorrect page/resource attribution. A domain or API label does not prove who operated code, what data was collected, whether data was retained or shared, whether a website is safe, or whether any law was violated.
+The input contains aggregate counts and optional bounded resource-domain labels. It contains no page URLs, resource URLs, paths, query strings, fragments, raw descriptions, detector-evidence strings, or API arguments. The detector model remains incomplete and can contain false positives, false negatives, and incorrect attribution.
 
 RESPONSE FORMAT (valid JSON only):
 {
-  "narrative": "A cautious plain-language summary of the recorded signal counts, maximum 100 words",
+  "narrative": "A cautious plain-language summary of the supplied aggregates, maximum 100 words",
   "riskAssessment": "low|medium|high|critical",
   "recommendations": ["one cautious review step", "another cautious review step"],
   "confidence": 0.0
 }
 
 RULES:
-- Always call the input recorded detector signals or heuristic labels.
-- State uncertainty and attribution limits in the narrative.
-- Never claim collection, surveillance, sharing, sale, fingerprinting, attack, safety, reputation, compliance, or intent as established fact.
+- Call the input aggregate detector evidence or prototype labels.
+- State uncertainty and coverage limits.
+- Never claim collection, surveillance, sharing, sale, fingerprinting, attack, safety, reputation, compliance, ownership, or intent as established fact.
 - Treat riskAssessment as a prototype severity label, not a verified threat rating.
-- Recommend reviewing evidence and browser controls; do not prescribe installing software as automatically necessary.
-- Keep confidence at or below 0.6 because the source evidence is unvalidated.
-- Do not infer personal traits, habits, identity, sensitive interests, or user intent.`;
+- Do not infer personal traits, habits, identity, sensitive interests, or user intent.
+- Keep confidence at or below 0.6 because the source evidence is unvalidated.`;
   }
 
-  private static buildUserPrompt(events: TrackingEvent[]): string {
-    return `Summarize these recorded detector-signal aggregates without adding facts that are not present:\n\n${this.summarizeEvents(
-      events
+  private static buildUserPrompt(payload: AISummaryPayload): string {
+    return `Summarize only the following aggregate payload. Do not infer fields that are absent.\n\n${JSON.stringify(
+      payload,
+      null,
+      2
     )}\n\nReturn only the required JSON object.`;
-  }
-
-  private static summarizeEvents(events: TrackingEvent[]): string {
-    const domainCounts = new Map<string, number>();
-    const typeCounts = new Map<string, number>();
-    const riskCounts = new Map<RiskLevel, number>();
-
-    for (const event of events) {
-      const domain = event.domain || 'unknown';
-      domainCounts.set(domain, (domainCounts.get(domain) || 0) + 1);
-      typeCounts.set(
-        event.trackerType,
-        (typeCounts.get(event.trackerType) || 0) + 1
-      );
-      riskCounts.set(
-        event.riskLevel,
-        (riskCounts.get(event.riskLevel) || 0) + 1
-      );
-    }
-
-    const topDomains = Array.from(domainCounts.entries())
-      .sort(([, first], [, second]) => second - first)
-      .slice(0, 5)
-      .map(([domain, count]) => `${domain}: ${count}`)
-      .join(', ');
-
-    const typesSummary = Array.from(typeCounts.entries())
-      .map(([type, count]) => `${type}: ${count}`)
-      .join(', ');
-
-    const labelSummary = Array.from(riskCounts.entries())
-      .map(([label, count]) => `${label}: ${count}`)
-      .join(', ');
-
-    return `Recorded signal count: ${events.length}\nMost frequent event-domain labels: ${topDomains || 'none'}\nPrototype category labels: ${typesSummary || 'none'}\nPrototype severity labels: ${labelSummary || 'none'}`;
   }
 
   private static parseAIResponse(content: string): AIAnalysis {
@@ -221,7 +204,7 @@ RULES:
       const narrative =
         typeof parsed.narrative === 'string' && parsed.narrative.trim()
           ? parsed.narrative.trim()
-          : 'The optional model returned no usable recorded-signal summary.';
+          : 'The optional model returned no usable aggregate-signal summary.';
       const recommendations = Array.isArray(parsed.recommendations)
         ? parsed.recommendations
             .filter((item): item is string => typeof item === 'string')
@@ -238,7 +221,7 @@ RULES:
         recommendations:
           recommendations.length > 0
             ? recommendations
-            : ['Review the underlying detector events and attribution limits.'],
+            : ['Review the underlying detector evidence and coverage limits.'],
         confidence: Math.max(0, Math.min(0.6, confidenceValue)),
       };
     } catch (error) {
@@ -248,7 +231,7 @@ RULES:
           'The optional model response could not be parsed. No conclusion was produced.',
         riskAssessment: 'medium',
         recommendations: [
-          'Review the underlying detector events directly.',
+          'Review the underlying detector evidence directly.',
           'Do not treat an unavailable summary as evidence of safety or risk.',
         ],
         confidence: 0,

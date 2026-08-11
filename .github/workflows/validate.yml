@@ -75,7 +75,7 @@ jobs:
       - name: Install dependencies from committed lockfile
         run: pnpm install --frozen-lockfile
 
-      - name: Attribution fixtures
+      - name: Attribution, scoring, and data-protection fixtures
         run: pnpm test
 
       - name: Type-check
@@ -87,7 +87,7 @@ jobs:
       - name: Build Chrome extension
         run: pnpm build
 
-      - name: Validate generated manifest
+      - name: Validate generated manifest and permission boundary
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -105,8 +105,49 @@ jobs:
             throw new Error(`Unexpected manifest version: ${manifest.version}`);
           }
 
-          console.log(`Validated ${manifest.name} ${manifest.version}`);
+          const required = new Set(manifest.permissions || []);
+          const expectedRequired = ['webRequest', 'storage', 'tabs', 'alarms'];
+          for (const permission of expectedRequired) {
+            if (!required.has(permission)) {
+              throw new Error(`Missing required P3 permission: ${permission}`);
+            }
+          }
+
+          const prohibitedRequired = [
+            'activeTab',
+            'downloads',
+            'notifications',
+            'management',
+          ];
+          for (const permission of prohibitedRequired) {
+            if (required.has(permission)) {
+              throw new Error(
+                `Permission must not be required after P3: ${permission}`
+              );
+            }
+          }
+
+          const optional = new Set(manifest.optional_permissions || []);
+          if (!optional.has('management')) {
+            throw new Error('management must remain an optional permission');
+          }
+          if (!(manifest.host_permissions || []).includes('<all_urls>')) {
+            throw new Error('Current detector architecture still requires <all_urls> host access');
+          }
+
+          console.log(
+            `Validated ${manifest.name} ${manifest.version}; required=${[
+              ...required,
+            ].join(',')}; optional=${[...optional].join(',')}`
+          );
           NODE
+
+      - name: Check packaged privacy invariants
+        run: |
+          if grep -R -n -E 'API key length|key prefix|requestBody' .output/chrome-mv3; then
+            echo "::error::Packaged extension contains a retired sensitive diagnostic or request-body access path."
+            exit 1
+          fi
 
       - name: Create reviewable extension archive
         run: pnpm zip

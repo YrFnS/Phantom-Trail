@@ -1,44 +1,47 @@
 import { ReportsStorage } from './storage/reports-storage';
+import { SettingsStorage } from './storage/settings-storage';
+import { DataProtectionStorage } from './storage/data-protection-storage';
+import { EventsStorage } from './storage/events-storage';
 
 /**
- * Data migration and cleanup utilities
+ * Versioned compatibility and minimization migrations.
  */
 export class DataMigration {
   private static readonly MIGRATION_VERSION_KEY =
     'phantom_trail_migration_version';
-  private static readonly CURRENT_VERSION = '1.0.0';
+  private static readonly CURRENT_VERSION = '3.0.0-p3';
 
-  /**
-   * Run all necessary data migrations
-   */
   static async runMigrations(): Promise<void> {
     try {
       const currentVersion = await this.getCurrentMigrationVersion();
-
-      if (currentVersion !== this.CURRENT_VERSION) {
-        console.log(
-          `Running data migration from ${currentVersion} to ${this.CURRENT_VERSION}`
-        );
-
-        // Run the reports data cleanup
-        await ReportsStorage.migrateAndCleanData();
-
-        // Update migration version
-        await chrome.storage.local.set({
-          [this.MIGRATION_VERSION_KEY]: this.CURRENT_VERSION,
-        });
-
-        console.log('Data migration completed successfully');
+      if (currentVersion === this.CURRENT_VERSION) {
+        // Reapply the active retention policy even after migration completion.
+        await EventsStorage.reapplyProtectionPolicy();
+        return;
       }
+
+      console.log(
+        `[Phantom Trail] Running local migration from ${currentVersion} to ${this.CURRENT_VERSION}`
+      );
+
+      await SettingsStorage.initializeDefaults();
+      await DataProtectionStorage.initializeDefaults();
+      await ReportsStorage.migrateAndCleanData();
+      const eventResult = await EventsStorage.reapplyProtectionPolicy();
+
+      await chrome.storage.local.set({
+        [this.MIGRATION_VERSION_KEY]: this.CURRENT_VERSION,
+      });
+
+      console.log(
+        `[Phantom Trail] Migration completed; ${eventResult.changedRows} event rows minimized and ${eventResult.removedByRetention} expired rows removed`
+      );
     } catch (error) {
-      console.error('Data migration failed:', error);
-      // Don't throw - extension should still work even if migration fails
+      console.error('[Phantom Trail] Local data migration failed:', error);
+      // The extension remains usable with in-memory defaults if migration fails.
     }
   }
 
-  /**
-   * Get current migration version
-   */
   private static async getCurrentMigrationVersion(): Promise<string> {
     try {
       const result = await chrome.storage.local.get(this.MIGRATION_VERSION_KEY);
@@ -50,23 +53,15 @@ export class DataMigration {
   }
 
   /**
-   * Force clean all corrupted data (emergency use)
+   * Re-run non-destructive validation and minimization. Complete deletion is
+   * implemented by DataDeletionService and requires explicit confirmation.
    */
   static async forceCleanAllData(): Promise<void> {
-    try {
-      console.log('Force cleaning all data...');
-
-      await ReportsStorage.migrateAndCleanData();
-
-      // Reset migration version to force re-migration
-      await chrome.storage.local.set({
-        [this.MIGRATION_VERSION_KEY]: this.CURRENT_VERSION,
-      });
-
-      console.log('Force data cleanup completed');
-    } catch (error) {
-      console.error('Force data cleanup failed:', error);
-      throw error;
-    }
+    await SettingsStorage.getSettings();
+    await ReportsStorage.migrateAndCleanData();
+    await EventsStorage.reapplyProtectionPolicy();
+    await chrome.storage.local.set({
+      [this.MIGRATION_VERSION_KEY]: this.CURRENT_VERSION,
+    });
   }
 }

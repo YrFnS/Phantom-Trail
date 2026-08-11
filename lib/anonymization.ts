@@ -1,17 +1,30 @@
 import type {
   AnonymousPrivacyData,
+  P2PSettings,
   PrivacyData,
   RiskLevel,
   TrackingEvent,
 } from './types';
+import {
+  hasCurrentP2PConsent,
+  P2P_CONSENT_VERSION,
+  P2P_PAYLOAD_VERSION,
+} from './p2p-consent.mts';
 
 export class AnonymizationService {
   /**
-   * Prepare an estimated score for optional P2P sharing.
-   * Insufficient-evidence states are never converted to zero or advertised.
+   * Build the canonical minimized peer payload.
+   *
+   * N/A results, absent sharing consent, and disabled sharing all return null.
    */
-  static anonymizeForP2P(rawData: PrivacyData): AnonymousPrivacyData | null {
+  static anonymizeForP2P(
+    rawData: PrivacyData,
+    settings: P2PSettings
+  ): AnonymousPrivacyData | null {
     if (
+      !hasCurrentP2PConsent(settings) ||
+      !settings.joinPrivacyNetwork ||
+      !settings.shareAnonymousData ||
       rawData.scoreStatus !== 'estimated' ||
       rawData.averageScore === null ||
       rawData.grade === 'N/A'
@@ -20,6 +33,8 @@ export class AnonymizationService {
     }
 
     return {
+      payloadVersion: P2P_PAYLOAD_VERSION,
+      consentVersion: P2P_CONSENT_VERSION,
       privacyScore: this.roundScore(rawData.averageScore),
       scoreStatus: 'estimated',
       scoreConfidence:
@@ -31,7 +46,7 @@ export class AnonymizationService {
       riskDistribution: this.aggregateRiskData(rawData.events || []),
       websiteCategories: this.getTopCategories(rawData.events || [], 3),
       timestamp: this.roundToHour(Date.now()),
-      region: this.getGeneralRegion(),
+      region: settings.shareRegionalData ? this.getGeneralRegion() : undefined,
     };
   }
 
@@ -40,7 +55,7 @@ export class AnonymizationService {
   }
 
   private static capTrackerCount(count: number): number {
-    return Math.min(count, 50);
+    return Math.max(0, Math.min(Math.round(count), 50));
   }
 
   private static aggregateRiskData(
@@ -100,13 +115,24 @@ export class AnonymizationService {
   }
 
   private static getGeneralRegion(): string | undefined {
+    // No geolocation or IP lookup is performed in P3.
     return undefined;
   }
 
   static validateAnonymization(data: AnonymousPrivacyData): boolean {
-    if (data.scoreStatus && data.scoreStatus !== 'estimated') return false;
-    if (data.privacyScore % 5 !== 0) return false;
-    if (data.trackerCount > 50) return false;
+    if (data.payloadVersion !== P2P_PAYLOAD_VERSION) return false;
+    if (data.consentVersion !== P2P_CONSENT_VERSION) return false;
+    if (data.scoreStatus !== 'estimated') return false;
+    if (!Number.isFinite(data.privacyScore) || data.privacyScore % 5 !== 0) {
+      return false;
+    }
+    if (
+      !Number.isFinite(data.trackerCount) ||
+      data.trackerCount < 0 ||
+      data.trackerCount > 50
+    ) {
+      return false;
+    }
 
     const date = new Date(data.timestamp);
     if (
@@ -117,7 +143,12 @@ export class AnonymizationService {
       return false;
     }
 
-    return data.websiteCategories.length <= 5;
+    return (
+      data.websiteCategories.length <= 3 &&
+      !Object.prototype.hasOwnProperty.call(data, 'url') &&
+      !Object.prototype.hasOwnProperty.call(data, 'domain') &&
+      !Object.prototype.hasOwnProperty.call(data, 'events')
+    );
   }
 
   static generateAnonymousPeerId(): string {
@@ -129,13 +160,21 @@ export class AnonymizationService {
   static sanitizeForSharing(
     data: Record<string, unknown>
   ): Record<string, unknown> {
-    const sanitized = { ...data };
-    delete sanitized.url;
-    delete sanitized.domain;
-    delete sanitized.ip;
-    delete sanitized.userAgent;
-    delete sanitized.sessionId;
-    delete sanitized.userId;
-    return sanitized;
+    const allowedKeys = new Set([
+      'payloadVersion',
+      'consentVersion',
+      'privacyScore',
+      'scoreStatus',
+      'scoreConfidence',
+      'grade',
+      'trackerCount',
+      'riskDistribution',
+      'websiteCategories',
+      'timestamp',
+      'region',
+    ]);
+    return Object.fromEntries(
+      Object.entries(data).filter(([key]) => allowedKeys.has(key))
+    );
   }
 }

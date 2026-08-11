@@ -1,4 +1,8 @@
-import type { TrackingEvent, PrivacyScore } from './types';
+import type {
+  DataProtectionSettings,
+  PrivacyScore,
+  TrackingEvent,
+} from './types';
 import { calculatePrivacyScore } from './privacy-score';
 import {
   getEventOccurrenceCount,
@@ -8,6 +12,8 @@ import {
   getResourceUrl,
   normalizeTrackingEvent,
 } from './event-attribution.mts';
+import { sanitizeTrackingEventsForStorage } from './data-protection-policy.mts';
+import { DataProtectionStorage } from './storage/data-protection-storage';
 
 export type ExportFormat = 'csv' | 'json' | 'pdf';
 
@@ -20,8 +26,16 @@ export interface ExportOptions {
   includeRecommendations?: boolean;
 }
 
+interface ProtectedExportRows {
+  events: TrackingEvent[];
+  settings: DataProtectionSettings;
+}
+
 /**
- * Exports attributed detector evidence and the P2 evidence-index state.
+ * Exports the locally minimized event representation and the P2 evidence-index
+ * state. Export preparation reapplies the active P3 policy so callers cannot
+ * accidentally serialize an older unsanitized in-memory event object.
+ *
  * The legacy `pdf` identifier still produces plain text for compatibility.
  */
 export class ExportService {
@@ -31,7 +45,8 @@ export class ExportService {
   }
 
   static async exportAsCSV(events: TrackingEvent[]): Promise<Blob> {
-    const score = calculatePrivacyScore(events, true);
+    const protectedRows = await this.prepareProtectedRows(events);
+    const score = calculatePrivacyScore(protectedRows.events, true);
     const headers = [
       'Timestamp',
       'First Seen',
@@ -39,9 +54,15 @@ export class ExportService {
       'Occurrences',
       'Source',
       'Page Domain',
-      'Page URL',
+      'Minimized Page URL',
       'Resource Domain',
-      'Resource URL',
+      'Minimized Resource URL',
+      'URL Retention Mode',
+      'Query Stripped',
+      'Fragment Stripped',
+      'URL Credentials Stripped',
+      'Redacted Path Segments',
+      'Raw Details Removed',
       'Party Relationship',
       'Party Basis',
       'Party Confidence',
@@ -53,15 +74,15 @@ export class ExportService {
       'Detector Match Type',
       'Detector Rule',
       'Detector Confidence',
-      'Detector Evidence',
+      'Minimized Detector Evidence',
       'Prototype Category Label',
       'Prototype Severity Label',
-      'Recorded Description',
+      'Minimized Description',
     ];
-    const normalizedEvents = events.map(normalizeTrackingEvent);
-    const rows = normalizedEvents.map(event => {
+    const rows = protectedRows.events.map(event => {
       const context = event.context;
       const detector = event.detector;
+      const protection = event.dataProtection;
       return [
         new Date(event.timestamp).toISOString(),
         new Date(event.firstSeenAt || event.timestamp).toISOString(),
@@ -72,6 +93,12 @@ export class ExportService {
         getPageUrl(event),
         getResourceDomain(event),
         getResourceUrl(event),
+        protection?.urlRetentionMode || protectedRows.settings.urlRetentionMode,
+        String(protection?.queryStripped === true),
+        String(protection?.fragmentStripped === true),
+        String(protection?.credentialsStripped === true),
+        String(protection?.pathSegmentsRedacted || 0),
+        String(protection?.rawDetailsRemoved === true),
         context?.party || 'unknown',
         context?.partyBasis || 'missing-context',
         context?.partyConfidence || 'low',
@@ -92,17 +119,19 @@ export class ExportService {
         .join(',');
     });
     const preamble = [
-      '# Phantom Trail 0.1.0 P2 attributed evidence export',
+      '# Phantom Trail 0.1.0 P3 minimized evidence export',
+      `# Local URL retention mode: ${protectedRows.settings.urlRetentionMode}`,
+      `# Configured event retention: ${protectedRows.settings.retentionDays} days`,
+      '# Query strings, fragments, URL credentials, and raw detector detail objects were removed before this export.',
+      '# Identifier-like path segments are redacted when origin-and-path retention is enabled.',
       `# Evidence index status: ${score.status}`,
       `# Evidence index value: ${score.score ?? 'N/A'}`,
       `# Model band: ${score.grade}`,
       `# Evidence coverage confidence: ${score.confidence}`,
       `# Evidence units: ${score.breakdown.evidenceUnits}; qualifying rows: ${score.breakdown.qualifyingRows}; excluded rows: ${score.breakdown.excludedRows}`,
-      `# Applied evidence penalty: ${score.breakdown.appliedPenalty}; HTTPS bonus: none; global row-count penalty: none`,
-      '# Page/resource attribution, party labels, detector evidence, and confidence can still be incomplete or wrong.',
       '# N/A is not favorable and does not show that tracking was absent.',
-      '# A row or model band does not prove collection, retention, sharing, sale, ownership, identity, tracking intent, compliance, or website safety.',
-      '# URL fields can contain sensitive paths, query strings, or fragments. Review this file before sharing it.',
+      '# A row or model band does not prove collection, retention, sharing, sale, ownership, identity, intent, compliance, or website safety.',
+      '# Downloaded files are outside Clear All Data and must be deleted separately.',
     ].join('\n');
 
     return new Blob([[preamble, headers.join(','), ...rows].join('\n')], {
@@ -111,13 +140,22 @@ export class ExportService {
   }
 
   static async exportAsJSON(events: TrackingEvent[]): Promise<Blob> {
-    const normalizedEvents = events.map(normalizeTrackingEvent);
-    const score = calculatePrivacyScore(normalizedEvents, true);
+    const protectedRows = await this.prepareProtectedRows(events);
+    const score = calculatePrivacyScore(protectedRows.events, true);
     const exportData = {
-      format: 'phantom-trail-p2-attributed-evidence-export',
-      schemaVersion: 2,
+      format: 'phantom-trail-p3-minimized-evidence-export',
+      eventSchemaVersion: 2,
+      dataProtectionPolicyVersion: 1,
       productVersion: '0.1.0',
       exportedAt: new Date().toISOString(),
+      localPolicy: {
+        urlRetentionMode: protectedRows.settings.urlRetentionMode,
+        retentionDays: protectedRows.settings.retentionDays,
+        queryStringsRetained: false,
+        fragmentsRetained: false,
+        urlCredentialsRetained: false,
+        rawDetectorDetailsRetained: false,
+      },
       evidenceIndex: score,
       formulaDisclosure: {
         base: 100,
@@ -134,14 +172,14 @@ export class ExportService {
       },
       disclaimer:
         'The evidence index summarizes qualifying experimental detector evidence. N/A is not favorable. Attribution, party classification, detector rules, severity labels, and confidence can be incomplete or wrong. Nothing here proves collection, retention, sharing, sale, identity, ownership, intent, safety, or compliance.',
-      dataWarning:
-        'Page and resource URL values can include paths, query strings, or fragments. Review this file before sharing it.',
-      recordedRowCount: normalizedEvents.length,
-      recordedOccurrenceCount: normalizedEvents.reduce(
+      deletionWarning:
+        'This downloaded export is a separate file. Phantom Trail Clear All Data does not delete it.',
+      recordedRowCount: protectedRows.events.length,
+      recordedOccurrenceCount: protectedRows.events.reduce(
         (total, event) => total + getEventOccurrenceCount(event),
         0
       ),
-      events: normalizedEvents.map(event => ({
+      events: protectedRows.events.map(event => ({
         ...event,
         timestamp: new Date(event.timestamp).toISOString(),
         firstSeenAt: new Date(
@@ -161,30 +199,37 @@ export class ExportService {
     events: TrackingEvent[],
     suppliedScore: PrivacyScore
   ): Promise<Blob> {
-    const normalizedEvents = events.map(normalizeTrackingEvent);
-    // Recompute from exported rows so an old or mismatched supplied object cannot
-    // create a score that is inconsistent with the export payload.
-    const score = calculatePrivacyScore(normalizedEvents, true);
+    const protectedRows = await this.prepareProtectedRows(events);
+    const score = calculatePrivacyScore(protectedRows.events, true);
     void suppliedScore;
     const generatedAt = new Date().toLocaleString();
-    const routes = this.groupByRoute(normalizedEvents);
-    const occurrenceCount = normalizedEvents.reduce(
+    const routes = this.groupByRoute(protectedRows.events);
+    const occurrenceCount = protectedRows.events.reduce(
       (total, event) => total + getEventOccurrenceCount(event),
       0
     );
     const indexValue = score.score === null ? 'N/A' : `${score.score}/100`;
 
     const report = `
-PHANTOM TRAIL 0.1.0 - P2 ATTRIBUTED EVIDENCE EXPORT
+PHANTOM TRAIL 0.1.0 - P3 MINIMIZED EVIDENCE EXPORT
 Generated: ${generatedAt}
-Recorded time range: ${this.getTimeRange(normalizedEvents)}
+Recorded time range: ${this.getTimeRange(protectedRows.events)}
+
+LOCAL DATA-PROTECTION POLICY
+- URL retention mode: ${protectedRows.settings.urlRetentionMode}
+- Event retention period: ${protectedRows.settings.retentionDays} days
+- Query strings retained: no
+- Fragments retained: no
+- URL username/password credentials retained: no
+- Raw serialized detector detail objects retained: no
+- Identifier-like path segments: redacted when path retention is enabled
 
 IMPORTANT LIMITS
-- This file summarizes stored detector evidence from an experimental extension.
+- This file summarizes locally minimized detector evidence from an experimental extension.
 - Page/resource attribution, first/third-party labels, rules, severity labels, and confidence can be incomplete or wrong.
 - N/A means no score-qualified evidence units were available. It does not mean the page or data set is private or safe.
 - A recorded event or model band does not prove collection, retention, sharing, sale, fingerprinting, attack, identity, ownership, intent, website safety, or legal non-compliance.
-- URL fields can include sensitive paths, query strings, or fragments. Review this file before sharing it.
+- This downloaded file is outside Clear All Data and must be deleted separately.
 
 EXPERIMENTAL OBSERVED-EVIDENCE INDEX
 - Status: ${score.status}
@@ -196,18 +241,9 @@ EXPERIMENTAL OBSERVED-EVIDENCE INDEX
 - Page-local API units: ${score.breakdown.pageApiUnits}
 - Qualifying rows: ${score.breakdown.qualifyingRows}
 - Excluded rows: ${score.breakdown.excludedRows}
-- Qualifying occurrences: ${score.breakdown.qualifyingOccurrences}
-- Raw evidence penalty: ${score.breakdown.rawPenalty}
 - Applied evidence penalty: ${score.breakdown.appliedPenalty}
 - HTTPS bonus: none
 - Global row-count penalty: none
-
-FORMULA SUMMARY
-- Unique third-party parties and page-local API detector units drive penalties, not raw request rows.
-- Detector, attribution, party, and source confidence factors weight contributions.
-- Repeated occurrences use a bounded logarithmic factor capped at 1.20.
-- The strongest detector in a unit counts in full; additional distinct detectors count at 30%.
-- Each evidence unit is capped at 22 penalty points.
 
 EXCLUDED ROWS BY REASON
 ${Object.entries(score.breakdown.excludedByReason)
@@ -224,12 +260,8 @@ ${score.breakdown.contributions
   .join('\n') || '- none'}
 
 RECORDED SIGNAL SUMMARY
-- Stored rows: ${normalizedEvents.length}
+- Stored rows: ${protectedRows.events.length}
 - Aggregated occurrences: ${occurrenceCount}
-- Critical prototype labels: ${score.breakdown.criticalRisk}
-- High prototype labels (including critical): ${score.breakdown.highRisk}
-- Medium prototype labels: ${score.breakdown.mediumRisk}
-- Low prototype labels: ${score.breakdown.lowRisk}
 
 ATTRIBUTED PAGE → RESOURCE ROUTES
 ${Object.entries(routes)
@@ -240,25 +272,26 @@ ${Object.entries(routes)
 EVIDENCE REVIEW NOTES
 ${score.recommendations.map(note => `- ${note}`).join('\n') || '- none'}
 
-DETAILED RECORDED EVENTS (FIRST 50)
-${normalizedEvents
+DETAILED MINIMIZED EVENTS (FIRST 50)
+${protectedRows.events
   .slice(0, 50)
   .map(event => {
     const context = event.context;
     const detector = event.detector;
+    const protection = event.dataProtection;
     const page = getPageDomain(event) || 'unknown-page';
     const resource = getResourceDomain(event) || 'page-api';
-    return `[${new Date(event.timestamp).toLocaleString()}] ${page} -> ${resource}; occurrences=${getEventOccurrenceCount(event)}; source=${context?.source || 'legacy'}; party=${context?.party || 'unknown'} (${context?.partyBasis || 'missing-context'}, ${context?.partyConfidence || 'low'}); attribution=${context?.attributionBasis || 'unknown'} (${context?.attributionConfidence || 'low'}); detector=${detector?.id || 'legacy-event'} / ${detector?.matchType || 'legacy'} / ${detector?.confidence || 'low'}; category=${event.trackerType}; severity=${event.riskLevel}; description=${event.description}; page URL=${getPageUrl(event)}; resource URL=${getResourceUrl(event)}`;
+    return `[${new Date(event.timestamp).toLocaleString()}] ${page} -> ${resource}; occurrences=${getEventOccurrenceCount(event)}; source=${context?.source || 'legacy'}; party=${context?.party || 'unknown'}; detector=${detector?.id || 'legacy-event'} / ${detector?.confidence || 'low'}; page URL=${getPageUrl(event)}; resource URL=${getResourceUrl(event)}; mode=${protection?.urlRetentionMode || protectedRows.settings.urlRetentionMode}; query-stripped=${protection?.queryStripped === true}; fragment-stripped=${protection?.fragmentStripped === true}; credentials-stripped=${protection?.credentialsStripped === true}; path-segments-redacted=${protection?.pathSegmentsRedacted || 0}; raw-details-removed=${protection?.rawDetailsRemoved === true}`;
   })
   .join('\n') || 'No recorded events.'}
 
 ${
-  normalizedEvents.length > 50
-    ? `Additional stored rows omitted: ${normalizedEvents.length - 50}`
+  protectedRows.events.length > 50
+    ? `Additional stored rows omitted: ${protectedRows.events.length - 50}`
     : ''
 }
 
-END OF P2 ATTRIBUTED EVIDENCE EXPORT
+END OF P3 MINIMIZED EVIDENCE EXPORT
     `.trim();
 
     return new Blob([report], { type: 'text/plain;charset=utf-8;' });
@@ -274,10 +307,10 @@ END OF P2 ATTRIBUTED EVIDENCE EXPORT
     if (dateRange) {
       const startDate = dateRange.start.toISOString().split('T')[0];
       const endDate = dateRange.end.toISOString().split('T')[0];
-      return `phantom-trail-evidence-${startDate}-to-${endDate}.${extension}`;
+      return `phantom-trail-minimized-evidence-${startDate}-to-${endDate}.${extension}`;
     }
 
-    return `phantom-trail-evidence-${timestamp}.${extension}`;
+    return `phantom-trail-minimized-evidence-${timestamp}.${extension}`;
   }
 
   static downloadBlob(blob: Blob, filename: string): void {
@@ -349,6 +382,17 @@ END OF P2 ATTRIBUTED EVIDENCE EXPORT
       options
     );
     this.downloadBlob(blob, filename);
+  }
+
+  private static async prepareProtectedRows(
+    events: TrackingEvent[]
+  ): Promise<ProtectedExportRows> {
+    const settings = await DataProtectionStorage.getSettings();
+    const normalized = events.map(normalizeTrackingEvent);
+    return {
+      settings,
+      events: sanitizeTrackingEventsForStorage(normalized, settings).events,
+    };
   }
 
   private static getTimeRange(events: TrackingEvent[]): string {

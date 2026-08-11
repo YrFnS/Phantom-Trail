@@ -1,11 +1,14 @@
 import type { ExtensionSettings } from '../types';
 import { BaseStorage } from './base-storage';
+import { DataProtectionStorage } from './data-protection-storage';
+import { OpenRouterCredentialStorage } from './openrouter-credential-storage';
 
 /**
- * Manages extension settings storage.
+ * Manages non-secret extension settings.
  *
- * Networked and unvalidated features remain opt-in while Phantom Trail is an
- * experimental prototype.
+ * P3 stores OpenRouter credentials separately. A legacy credential embedded in
+ * this object is migrated to session-only credential storage and removed from
+ * the persisted settings document.
  */
 export class SettingsStorage {
   private static readonly SETTINGS_KEY = 'phantom_trail_settings';
@@ -17,26 +20,42 @@ export class SettingsStorage {
     enablePrivacyPredictions: false,
   };
 
-  /**
-   * Get extension settings from storage.
-   */
   static async getSettings(): Promise<ExtensionSettings> {
     try {
       const result = await chrome.storage.local.get(this.SETTINGS_KEY);
-      return result[this.SETTINGS_KEY] || { ...this.DEFAULT_SETTINGS };
+      const raw = result[this.SETTINGS_KEY];
+      if (!raw || typeof raw !== 'object') {
+        return { ...this.DEFAULT_SETTINGS };
+      }
+
+      const candidate = raw as ExtensionSettings;
+      const legacyCredential = candidate.openRouterApiKey;
+      const sanitized = this.sanitizeSettings(candidate);
+
+      if (legacyCredential) {
+        await OpenRouterCredentialStorage.migrateLegacyCredential(
+          legacyCredential
+        );
+      }
+
+      if (
+        legacyCredential ||
+        JSON.stringify(candidate) !== JSON.stringify(sanitized)
+      ) {
+        await chrome.storage.local.set({ [this.SETTINGS_KEY]: sanitized });
+      }
+
+      return sanitized;
     } catch (error) {
       console.error('Failed to get settings:', error);
       return { ...this.DEFAULT_SETTINGS };
     }
   }
 
-  /**
-   * Save extension settings to storage.
-   */
   static async saveSettings(settings: ExtensionSettings): Promise<void> {
     try {
       await chrome.storage.local.set({
-        [this.SETTINGS_KEY]: settings,
+        [this.SETTINGS_KEY]: this.sanitizeSettings(settings),
       });
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -44,21 +63,40 @@ export class SettingsStorage {
     }
   }
 
-  /**
-   * Initialize default settings if none exist.
-   */
   static async initializeDefaults(): Promise<void> {
     const existing = await BaseStorage.get(this.SETTINGS_KEY);
     if (!existing) {
       await this.saveSettings({ ...this.DEFAULT_SETTINGS });
+    } else {
+      await this.getSettings();
     }
 
+    await DataProtectionStorage.initializeDefaults();
     await this.initializeBadgeDefaults();
   }
 
-  /**
-   * Initialize badge settings separately to avoid circular imports.
-   */
+  private static sanitizeSettings(
+    settings: ExtensionSettings
+  ): ExtensionSettings {
+    const nonSecretSettings = { ...settings };
+    delete nonSecretSettings.openRouterApiKey;
+
+    return {
+      enableAI: nonSecretSettings.enableAI === true,
+      enableNotifications: nonSecretSettings.enableNotifications === true,
+      riskThreshold:
+        nonSecretSettings.riskThreshold === 'low' ||
+        nonSecretSettings.riskThreshold === 'high' ||
+        nonSecretSettings.riskThreshold === 'critical'
+          ? nonSecretSettings.riskThreshold
+          : 'medium',
+      aiModel: nonSecretSettings.aiModel,
+      notifications: nonSecretSettings.notifications,
+      enablePrivacyPredictions:
+        nonSecretSettings.enablePrivacyPredictions === true,
+    };
+  }
+
   private static async initializeBadgeDefaults(): Promise<void> {
     try {
       const badgeKey = 'phantom-trail-badge-settings';

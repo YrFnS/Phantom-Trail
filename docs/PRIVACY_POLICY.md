@@ -1,188 +1,286 @@
 # Privacy and Data Disclosure
 
 **Status:** Experimental development disclosure  
-**Last updated:** August 10, 2026
+**Last updated:** August 11, 2026
 
-This document describes behavior visible in the current Phantom Trail source. It
-is not a certification of GDPR, CCPA, or any other legal compliance, and it is
-not legal advice.
+This document describes behavior in the current P3 source branch. It is not a
+certification of GDPR, CCPA, or any other legal compliance, and it is not legal
+advice.
 
 ## Project status
 
-Phantom Trail is an experimental Chrome extension. It does not currently
-operate a project-owned backend for storing user browsing data, but optional
-features can send data to third-party services or connected peers.
+Phantom Trail is an experimental Chrome extension. It does not operate a
+project-owned backend for browsing-event storage. Optional features can send a
+strictly reduced payload to OpenRouter or exchange an aggregate sample with
+connected peers.
 
-The extension has not completed an independent privacy, security, or legal
-review.
+The extension has not completed an independent privacy, security, legal, or
+detector-accuracy review.
 
 ## Data stored in the browser
 
-### Recorded detector events
+### Minimized detector events
 
-A stored event can include:
+The event model can store:
 
-- a full URL;
-- a domain;
-- timestamp;
-- tracker type and heuristic severity label;
-- human-readable description;
-- in-page signal method; and
-- API-call or frequency details.
+- timestamp, first-seen time, last-seen time, and occurrence count;
+- visited-page and matched-resource domains;
+- page/resource attribution basis and confidence;
+- request method/type and tab/frame/request identifiers where available;
+- detector identity, rule label, confidence, and minimized evidence text;
+- prototype category and severity labels; and
+- a record of which data-protection transformations were applied.
 
-Depending on the event source, a URL can include a path, query string, or
-fragment. The network monitor stores the requested resource URL, while in-page
-events can store the current page URL. The current event model does not always
-reliably distinguish page and resource attribution.
+The default URL-retention mode is **origin only**. For example:
 
-The event store is capped at 1,000 records. Cleanup code targets events older
-than 30 days when its alarm runs. This is not an absolute retention guarantee
-until browser lifecycle tests verify it.
+```text
+https://example.com/private/path?token=abc#section
+```
+
+is stored as:
+
+```text
+https://example.com/
+```
+
+An optional **origin and redacted path** mode retains the origin and pathname,
+but removes identifier-like segments such as emails, long numeric identifiers,
+UUIDs, long tokens, and similar values.
+
+In both modes Phantom Trail removes before persistence:
+
+- query strings;
+- fragments;
+- URL username/password credentials;
+- raw serialized main-world detector detail objects; and
+- arguments embedded in recorded API-call labels.
+
+URL-like substrings in descriptions, detector rules, and evidence strings are
+processed by the same active policy. This minimization is heuristic and may not
+identify every possible personal or sensitive value.
+
+### Migration and retention
+
+Existing detector rows are re-sanitized under the active policy when storage is
+read, when the policy changes, and during migration/retention cleanup. Removed
+data is not reconstructed.
+
+The default event-retention period is seven days. The user can select 1, 7, 14,
+or 30 days. The event store is also capped at 1,000 rows. Browser lifecycle or
+storage failures can affect when cleanup runs; opening the extension or reading
+event storage also reapplies the active policy.
 
 ### Settings and feature data
 
-The extension can also store:
+The extension can store:
 
-- extension settings and heuristic thresholds;
-- an OpenRouter API key;
+- non-secret extension settings and heuristic thresholds;
+- the active data-protection policy;
 - personal site annotations;
-- badge and theme preferences;
-- coaching goals and heuristic history;
-- trend snapshots and reports;
-- export schedules and history from incomplete modules;
-- sync settings and device identifiers;
-- P2P settings;
-- cached analysis responses; and
-- error-recovery and rate-limit state.
+- badge, theme, and keyboard preferences;
+- optional coaching and trend data from incomplete modules;
+- rate-limit and error-recovery state;
+- P2P settings and versioned consent; and
+- migration metadata.
 
 Chrome extension storage is managed by the browser. Phantom Trail does not
 claim to add independent encryption to every stored value.
+
+## OpenRouter credential storage
+
+The OpenRouter API key is stored separately from general extension settings.
+
+- Session-only storage is the default.
+- Persisting the key across browser restarts requires a separate explicit
+  “remember” choice.
+- Changing back to session-only removes the persistent copy.
+- Clear All Data removes session, persistent, and in-memory copies controlled by
+  the extension.
+- Key values and key prefixes are not written to prompts, exports, P2P payloads,
+  or diagnostic console output.
+
+A credential stored in a browser extension can still be exposed by a
+compromised browser profile, extension context, operating system, or device.
 
 ## Data that can leave the browser
 
 Optional external features default off.
 
-### OpenRouter event summaries
+### OpenRouter aggregate summaries
 
-An OpenRouter request is allowed only when both conditions are true:
+An OpenRouter request is allowed only when:
 
-1. the user explicitly enables OpenRouter event summaries; and
-2. an API key is stored.
+1. the user explicitly enables OpenRouter summaries; and
+2. an API key is configured.
 
-A stored key alone is not treated as consent.
+A stored key alone is not consent.
 
-When the feature is enabled:
+The default outbound mode is **counts only**. The canonical request payload can
+contain:
 
-- the API key is sent to OpenRouter for authentication;
-- event URLs are sanitized before analysis by removing query strings and
-  fragments;
-- the current prompt primarily summarizes domains, event counts, tracker types,
-  and heuristic labels; and
-- OpenRouter processes the request under its own terms and privacy practices.
+- evidence-index status, nullable value, model band, and coverage label;
+- observed, qualifying, and excluded row/occurrence totals;
+- evidence-unit count; and
+- aggregate prototype category and severity counts.
 
-The current general Q&A path summarizes event data rather than reliably using
-the wording of every question. Phantom Trail does not proxy OpenRouter requests
-through a project-owned server.
+An optional mode can also include up to five third-party resource-domain labels
+with row counts.
 
-### Experimental P2P transport
+The canonical OpenRouter payload excludes:
 
-After the user joins the experimental network and enables aggregate sharing,
-Phantom Trail can exchange reduced fields such as:
+- page URLs and resource URLs;
+- paths, query strings, fragments, and URL credentials;
+- page-domain labels;
+- descriptions and detector-evidence strings;
+- raw detector events and API details;
+- personal annotations;
+- browser storage keys; and
+- the OpenRouter credential itself.
 
-- heuristic score and grade;
-- capped event count;
-- risk-label distribution;
-- website category labels;
-- rounded timestamp; and
-- optional broad region.
+The Data settings screen shows a preview generated by the same payload builder
+used for requests. OpenRouter processes the request under its own terms and
+privacy practices. Phantom Trail does not proxy requests through a
+project-operated server.
 
-Peer identity and data authenticity are not established. Connected peers must
-be treated as untrusted, and received samples are not representative community
-benchmarks.
+Generated output can be inaccurate and does not establish collection,
+retention, sharing, sale, ownership, intent, safety, or legal compliance.
 
-Trystero/WebRTC can depend on third-party signaling, relay, and NAT traversal
-infrastructure. Connected peers and infrastructure providers may observe normal
-connection metadata such as IP addresses. “Peer-to-peer” does not mean that no
-servers or third parties are involved.
+### Experimental P2P aggregate exchange
+
+Connection and local-sample sharing are separate choices. Both require the
+current versioned disclosure to be acknowledged. Revoking consent disables
+connection and sharing.
+
+A shared sample can contain:
+
+- payload and consent version;
+- rounded estimated evidence index and model band;
+- evidence-coverage confidence;
+- capped evidence-unit count;
+- prototype severity-distribution percentages;
+- up to three prototype category labels;
+- timestamp rounded to the hour; and
+- optional coarse region only when separately enabled.
+
+The P2P payload excludes URLs, paths, query strings, fragments, domain labels,
+descriptions, detector evidence, raw events, credentials, personal annotations,
+and storage keys. N/A results are not converted to zero and are not shared as
+numeric samples.
+
+The earlier peer domain-reputation request/response path was removed in P3.
+Peer identity, authenticity, representative sampling, and reputation integrity
+are not established.
+
+Trystero/WebRTC can depend on signalling, relay, and NAT-traversal
+infrastructure. Connected peers and providers may observe ordinary connection
+metadata such as IP addresses. “Peer-to-peer” does not mean that servers or
+third parties are absent.
 
 ### Chrome sync
 
-If the experimental sync module is enabled, selected settings or feature data
-can be written to `chrome.storage.sync` and handled by the user’s browser account
-provider. The current sync implementation has known storage-key, data-shape,
-conflict, and application inconsistencies.
+Compatibility modules can use `chrome.storage.sync` in incomplete workflows.
+Chrome sync is handled by the user’s browser-account provider. P3 Clear All Data
+attempts to clear Phantom Trail sync storage, but it cannot control provider
+backups or previously replicated copies.
 
 ### Exports and downloads
 
-CSV and JSON exports can contain raw stored event values, including URLs and
-descriptions. Users should inspect files before sharing them.
+Before CSV, JSON, or plain-text export, Phantom Trail reapplies the active local
+minimization policy to the supplied rows. Export metadata identifies the URL
+mode, retention policy, and transformations.
+
+Downloaded files are separate copies outside extension storage. **Clear All
+Data does not delete downloaded exports.** Users must remove those files
+separately.
 
 The legacy export format named `pdf` in source produces a plain-text `.txt`
 report, not a PDF document. Scheduled export, email delivery, and cloud delivery
-remain incomplete and are hidden from the P0 settings UI.
+remain incomplete and hidden.
 
 ## Personal site annotations
 
-The feature historically called “trusted sites” now stores personal domain
-annotations only.
-
-An annotation does not:
+The feature historically called “trusted sites” stores personal domain
+annotations only. An annotation does not:
 
 - establish that a site is safe, private, or reputable;
-- improve a heuristic score;
+- change the evidence index;
 - suppress detector output;
 - automatically apply to subdomains; or
 - verify a site’s identity or privacy practices.
 
-Automatic hard-coded reputation suggestions are disabled.
+## Permissions
 
-## Requested permissions
+### Required
 
-The current manifest requests:
+The current P3 manifest requires:
 
-- `webRequest` to observe requests;
-- `storage` to persist events and settings;
-- `activeTab` and `tabs` to read active-tab information and communicate with
-  pages;
-- `alarms` for cleanup and incomplete scheduled tasks;
-- `notifications` for incomplete browser-alert workflows;
-- `downloads` for exports;
-- `management` to inspect installed extension names and enabled state; and
-- `<all_urls>` host access to run on websites and inspect requests.
+- `webRequest` to observe request metadata used by the detector;
+- `storage` for minimized events, settings, credentials, and deletion;
+- `tabs` for active-page attribution and per-tab badge state;
+- `alarms` for retention cleanup; and
+- `<all_urls>` host access to run the detector on visited HTTP(S) sites and
+  inspect requests.
 
-These permissions are broad and must be minimized before any production
-release.
+These capabilities remain broad, especially host access. Reducing host scope
+would require a different detector or site-permission architecture.
 
-## Retention and deletion
+### Optional
 
-- Event cleanup targets records older than 30 days.
-- The event store keeps at most 1,000 records.
-- Settings and other feature data can remain until cleared or the extension is
-  removed.
-- Uninstalling the extension is the most complete current way to remove its
-  extension-local storage.
-- Export anything needed before deletion or removal.
+`management` is optional and requested only after a visible user action. It lets
+Phantom Trail inspect installed extension names and enabled state for recognized
+privacy tools. It does not expose another extension’s filtering logs or prove
+blocking effectiveness. The permission can be revoked from the same interface
+and is also removed by Clear All Data when granted.
+
+P3 removes `notifications`, `downloads`, and `activeTab` from required
+permissions because the corresponding workflows are unfinished, unnecessary,
+or redundant.
+
+## Clear All Data
+
+The Data settings screen provides a two-step destructive action requiring the
+exact displayed confirmation phrase. The operation attempts to clear:
+
+- `chrome.storage.local`;
+- `chrome.storage.session`;
+- `chrome.storage.sync`;
+- extension alarms;
+- current badge text and tooltip state;
+- in-memory OpenRouter credentials;
+- the active peer session; and
+- the optional `management` permission.
+
+A deletion report identifies storage-area success or failure.
+
+Clear All Data cannot delete:
+
+- downloaded exports;
+- data already processed by OpenRouter;
+- samples or metadata already received by peers or infrastructure providers;
+- browser-profile or cloud backups; or
+- copies held by other parties.
 
 ## What the project does not claim
 
 Phantom Trail does not claim that:
 
+- minimization detects every sensitive value;
 - a signal proves personal-data collection, sharing, or sale;
-- a grade is an independently validated privacy rating;
+- a model band is a validated privacy rating;
 - a graph edge is a verified data flow;
 - coaching output measures user behavior or safety;
 - link estimates audit a destination;
-- peer data is authentic, representative, or trustworthy;
-- installed privacy tools’ blocking effectiveness is measured;
+- peer data is authentic or representative;
+- installed privacy tools’ effectiveness is measured;
 - the extension is GDPR or CCPA compliant; or
 - the extension prevents tracking or secures the browser.
 
 ## Security limitations
 
-- Broad permissions increase the impact of defects.
-- Stored URLs can contain sensitive information.
-- API keys are stored in extension-local storage.
-- P2P messages are unauthenticated.
+- Broad host access increases the impact of extension defects.
+- Domain labels and minimized paths can still reveal browsing context.
+- Browser-stored API credentials remain sensitive.
+- P2P connections and messages are unauthenticated.
 - Optional third-party services and peers introduce additional risks.
 - The project has not completed an independent security audit.
 
@@ -192,13 +290,14 @@ Do not rely on the prototype for sensitive browsing.
 
 The current repository does not include a project-owned analytics backend or a
 mechanism for selling user data. This statement does not cover OpenRouter,
-browser sync providers, Trystero infrastructure, websites visited by the user,
-or connected peers.
+browser providers, Trystero infrastructure, websites visited by the user, or
+connected peers.
 
 ## Contact and source review
 
 - Repository: https://github.com/YrFnS/Phantom-Trail
 - Issues: https://github.com/YrFnS/Phantom-Trail/issues
+- P3 contract: [P3-DATA-PROTECTION.md](P3-DATA-PROTECTION.md)
 - Capability status: [PROJECT_STATUS.md](PROJECT_STATUS.md)
 
 The source code is the authoritative reference when this disclosure and runtime
