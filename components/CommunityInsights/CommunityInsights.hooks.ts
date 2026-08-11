@@ -1,11 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { P2PPrivacyNetwork } from '../../lib/p2p-privacy-network';
-import type {
-  CommunityStats,
-  P2PSettings,
-  PrivacyData,
-} from '../../lib/types';
-import { ChromeStorage } from '../../lib/chrome-storage';
+import type { CommunityStats, PrivacyData } from '../../lib/types';
+import { P2PStorage } from '../../lib/storage/p2p-storage';
+import { hasCurrentP2PConsent } from '../../lib/p2p-consent.mts';
 
 export const useCommunityInsights = () => {
   const [network] = useState(() => P2PPrivacyNetwork.getInstance());
@@ -29,18 +26,11 @@ export const useCommunityInsights = () => {
 
   const loadSettings = useCallback(async () => {
     try {
-      const settings = (await ChromeStorage.getLocal<P2PSettings>(
-        'p2pSettings'
-      )) || {
-        joinPrivacyNetwork: false,
-        shareAnonymousData: false,
-        shareRegionalData: false,
-        maxConnections: 10,
-        autoReconnect: true,
-      };
-
-      setIsEnabled(settings.joinPrivacyNetwork);
-      if (settings.joinPrivacyNetwork) {
+      const settings = await P2PStorage.getSettings();
+      const enabled =
+        hasCurrentP2PConsent(settings) && settings.joinPrivacyNetwork;
+      setIsEnabled(enabled);
+      if (enabled) {
         await network.initializeNetwork();
         await updateNetworkStatus();
       }
@@ -58,64 +48,51 @@ export const useCommunityInsights = () => {
   }, [loadSettings, updateNetworkStatus]);
 
   const enableNetwork = async () => {
-    try {
-      const settings: P2PSettings = {
-        joinPrivacyNetwork: true,
-        // Joining transport does not automatically authorize score sharing.
-        shareAnonymousData: false,
-        shareRegionalData: false,
-        maxConnections: 10,
-        autoReconnect: true,
-      };
-
-      await chrome.storage.local.set({ p2pSettings: settings });
-      await network.initializeNetwork();
-      setIsEnabled(true);
-      await updateNetworkStatus();
-    } catch (error) {
-      console.error('Failed to enable P2P network:', error);
-      throw error;
+    const settings = await P2PStorage.getSettings();
+    if (!hasCurrentP2PConsent(settings)) {
+      throw new Error(
+        'Current P2P disclosure consent is required in Settings → P2P.'
+      );
     }
+
+    const saved = await P2PStorage.saveSettings({
+      ...settings,
+      joinPrivacyNetwork: true,
+    });
+    await network.initializeNetwork();
+    setIsEnabled(saved.joinPrivacyNetwork);
+    await updateNetworkStatus();
   };
 
   const disableNetwork = async () => {
-    try {
-      const settings: P2PSettings = {
-        joinPrivacyNetwork: false,
-        shareAnonymousData: false,
-        shareRegionalData: false,
-        maxConnections: 10,
-        autoReconnect: true,
-      };
-
-      await chrome.storage.local.set({ p2pSettings: settings });
-      await network.disconnectFromNetwork();
-      setIsEnabled(false);
-      setIsConnected(false);
-      setPeerCount(0);
-      setCommunityStats(null);
-    } catch (error) {
-      console.error('Failed to disable P2P network:', error);
-      throw error;
-    }
+    const settings = await P2PStorage.getSettings();
+    await P2PStorage.saveSettings({
+      ...settings,
+      joinPrivacyNetwork: false,
+      shareAnonymousData: false,
+      shareRegionalData: false,
+    });
+    await network.disconnectFromNetwork();
+    setIsEnabled(false);
+    setIsConnected(false);
+    setPeerCount(0);
+    setCommunityStats(null);
   };
 
   const sharePrivacyData = async (privacyData: PrivacyData) => {
     if (!isEnabled || !isConnected) return;
 
     try {
+      const settings = await P2PStorage.getSettings();
       const { AnonymizationService } = await import('../../lib/anonymization');
-      const anonymizedData = AnonymizationService.anonymizeForP2P(privacyData);
-      if (!anonymizedData) {
-        console.log(
-          '[Phantom Trail] P2P score sample not shared because local evidence is N/A'
-        );
-        return;
-      }
-
+      const anonymizedData = AnonymizationService.anonymizeForP2P(
+        privacyData,
+        settings
+      );
+      if (!anonymizedData) return;
       await network.shareAnonymousData(anonymizedData);
     } catch (error) {
-      console.error('Failed to share privacy data:', error);
+      console.error('Failed to share aggregate peer data:', error);
     }
   };
 
