@@ -39,6 +39,14 @@ const LONG_NUMBER_PATTERN = /^\d{4,}$/u;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{24,}$/u;
 const JWT_SEGMENT_PATTERN = /^[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}/u;
+const INLINE_EMAIL_PATTERN =
+  /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu;
+const INLINE_UUID_PATTERN =
+  /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/giu;
+const INLINE_LONG_HEX_PATTERN = /\b[0-9a-f]{16,}\b/giu;
+const INLINE_LONG_NUMBER_PATTERN = /\b\d{6,}\b/gu;
+const INLINE_SECRET_ASSIGNMENT_PATTERN =
+  /\b(token|secret|session|auth|key)=([^\s&#,;]+)/giu;
 
 export function normalizeDataProtectionSettings(
   value: unknown
@@ -126,13 +134,13 @@ export function sanitizeTextForStorage(
 ): string {
   if (!value) return '';
 
-  const sanitized = value.replace(URL_PATTERN, match => {
+  const urlSanitized = value.replace(URL_PATTERN, match => {
     const trailing = match.match(/[),.;!?]+$/u)?.[0] || '';
     const urlValue = trailing ? match.slice(0, -trailing.length) : match;
     return `${sanitizeUrlForStorage(urlValue, mode).value || '[url removed]'}${trailing}`;
   });
 
-  return sanitized.slice(0, maximumLength);
+  return redactSensitiveTextTokens(urlSanitized).slice(0, maximumLength);
 }
 
 export function sanitizeTrackingEventForStorage(
@@ -270,11 +278,25 @@ export function eventContainsForbiddenUrlMaterial(event: TrackingEvent): boolean
   return (
     /https?:\/\/[^\s"']+[?#][^\s"']*/iu.test(serialized) ||
     /https?:\/\/[^/@\s"']+@/iu.test(serialized) ||
+    /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/iu.test(serialized) ||
+    /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/iu.test(
+      serialized
+    ) ||
+    /\b(token|secret|session|auth|key)=([^\s&#,;]+)/iu.test(serialized) ||
     Boolean(
       event.inPageTracking?.details &&
         event.inPageTracking.details !== MINIMIZED_DETAILS_NOTICE
     )
   );
+}
+
+function redactSensitiveTextTokens(value: string): string {
+  return value
+    .replace(INLINE_EMAIL_PATTERN, ':redacted')
+    .replace(INLINE_UUID_PATTERN, ':redacted')
+    .replace(INLINE_LONG_HEX_PATTERN, ':redacted')
+    .replace(INLINE_LONG_NUMBER_PATTERN, ':redacted')
+    .replace(INLINE_SECRET_ASSIGNMENT_PATTERN, '$1=:redacted');
 }
 
 function sanitizePathname(pathname: string): {
