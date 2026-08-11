@@ -1,198 +1,291 @@
 # Installing Phantom Trail 0.1.0
 
-> **Experimental software**
+> **Experimental development software**
 >
-> Phantom Trail is a development prototype. Its detections, grades, trends,
-> graph links, coaching output, and link estimates are heuristic. It can report
-> false positives or miss tracking behavior. Do not rely on it as a security
-> control, privacy certification, or legal-compliance tool.
+> Phantom Trail can report false positives, miss tracking behavior, or attribute
+> evidence incorrectly. Do not rely on it as a tracker blocker, security
+> control, privacy certification, anonymity tool, or legal-compliance product.
 
-## Build from source
+## Prerequisites
 
-### Prerequisites
+- Node.js 22
+- `pnpm` at the version pinned in `package.json`
+- A current supported Google Chrome or Chromium-based browser
+- Git
 
-- A current Google Chrome or Chromium-based browser
-- Node.js 22 recommended
-- `pnpm` as pinned by `package.json`
-
-### Steps
+## Build and validate from source
 
 ```bash
 git clone https://github.com/YrFnS/Phantom-Trail.git
 cd Phantom-Trail
 pnpm install --frozen-lockfile
+pnpm test
+pnpm evidence:detectors
 pnpm type-check
 pnpm lint
 pnpm build
+pnpm zip
+pnpm evidence:security
+pnpm evidence:performance
 ```
 
-Load the built extension:
+The dependency audit uses the current package-registry advisory service and
+therefore requires network access:
+
+```bash
+pnpm evidence:dependencies
+```
+
+The isolated Chromium lifecycle check requires a supported Chrome/Chromium
+binary and a graphical display or Xvfb:
+
+```bash
+CHROME_BIN=/path/to/chrome pnpm evidence:browser
+```
+
+After all evidence files exist, generate a commit-bound evidence manifest:
+
+```bash
+SOURCE_SHA=$(git rev-parse HEAD) pnpm evidence:release
+```
+
+A passing automated run proves only the narrow recorded checks. It does not
+establish real-world detector accuracy, accessibility compliance, security,
+privacy, performance, or production readiness.
+
+## Load the unpacked extension
 
 1. Open `chrome://extensions/`.
 2. Enable **Developer mode**.
-3. Click **Load unpacked**.
-4. Select `.output/chrome-mv3`.
-5. Pin the Phantom Trail icon if desired.
+3. Select **Load unpacked**.
+4. Choose `.output/chrome-mv3`.
+5. Pin the Phantom Trail action icon when desired.
+6. Reload already-open websites before testing content-script behavior.
 
-A successful build confirms only that the source compiled in that environment.
-It does not validate detector accuracy, scores, privacy properties, performance,
-or every browser workflow.
+Use a separate browser profile for review. Do not test the prototype with
+sensitive browsing data.
 
-## Automated build gate
+## Current views
 
-The repository workflow `.github/workflows/validate.yml` checks lockfile
-consistency, frozen-lockfile install, type checking, lint, production build,
-generated manifest metadata, ZIP creation, and artifact upload.
+The popup contains:
 
-It is not a behavioral test suite. Manual Chrome review remains required.
+- **Feed:** stored detector evidence;
+- **Map:** inferred page/resource relationships;
+- **Stats:** evidence-index breakdown and exclusions;
+- **Explore:** deterministic local evidence questions and an explicit optional
+  OpenRouter aggregate-summary action;
+- **Reports:** local daily snapshots and weekly aggregations; and
+- **Peers:** experimental aggregate P2P sample exchange.
 
-## What to expect
-
-The extension can record request and browser-API rule matches, store recent
-events locally, show a signal feed and inferred graph, calculate an experimental
-score, and export local data.
-
-Treat these as incomplete or experimental:
-
-- page/resource attribution and cross-site correlation;
-- A–F heuristic scoring;
-- general-purpose Q&A and coaching;
-- link estimates;
-- peer-to-peer community samples;
-- cross-device sync;
-- automatic snapshots and reports;
-- notification workflows;
-- scheduled exports; and
-- PDF, email, and cloud delivery.
-
-Synthetic category comparisons are hidden in P0.
-
-## Optional OpenRouter summaries
-
-OpenRouter requests default off and require both:
-
-1. enabling **OpenRouter event summaries** in Settings; and
-2. storing an OpenRouter API key.
-
-A stored key alone does not enable requests.
-
-When enabled, Phantom Trail removes query strings and fragments from event URLs
-before analysis and currently sends a prompt built mainly from domains, event
-counts, tracker types, and heuristic labels. The API key is sent to OpenRouter
-to authenticate the request.
-
-Review both documents before enabling it:
-
-- [Privacy and Data Disclosure](docs/PRIVACY_POLICY.md)
-- OpenRouter’s terms and privacy documentation
-
-## Experimental peer network
-
-P2P defaults off. Joining the network can exchange reduced aggregate fields
-such as heuristic score, grade, capped event count, label distribution,
-category labels, rounded timestamp, and optional broad region.
-
-Peer identity and messages are unauthenticated. They are not verified website
-reputation, community adoption, or representative benchmarks.
-
-WebRTC/Trystero can use third-party signaling, relay, and NAT traversal
-infrastructure. Peers and providers may observe normal connection metadata such
-as IP addresses.
-
-## Personal site annotations
-
-The star control and Settings list save personal domain annotations only. They
-do not improve grades, suppress monitoring, verify safety, or automatically
-apply to subdomains.
-
-## Toolbar badge
-
-The experimental toolbar badge defaults off. When enabled, it displays the same
-unvalidated heuristic used by the popup. Green or an A grade does not mean that
-a website is safe or private.
+The earlier generic AI chat, Coach, link-prediction, sync, and scheduled-export
+surfaces were removed in P4.
 
 ## Permissions
 
-The prototype requests broad permissions, including:
+### Required at install time
 
-- `<all_urls>`
-- `webRequest`
-- `storage`
-- `activeTab`
-- `tabs`
-- `alarms`
-- `notifications`
-- `downloads`
-- `management`
+```text
+webRequest
+storage
+tabs
+alarms
+http://*/*
+https://*/*
+```
 
-These permissions must be minimized before a production release.
+These permit HTTP(S) request observation, storage, active-page attribution,
+per-tab badge updates, retention/report alarms, and detector execution on web
+pages.
 
-## Local data and exports
+### Optional
 
-Recorded events are stored in Chrome extension storage. Stored URLs can include
-paths, query strings, or fragments depending on the event source.
+```text
+management
+notifications
+```
 
-The event store is capped at 1,000 records and contains cleanup logic targeting
-events older than 30 days. Runtime lifecycle testing has not yet established an
-absolute retention guarantee.
+- `management` allows a user-requested view of recognized installed extension
+  names and enabled state. It does not reveal blocker decisions or effectiveness.
+- `notifications` allows user-requested evidence alerts and daily local-summary
+  notifications.
 
-CSV and JSON exports can contain raw stored URLs and descriptions. Inspect files
-before sharing them. The plain-text report option downloads `.txt`; it is not a
-PDF document.
+Neither optional permission is granted or enabled automatically.
+
+## Local data behavior
+
+New and migrated detector events use origin-only URL retention by default.
+Stored rows can still contain origins, domain labels, timestamps, request type,
+attribution, detector rules, category/severity labels, and minimized evidence.
+
+The default event-retention period is seven days; available choices are 1, 7,
+14, or 30 days. The store is also capped at 1,000 rows.
+
+The Data settings screen can:
+
+- switch between origin-only and origin-plus-redacted-path retention;
+- change the event-retention period;
+- preview OpenRouter outbound fields;
+- inspect extension storage key/byte counts;
+- request/revoke optional management permission; and
+- permanently clear extension-controlled local, session, and sync storage using
+  a typed confirmation.
+
+Deletion cannot recall downloaded exports or information already processed by
+an external provider or peer.
+
+## Optional OpenRouter aggregate summaries
+
+OpenRouter is off by default. A request requires:
+
+1. a configured API key;
+2. explicit enablement; and
+3. a direct summary action from Explore.
+
+The key is kept in extension session storage by default. Persisting it across
+browser restarts requires a separate **remember** choice.
+
+The default payload contains aggregate counts and evidence-index metadata. An
+optional mode can include up to five third-party resource-domain labels. Raw
+events, URLs, paths, queries, fragments, descriptions, detector evidence,
+personal annotations, storage keys, and the credential are excluded.
+
+Model availability, account limits, cost, routing, retention, and provider
+behavior are controlled by OpenRouter and its providers. Live provider behavior
+is not covered by the default automated fixture.
+
+## Experimental peer exchange
+
+P2P connection and local aggregate sharing are separate opt-in settings. Both
+require the current disclosure to be acknowledged.
+
+Shared samples can contain a rounded estimated index, model band, evidence
+coverage, bounded counts, category labels, severity distribution, and a rounded
+timestamp. URLs, domains, raw events, descriptions, detector evidence,
+credentials, and N/A-as-zero values are excluded.
+
+Peer identity and sample authenticity are not established. Network policy,
+firewalls, browser settings, or WebRTC restrictions can prevent connection.
+
+## Evidence notifications
+
+Notifications require a visible permission request and explicit settings.
+Alerts are limited to qualifying high/critical prototype evidence, respect quiet
+hours, and are throttled. They do not claim a confirmed incident, attack, or
+unsafe website.
+
+## Exports
+
+The popup header can generate:
+
+- CSV;
+- JSON; and
+- a plain-text `.txt` report.
+
+The legacy source identifier `pdf` does not create a PDF. Scheduled export,
+email delivery, and cloud delivery were removed.
+
+Exports contain minimized local event representations but can still reveal
+origins, domains, timestamps, detector information, and browsing patterns.
+Review every file before sharing it.
+
+## Keyboard commands
+
+Only implemented commands are declared:
+
+- `Ctrl+Shift+P` / `Command+Shift+P`: open the Phantom Trail popup;
+- `Ctrl+Shift+A` / `Command+Shift+A`: open the current-page evidence dashboard.
+
+Browser or operating-system shortcut conflicts can override these bindings.
 
 ## Troubleshooting
 
-### Build fails
+### Build or evidence command fails
 
-Run:
+Run the commands individually and fix the first failing gate:
 
 ```bash
 pnpm install --frozen-lockfile
+pnpm test
+pnpm evidence:detectors
 pnpm type-check
 pnpm lint
 pnpm build
+pnpm zip
+pnpm evidence:security
+pnpm evidence:performance
 ```
 
-Review the first reported error rather than assuming generated output is valid.
+Generated machine-readable reports are written under `.artifacts/`.
 
-### No signals appear
+### No events appear
 
-- Reload the extension after building.
-- Refresh the website being tested.
-- Remember that no result does not prove that a site has no tracking.
-- Review the extension service-worker and page console for errors.
+- Reload the extension after rebuilding.
+- Refresh the web page after loading the unpacked extension.
+- Confirm the page uses HTTP or HTTPS.
+- Inspect the extension service worker and page console.
+- Remember that no recorded event does not prove that tracking is absent.
 
-### Too many signals appear
+### Too many events appear
 
-Current rules can classify normal API usage or broad URL patterns as possible
-tracking. Record the page, event description, and reproduction steps in a
-GitHub issue.
+- Review detector ID, rule, confidence, page/resource attribution, and party
+  classification in Feed or Stats.
+- Record the exact URL pattern and expected classification in a repository
+  issue without sharing sensitive query strings or credentials.
+- A curated regression pass does not rule out real-site false positives.
 
-### OpenRouter summaries do not work
+### OpenRouter summary is unavailable
 
-- Confirm the explicit AI toggle is enabled.
-- Confirm an API key is configured.
-- Confirm the selected model is available to the OpenRouter account.
-- Local prototype views can still run with AI disabled.
+- Confirm the key is configured.
+- Confirm aggregate summaries are enabled.
+- Use the explicit summary control rather than an unsupported Explorer question.
+- Confirm the selected model is available to the account.
+- Review local rate-limit state and provider errors.
 
-### P2P remains disconnected
+### Notifications remain unavailable
 
-- Confirm the experimental network was explicitly enabled.
-- Network or browser policies can prevent WebRTC connectivity.
-- Zero peers does not indicate an application-wide outage or population size.
+- Grant the optional notification permission from Settings.
+- Enable alerts separately after permission is granted.
+- Check quiet hours and the high/critical-only setting.
 
-## Remove the extension
+### P2P has no peers
 
-Open `chrome://extensions/`, locate Phantom Trail, and select **Remove**. Export
-anything needed before removal.
+- Confirm the current disclosure was acknowledged.
+- Enable connection and, separately, sample sharing.
+- Review firewall, WebRTC, and browser policy restrictions.
+- Zero peers does not establish service status or population size.
+
+## Clear data or remove the extension
+
+Use **Settings → Data → Clear All Data** for extension-controlled storage,
+alarms, badges, credentials, optional permissions, and the current peer session.
+Then remove the extension from `chrome://extensions/` when desired.
+
+Downloaded exports, provider-side data, peer-held copies, browser backups,
+website data, cookies, and browser history are outside the extension deletion
+operation.
+
+## Release status
+
+No source build or CI artifact should be described as stable or production-ready
+while the unresolved gates in `release/manual-gates.v1.json` remain.
+
+Review:
+
+- [Project Status](docs/PROJECT_STATUS.md)
+- [Privacy and Data Disclosure](docs/PRIVACY_POLICY.md)
+- [Security Policy](SECURITY.md)
+- [Threat Model](docs/THREAT-MODEL.md)
+- [P5 Evidence and Release Discipline](docs/P5-EVIDENCE-AND-RELEASE.md)
+- [Release Checklist](docs/RELEASE-CHECKLIST.md)
 
 ## Reporting problems
 
-Open a repository issue and include:
+Include:
 
-- Chrome version;
-- Phantom Trail commit or version;
+- exact commit SHA and artifact hash;
+- Chrome version and operating system;
+- whether the extension was unpacked or packaged;
 - reproduction steps;
 - expected and actual behavior;
 - relevant console errors; and
-- whether AI, sync, P2P, or the badge was enabled.
+- the state of OpenRouter, P2P, notifications, management permission, and badge.
