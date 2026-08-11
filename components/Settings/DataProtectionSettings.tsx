@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { DataProtectionSettings } from '../../lib/types';
-import {
-  DEFAULT_DATA_PROTECTION_SETTINGS,
-} from '../../lib/data-protection-policy.mts';
+import type {
+  DataProtectionSettings as DataProtectionPolicySettings,
+} from '../../lib/types';
+import { DEFAULT_DATA_PROTECTION_SETTINGS } from '../../lib/data-protection-policy.mts';
 import {
   DataProtectionStorage,
   type StorageInventory,
@@ -17,7 +17,7 @@ import { getAIOutboundPreview } from '../../lib/ai/outbound-payload.mts';
 import { Button } from '../ui';
 
 export function DataProtectionSettings() {
-  const [settings, setSettings] = useState<DataProtectionSettings>({
+  const [settings, setSettings] = useState<DataProtectionPolicySettings>({
     ...DEFAULT_DATA_PROTECTION_SETTINGS,
   });
   const [inventory, setInventory] = useState<StorageInventory | null>(null);
@@ -167,7 +167,8 @@ export function DataProtectionSettings() {
             onChange={event =>
               setSettings({
                 ...settings,
-                urlRetentionMode: event.target.value as DataProtectionSettings['urlRetentionMode'],
+                urlRetentionMode: event.target
+                  .value as DataProtectionPolicySettings['urlRetentionMode'],
               })
             }
             className="mt-2 w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)]"
@@ -195,7 +196,9 @@ export function DataProtectionSettings() {
             onChange={event =>
               setSettings({
                 ...settings,
-                retentionDays: Number(event.target.value) as DataProtectionSettings['retentionDays'],
+                retentionDays: Number(
+                  event.target.value
+                ) as DataProtectionPolicySettings['retentionDays'],
               })
             }
             className="mt-2 w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)]"
@@ -223,7 +226,8 @@ export function DataProtectionSettings() {
           onChange={event =>
             setSettings({
               ...settings,
-              aiOutboundMode: event.target.value as DataProtectionSettings['aiOutboundMode'],
+              aiOutboundMode: event.target
+                .value as DataProtectionPolicySettings['aiOutboundMode'],
             })
           }
           className="w-full px-3 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-md text-sm text-[var(--text-primary)]"
