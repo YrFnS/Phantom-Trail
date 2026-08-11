@@ -1,9 +1,9 @@
 /**
- * Privacy tool discovery.
+ * Optional privacy-tool discovery.
  *
- * The management API can report whether a recognized extension is installed
- * and enabled. Phantom Trail does not observe the tool's filtering decisions,
- * so it must not claim measured effectiveness or blocked-request totals.
+ * The management permission can reveal installed extension names and enabled
+ * state. P3 requests it only after a visible user action and supports revocation.
+ * Phantom Trail still cannot observe another tool's filtering decisions.
  */
 
 import type { TrackingEvent } from './types';
@@ -12,10 +12,6 @@ export interface DetectedTool {
   name: string;
   detected: boolean;
   enabled: boolean;
-  /**
-   * Deprecated compatibility field. No measured effectiveness value is
-   * available, so this remains zero.
-   */
   effectiveness: number;
   blockedCount?: number;
   recommendation: string;
@@ -24,20 +20,18 @@ export interface DetectedTool {
 
 export interface PrivacyToolsStatus {
   tools: DetectedTool[];
-  /**
-   * Deprecated compatibility fields. They remain zero because Phantom Trail
-   * does not measure another extension's blocking behavior.
-   */
   overallEffectiveness: number;
   blockedTrackers: number;
   missedTrackers: number;
   measurementAvailable?: boolean;
   enabledToolCount?: number;
   observedSignals?: number;
+  permissionGranted: boolean;
   recommendations: string[];
 }
 
 export class PrivacyToolDetector {
+  private static readonly OPTIONAL_PERMISSION = 'management' as const;
   private static readonly KNOWN_TOOLS = [
     {
       name: 'uBlock Origin',
@@ -66,62 +60,89 @@ export class PrivacyToolDetector {
     },
   ];
 
+  static async hasDiscoveryPermission(): Promise<boolean> {
+    try {
+      return await chrome.permissions.contains({
+        permissions: [this.OPTIONAL_PERMISSION],
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  static async requestDiscoveryPermission(): Promise<boolean> {
+    try {
+      return await chrome.permissions.request({
+        permissions: [this.OPTIONAL_PERMISSION],
+      });
+    } catch (error) {
+      console.error('Failed to request optional extension discovery:', error);
+      return false;
+    }
+  }
+
+  static async revokeDiscoveryPermission(): Promise<boolean> {
+    try {
+      return await chrome.permissions.remove({
+        permissions: [this.OPTIONAL_PERMISSION],
+      });
+    } catch (error) {
+      console.error('Failed to revoke optional extension discovery:', error);
+      return false;
+    }
+  }
+
   static async detectInstalledTools(): Promise<DetectedTool[]> {
-    const tools: DetectedTool[] = [];
+    const permissionGranted = await this.hasDiscoveryPermission();
+    if (!permissionGranted) return [];
 
     try {
-      const extensions = (await chrome.management?.getAll?.()) || [];
-
-      for (const knownTool of this.KNOWN_TOOLS) {
+      const extensions = (await chrome.management.getAll()) || [];
+      return this.KNOWN_TOOLS.map(knownTool => {
         const detected = extensions.find(extension =>
           knownTool.patterns.some(pattern =>
             extension.name.toLowerCase().includes(pattern.toLowerCase())
           )
         );
 
-        tools.push({
+        return {
           name: knownTool.name,
           detected: Boolean(detected),
           enabled: detected?.enabled || false,
           effectiveness: 0,
           recommendation: detected?.enabled
             ? `${knownTool.name} is installed and enabled`
-            : `Review ${knownTool.name} as a possible privacy tool`,
+            : `Review ${knownTool.name} manually if it fits your needs`,
           installUrl: knownTool.installUrl,
-        });
-      }
-    } catch {
-      for (const knownTool of this.KNOWN_TOOLS) {
-        tools.push({
-          name: knownTool.name,
-          detected: false,
-          enabled: false,
-          effectiveness: 0,
-          recommendation: `Tool detection was unavailable; review ${knownTool.name} manually`,
-          installUrl: knownTool.installUrl,
-        });
-      }
+        };
+      });
+    } catch (error) {
+      console.error('Optional extension discovery failed:', error);
+      return [];
     }
-
-    return tools;
   }
 
   static async analyzeEffectiveness(
     tools: DetectedTool[],
     events: TrackingEvent[]
   ): Promise<PrivacyToolsStatus> {
+    const permissionGranted = await this.hasDiscoveryPermission();
     const enabledToolCount = tools.filter(tool => tool.enabled).length;
-    const recommendations: string[] = [
-      'Tool discovery confirms installation state only; blocking effectiveness is not measured.',
-    ];
+    const recommendations: string[] = permissionGranted
+      ? [
+          'Extension discovery confirms installation state only; blocking effectiveness is not measured.',
+        ]
+      : [
+          'Extension discovery is off. Grant the optional permission only when you want Phantom Trail to inspect installed extension names and enabled state.',
+        ];
 
-    if (enabledToolCount === 0) {
+    if (permissionGranted && enabledToolCount === 0) {
       recommendations.push(
         'No supported privacy extension was detected as enabled.'
       );
     }
 
-    if (events.length > 0) {
+    if (events.length > 0 && permissionGranted) {
       recommendations.push(
         'Recorded Phantom Trail signals do not prove that an installed privacy tool missed or failed to block them.'
       );
@@ -139,24 +160,28 @@ export class PrivacyToolDetector {
       measurementAvailable: false,
       enabledToolCount,
       observedSignals: events.length,
+      permissionGranted,
       recommendations,
     };
   }
 
   static getImprovementSuggestions(status: PrivacyToolsStatus): string[] {
+    if (!status.permissionGranted) {
+      return [
+        'Optional extension discovery is disabled; review privacy tools independently or grant access temporarily.',
+      ];
+    }
+
     const suggestions: string[] = [];
     const enabledTools = status.tools.filter(tool => tool.enabled);
-
     if (enabledTools.length === 0) {
       suggestions.push(
         'Review a reputable content blocker or your browser tracking-protection settings.'
       );
     }
-
     suggestions.push(
       'Verify protection using the privacy tool’s own logs rather than Phantom Trail estimates.'
     );
-
     return suggestions.slice(0, 3);
   }
 }
