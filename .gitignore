@@ -11,6 +11,9 @@ dist/
 build/
 *.zip
 
+# Generated evidence
+.artifacts/
+
 # Environment variables
 .env
 .env.local

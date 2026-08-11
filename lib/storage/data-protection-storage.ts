@@ -19,6 +19,13 @@ export interface StorageInventory {
   totalKnownBytes: number;
 }
 
+function isControlledBrowserShutdown(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /browser is shutting down|extension context (?:was )?invalidated/iu.test(
+    message
+  );
+}
+
 /**
  * Stores the active data-minimization policy separately from product settings.
  */
@@ -34,7 +41,9 @@ export class DataProtectionStorage {
       }
       return normalized;
     } catch (error) {
-      console.error('Failed to read data-protection settings:', error);
+      if (!isControlledBrowserShutdown(error)) {
+        console.error('Failed to read data-protection settings:', error);
+      }
       return { ...DEFAULT_DATA_PROTECTION_SETTINGS };
     }
   }

@@ -1,0 +1,131 @@
+name: Release Candidate Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Branch, tag, or commit to validate
+        required: true
+        default: main
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    name: Verify exact release candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out selected candidate
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.source_ref || github.sha }}
+
+      - name: Record exact candidate SHA
+        run: echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install stable Chrome for Testing
+        id: chrome
+        uses: browser-actions/setup-chrome@v2.1.2
+        with:
+          chrome-version: stable
+          install-dependencies: true
+
+      - name: Regenerate and verify dependency lock
+        run: |
+          pnpm install --lockfile-only --no-frozen-lockfile
+          if ! git diff --quiet -- pnpm-lock.yaml; then
+            echo "::error::pnpm-lock.yaml does not match package.json."
+            git --no-pager diff -- pnpm-lock.yaml
+            exit 1
+          fi
+
+      - name: Install dependencies from committed lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Create evidence directory
+        run: mkdir -p .artifacts
+
+      - name: Unit and contract tests
+        run: |
+          set -o pipefail
+          pnpm test | tee .artifacts/tests.tap
+
+      - name: Curated detector regression corpus
+        run: pnpm evidence:detectors
+
+      - name: Type-check
+        run: pnpm type-check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build and package Chrome extension
+        run: |
+          pnpm build
+          pnpm zip
+
+      - name: Security, performance, and dependency evidence
+        run: |
+          pnpm evidence:security
+          pnpm evidence:performance
+          pnpm evidence:dependencies
+
+      - name: Chromium lifecycle and accessibility contract
+        env:
+          CHROME_FOR_TESTING: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          cat > "$RUNNER_TEMP/chrome-release" <<'SH'
+          #!/usr/bin/env bash
+          exec "$CHROME_FOR_TESTING" --disable-component-extensions-with-background-pages "$@"
+          SH
+          chmod +x "$RUNNER_TEMP/chrome-release"
+          CHROME_BIN="$RUNNER_TEMP/chrome-release" xvfb-run -a pnpm evidence:browser
+
+      - name: Enforce automated and manual release gates
+        env:
+          SOURCE_SHA: ${{ env.SOURCE_SHA }}
+          REQUIRE_MANUAL_GATES: "1"
+        run: pnpm evidence:release
+
+      - name: Upload candidate diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: phantom-trail-release-diagnostics-${{ env.SOURCE_SHA }}
+          path: .artifacts
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload approved release candidate
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: phantom-trail-release-candidate-${{ env.SOURCE_SHA }}
+          path: |
+            .artifacts
+            .output/*chrome*.zip
+            .output/chrome-mv3
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

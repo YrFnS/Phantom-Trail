@@ -20,7 +20,7 @@ export class NetworkMonitor {
       details => {
         void this.processRequest(details as AttributableRequestDetails);
       },
-      { urls: ['<all_urls>'] }
+      { urls: ['http://*/*', 'https://*/*'] }
     );
 
     this.isInitialized = true;

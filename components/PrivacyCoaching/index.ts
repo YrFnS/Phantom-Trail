@@ -1,1 +1,0 @@
-export { PrivacyCoaching } from './PrivacyCoaching';

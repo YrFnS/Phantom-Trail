@@ -2,201 +2,244 @@
 
 > **Experimental prototype — version 0.1.0**
 >
-> Phantom Trail is under active remediation. It is not a production privacy
-> product, tracker blocker, security scanner, legal-compliance tool, or validated
-> privacy-rating service.
+> Phantom Trail is not a tracker blocker, security scanner, privacy
+> certification, legal-compliance tool, anonymity product, or production-ready
+> release.
 
-Phantom Trail is a Chrome extension prototype for recording and visualizing
-**possible web-tracking signals**. It combines request classification, in-page
-instrumentation, local history, heuristic scoring, optional OpenRouter event
-summaries, and an experimental peer-to-peer transport.
+Phantom Trail is a Manifest V3 Chrome extension prototype for inspecting
+**possible web-tracking signals**. It records bounded request and browser-API
+rule matches, separates visited-page and resource attribution, stores minimized
+local evidence, and exposes cautious local summaries.
 
-A detector signal can be a false positive or false negative. It means that a
-rule matched a request, hostname, URL pattern, or browser API operation. It does
-**not** by itself prove that a company collected, retained, shared, or sold data.
+A detector signal can be wrong. It does **not** prove that a company collected,
+retained, shared, sold, or intentionally used personal data.
 
-## Current implementation
+## Current product surface
 
-The repository currently contains:
+The current stacked P0–P5 implementation contains:
 
-- A WXT/Manifest V3 extension with a React popup and six main views.
-- A manually maintained catalog of **56 domain entries across five code
-  categories**.
-- Eleven in-page instrumentation signal types covering canvas, WebRTC, fonts,
-  audio, WebGL, storage, mouse, forms, device APIs, battery, and sensors.
-- Local event storage with a 1,000-record cap and cleanup code for events older
-  than 30 days.
-- A live signal feed, an inferred relationship graph, charts, and an
-  unvalidated A–F heuristic.
-- Manual CSV and JSON exports. The option historically called PDF produces a
-  plain-text `.txt` report and is labeled accordingly in the UI.
-- Optional OpenRouter event summaries, available only when the user explicitly
-  enables AI **and** stores an API key.
-- Experimental coaching, link-estimate, cross-device sync, and P2P modules.
-- Personal site annotations that do not change scores or suppress detection.
+- a WXT/React popup with **Feed, Map, Stats, Explore, Reports, and Peers** views;
+- a manually maintained catalog of **56 domains across five source categories**;
+- explicit page/resource attribution, first/third-party classification,
+  detector identity, evidence, and confidence;
+- duplicate aggregation with occurrence and first/last-seen timestamps;
+- origin-only event URL retention by default, with queries, fragments,
+  credentials, raw API arguments, and sensitive path details removed before
+  persistence;
+- a seven-day default event-retention policy and a 1,000-row cap;
+- an evidence index with a real **N/A / insufficient-evidence** state rather than
+  invented favorable defaults;
+- deterministic local Evidence Explorer queries;
+- explicit optional OpenRouter aggregate summaries using a separately stored
+  credential and bounded outbound payload;
+- local daily snapshots and weekly evidence aggregations;
+- optional, permission-gated evidence notifications;
+- manual CSV, JSON, and plain-text exports;
+- personal site annotations that do not alter detection or scores;
+- an optional experimental P2P aggregate-sample exchange with versioned consent;
+- an opt-in toolbar evidence badge; and
+- a visible typed-confirmation **Clear All Data** workflow.
 
-See [Project Status](docs/PROJECT_STATUS.md) for the capability matrix.
+See [Project Status](docs/PROJECT_STATUS.md) for the implementation matrix and
+phase boundaries.
 
-## P0 truthfulness changes
+## Removed or unavailable functionality
 
-The P0 branch removes or qualifies claims that were not supported by the
-implementation:
+P4 removed incomplete or misleading workflows rather than continuing to expose
+non-working controls:
 
-- Product status and version are aligned at experimental `0.1.0`.
-- Unsupported production-readiness, performance, compliance, detection-rate,
-  and release claims are removed.
-- The tracker catalog is described by its actual source count and categories.
-- Grades, trends, graph links, coaching output, and link estimates are labeled
-  as heuristic.
-- Synthetic category percentiles are hidden.
-- Fabricated blocker-effectiveness, blocked-request, peer-adoption, and peer
-  percentile metrics are removed.
-- Community samples are labeled unauthenticated and unrepresentative.
-- P2P, OpenRouter summaries, link estimates, and the toolbar badge default off.
-- A stored API key alone cannot authorize an OpenRouter request.
-- “Trusted sites” are converted to personal annotations and cannot boost a
-  score or suppress monitoring.
-- Incomplete scheduled export and automatic notification controls are hidden.
-- Data-flow and permission disclosures replace legal-compliance claims.
+- cross-device sync;
+- scheduled export;
+- email and cloud delivery;
+- background export shortcut;
+- generic AI chat or arbitrary-question routing;
+- link-destination prediction;
+- generated coaching goals; and
+- peer domain-reputation requests.
 
-These changes make the prototype more honest; they do **not** fix detector
-accuracy, attribution, or scoring methodology.
+The historical export path named `pdf` still produces a clearly labeled
+plain-text `.txt` file. Phantom Trail does not claim to generate PDF reports.
 
-## Important limitations
+## Detection and scoring limits
 
-### Detection and attribution
+### Detection
 
-The current event model does not reliably separate the visited page from every
-third-party resource it loads. Some request and API heuristics are broad. Normal
-canvas, WebRTC, form, storage, audio, WebGL, and other API use can trigger a
-signal.
+Network, DOM-resource, and selected browser-API rules can still produce false
+positives or false negatives. Page attribution, site-key classification,
+iframe context, CNAME cloaking, ownership, and tracker intent can remain
+ambiguous.
 
-### Scores and trends
+The tracker catalog is source data, not proof that every request to a listed
+root domain is tracking. P1 reduces broad matches and interaction-only signals,
+but does not establish real-world detector accuracy.
 
-Grades and trend values come from hand-written penalties applied to recorded
-events. They have not been calibrated against an independent dataset, audited
-methodology, or reproducible benchmark. Unknown or incomplete evidence is not
-yet modeled consistently.
+### Evidence index
 
-### Graph
+The index summarizes qualifying recorded evidence units. It uses detector,
+attribution, party, source, severity, and bounded recurrence factors.
 
-Graph nodes come from stored events. Edges are inferred from event URLs and are
-not proof of a data transfer, ownership relationship, or data-broker chain.
+- **N/A** means insufficient score-qualified evidence.
+- N/A is not favorable and does not show that tracking was absent.
+- An A band or green badge does not show that a site is safe or private.
+- The model has not been independently calibrated or validated as a privacy
+  rating.
 
-### AI and Q&A
+## Data and privacy
 
-OpenRouter receives sanitized event summaries only after explicit opt-in. The
-current model path summarizes recorded domains, counts, types, and labels; it
-does not provide dependable general-purpose Q&A or a verified website audit.
-Keyword-routed local analyzers handle some supported prompts.
+### Local storage
 
-### Community data
+Stored detector events can contain origins, domains, timestamps, attribution,
+request metadata, category/severity labels, and minimized detector evidence.
+Origins and timing can still reveal browsing patterns.
 
-The Trystero P2P layer is experimental. Peer identity and sample authenticity
-are not established. Connected peers and signaling/relay infrastructure may
-observe normal WebRTC connection metadata. Peer samples are not a population
-benchmark or reputation authority.
+Default event URL handling keeps origins only. The optional path mode retains a
+redacted pathname. Query strings, fragments, URL credentials, raw detector
+arguments, and identifier-like path segments are removed under the active
+policy.
 
-### Incomplete modules
+### OpenRouter
 
-Cross-device sync, automatic snapshots, automatic summaries, scheduled export,
-notifications, and several lifecycle integrations remain incomplete. Category
-comparison data in source is synthetic and is hidden from the dashboard.
+OpenRouter summaries are off by default and require:
 
-## Data and privacy disclosure
+1. explicit enablement;
+2. a configured credential; and
+3. a direct summary action.
 
-The extension currently requests broad permissions, including access to all
-sites, web requests, tabs, downloads, notifications, alarms, storage, and
-installed-extension metadata.
+The default outbound mode contains aggregate counts only. An optional mode can
+include up to five resource-domain labels. Page URLs, resource URLs, paths,
+queries, fragments, descriptions, detector-evidence strings, raw events,
+personal annotations, storage keys, and the credential are excluded.
 
-Recorded event objects are stored locally. Depending on the event source, a
-stored URL can contain a path, query string, or fragment. CSV and JSON exports
-can include those stored values, so exported files should be reviewed before
-sharing.
+### P2P
 
-Optional external flows are disabled by default:
+The experimental peer network is off by default. Connection and local aggregate
+sharing are separate choices under versioned consent. Peer identity, sample
+authenticity, representativeness, and reputation integrity are not established.
+WebRTC and supporting infrastructure can expose ordinary connection metadata.
 
-- **OpenRouter:** sanitized event summaries are sent only when AI is enabled and
-  an API key is present.
-- **P2P:** reduced aggregate fields may be shared after the user joins the
-  experimental network.
+Read [Privacy and Data Disclosure](docs/PRIVACY_POLICY.md) and
+[Threat Model](docs/THREAT-MODEL.md) before enabling optional external flows.
 
-Read [Privacy and Data Disclosure](docs/PRIVACY_POLICY.md) before installing or
-enabling optional network features.
+## Permissions
 
-## Installation
+Required install-time permissions:
 
-No release should currently be treated as production-ready.
+```text
+webRequest
+storage
+tabs
+alarms
+```
+
+Required host access:
+
+```text
+http://*/*
+https://*/*
+```
+
+Optional permissions, requested only through visible user actions:
+
+```text
+management
+notifications
+```
+
+HTTP(S) host access remains broad because continuous request attribution is a
+core part of the prototype. This increases the impact of extension defects.
+
+## Build from source
+
+Prerequisites:
+
+- Node.js 22;
+- `pnpm` at the version pinned in `package.json`; and
+- a current supported Chrome or Chromium-based browser.
 
 ```bash
 git clone https://github.com/YrFnS/Phantom-Trail.git
 cd Phantom-Trail
 pnpm install --frozen-lockfile
+pnpm test
+pnpm evidence:detectors
 pnpm type-check
 pnpm lint
 pnpm build
+pnpm zip
+pnpm evidence:security
+pnpm evidence:performance
 ```
 
-Then:
+Then load `.output/chrome-mv3` from `chrome://extensions/` using **Load
+unpacked**. Detailed instructions are in [INSTALL.md](INSTALL.md).
 
-1. Open `chrome://extensions/`.
-2. Enable **Developer mode**.
-3. Select **Load unpacked**.
-4. Choose `.output/chrome-mv3`.
+## P5 evidence and release discipline
 
-Detailed steps and disclosures are in [INSTALL.md](INSTALL.md).
+P5 adds machine-readable regression evidence for:
 
-## Automated validation
+- the curated detector corpus and catalog drift;
+- unit and contract tests;
+- exact-head build and package integrity;
+- source/package security invariants;
+- production dependency advisories and inventory;
+- deterministic package-size and throughput budgets;
+- an isolated Chrome lifecycle and popup accessibility contract; and
+- commit-bound artifact hashes and release evidence.
 
-`.github/workflows/validate.yml` currently checks:
+These checks are bounded regression gates. They are **not** real-world detection
+accuracy, WCAG certification, penetration testing, production performance,
+privacy protection, or legal compliance.
 
-- lockfile consistency;
-- dependency installation from the committed lockfile;
-- TypeScript type checking;
-- ESLint;
-- the production Chrome build;
-- generated manifest name and version;
-- ZIP creation; and
-- upload of the unpacked build and ZIP as a workflow artifact.
+A stable release remains blocked by the human and independent gates in:
 
-That gate proves only that the repository installs and builds under the workflow
-environment. The repository still lacks a complete unit-test suite, detector
-accuracy fixtures, browser integration tests, runtime permission tests,
-performance benchmarks, and independent security/privacy review.
+- [P5 Evidence and Release Discipline](docs/P5-EVIDENCE-AND-RELEASE.md)
+- [Release Checklist](docs/RELEASE-CHECKLIST.md)
+- `release/manual-gates.v1.json`
 
 ## Development commands
 
 ```bash
 pnpm dev
-pnpm build
-pnpm zip
+pnpm test
+pnpm evidence:detectors
 pnpm type-check
 pnpm lint
-pnpm lint:fix
-pnpm format
+pnpm build
+pnpm zip
+pnpm evidence:security
+pnpm evidence:performance
+pnpm evidence:dependencies
+pnpm evidence:browser
+pnpm evidence:release
 pnpm validate
 ```
 
-## Remediation roadmap
+## Phase status
 
-- **P0 — Truthfulness baseline:** truthful copy, metadata, defaults,
-  disclosures, capability matrix, and a deterministic build gate.
-- **P1 — Detection and attribution:** distinguish page and resource domains,
-  reduce false positives, attach evidence/confidence, and improve deduplication.
-- **P2 — Scoring:** add an explicit unknown state and create a reproducible,
-  evidence-based scoring method.
-- **P3 — Data protection:** minimize permissions and stored URLs, tighten
-  optional sharing, and test retention/deletion behavior.
-- **P4 — Feature completion:** finish or remove incomplete sync, reporting,
-  notifications, scheduled export, AI, prediction, and community workflows.
-- **P5 — Evidence:** add unit/browser tests, labeled accuracy fixtures,
-  performance benchmarks, release gates, and independent review.
+- **P0 — Truthfulness:** implementation complete on its draft branch; public
+  publication and human/external-copy gates remain.
+- **P1 — Detection and attribution:** implementation complete on its stacked
+  draft branch.
+- **P2 — Evidence scoring:** implementation complete on its stacked draft branch.
+- **P3 — Data protection:** implementation complete on its stacked draft branch.
+- **P4 — Functionality integrity:** implementation complete on its stacked draft
+  branch.
+- **P5 — Evidence and release discipline:** implementation and automated evidence
+  are developed on the current stacked draft branch; stable release remains
+  blocked until all required gates pass.
 
-## Contributing
+No phase may be treated as publicly released while the default branch and
+external distribution surfaces still contain older claims or artifacts.
 
-Keep product claims tied to reproducible evidence. New capabilities should be
-labeled experimental until tests, runtime validation, and documentation support
-them.
+## Security and reporting
+
+Review [SECURITY.md](SECURITY.md) before reporting a sensitive issue. Do not
+include credentials, private browsing data, or a public weaponized proof of
+concept.
+
+For ordinary defects, open a repository issue with the exact commit, Chrome
+version, reproduction steps, expected/actual behavior, console errors, and the
+state of optional AI, P2P, notification, management, and badge features.
 
 ## License
 

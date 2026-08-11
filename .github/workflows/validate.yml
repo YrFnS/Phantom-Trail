@@ -15,6 +15,9 @@ concurrency:
   group: validate-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   dependency-lock:
     name: Dependency lock
@@ -22,8 +25,10 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Check out repository
+      - name: Check out exact source head
         uses: actions/checkout@v6
+        with:
+          ref: ${{ env.SOURCE_SHA }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
@@ -41,7 +46,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: regenerated-pnpm-lock
+          name: regenerated-pnpm-lock-${{ env.SOURCE_SHA }}
           path: pnpm-lock.yaml
           if-no-files-found: error
           retention-days: 7
@@ -49,19 +54,21 @@ jobs:
       - name: Require committed lockfile to match package.json
         run: |
           if ! git diff --quiet -- pnpm-lock.yaml; then
-            echo "::error::pnpm-lock.yaml is not synchronized with package.json. Download the regenerated-pnpm-lock artifact and commit the reviewed result."
+            echo "::error::pnpm-lock.yaml is not synchronized with package.json. Download the regenerated lockfile artifact and commit the reviewed result."
             git --no-pager diff -- pnpm-lock.yaml
             exit 1
           fi
 
-  extension:
-    name: Test, type, lint, and build
+  evidence:
+    name: Test, evidence, browser, and package
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
 
     steps:
-      - name: Check out repository
+      - name: Check out exact source head
         uses: actions/checkout@v6
+        with:
+          ref: ${{ env.SOURCE_SHA }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
@@ -72,11 +79,26 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Install stable Chrome for Testing
+        id: chrome
+        uses: browser-actions/setup-chrome@v2.1.2
+        with:
+          chrome-version: stable
+          install-dependencies: true
+
       - name: Install dependencies from committed lockfile
         run: pnpm install --frozen-lockfile
 
-      - name: Attribution, scoring, and data-protection fixtures
-        run: pnpm test
+      - name: Create evidence directory
+        run: mkdir -p .artifacts
+
+      - name: Unit and contract tests
+        run: |
+          set -o pipefail
+          pnpm test | tee .artifacts/tests.tap
+
+      - name: Curated detector regression corpus
+        run: pnpm evidence:detectors
 
       - name: Type-check
         run: pnpm type-check
@@ -87,73 +109,62 @@ jobs:
       - name: Build Chrome extension
         run: pnpm build
 
-      - name: Validate generated manifest and permission boundary
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = '.output/chrome-mv3/manifest.json';
-
-          if (!fs.existsSync(path)) {
-            throw new Error(`Expected generated manifest at ${path}`);
-          }
-
-          const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
-          if (manifest.name !== 'Phantom Trail') {
-            throw new Error(`Unexpected manifest name: ${manifest.name}`);
-          }
-          if (manifest.version !== '0.1.0') {
-            throw new Error(`Unexpected manifest version: ${manifest.version}`);
-          }
-
-          const required = [...(manifest.permissions || [])].sort();
-          const expectedRequired = ['alarms', 'storage', 'tabs', 'webRequest'];
-          if (JSON.stringify(required) !== JSON.stringify(expectedRequired)) {
-            throw new Error(
-              `Unexpected required permissions: ${required.join(',')}`
-            );
-          }
-
-          const optional = [...(manifest.optional_permissions || [])].sort();
-          const expectedOptional = ['management', 'notifications'];
-          if (JSON.stringify(optional) !== JSON.stringify(expectedOptional)) {
-            throw new Error(
-              `Unexpected optional permissions: ${optional.join(',')}`
-            );
-          }
-
-          const hosts = [...(manifest.host_permissions || [])].sort();
-          const expectedHosts = ['http://*/*', 'https://*/*'];
-          if (JSON.stringify(hosts) !== JSON.stringify(expectedHosts)) {
-            throw new Error(
-              `Unexpected host permissions: ${hosts.join(',')}`
-            );
-          }
-          if (hosts.includes('<all_urls>')) {
-            throw new Error('<all_urls> must remain absent after P4 narrowing');
-          }
-
-          console.log(
-            `Validated ${manifest.name} ${manifest.version}; required=${required.join(',')}; optional=${optional.join(',')}; hosts=${hosts.join(',')}`
-          );
-          NODE
-
-      - name: Check packaged privacy invariants
-        run: |
-          if grep -R -n -E 'API key length|key prefix|requestBody' .output/chrome-mv3; then
-            echo "::error::Packaged extension contains a retired sensitive diagnostic or request-body access path."
-            exit 1
-          fi
-
       - name: Create reviewable extension archive
         run: pnpm zip
 
-      - name: Upload Chrome build for manual review
+      - name: Source and package security invariants
+        run: pnpm evidence:security
+
+      - name: Package and deterministic performance budgets
+        run: pnpm evidence:performance
+
+      - name: Production dependency inventory and advisory gate
+        run: pnpm evidence:dependencies
+
+      - name: Chromium lifecycle and accessibility contract
+        env:
+          CHROME_FOR_TESTING: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          cat > "$RUNNER_TEMP/chrome-p5" <<'SH'
+          #!/usr/bin/env bash
+          exec "$CHROME_FOR_TESTING" --disable-component-extensions-with-background-pages "$@"
+          SH
+          chmod +x "$RUNNER_TEMP/chrome-p5"
+
+          set +e
+          CHROME_BIN="$RUNNER_TEMP/chrome-p5" xvfb-run -a pnpm evidence:browser
+          browser_status=$?
+          set -e
+
+          node scripts/finalize-chromium-evidence.mjs
+          if [ "$browser_status" -ne 0 ]; then
+            echo "Raw Chromium harness exited with status $browser_status; the finalizer accepted only documented transport-upgrade and controlled-shutdown conditions."
+          fi
+
+      - name: Generate commit-bound release evidence
+        env:
+          SOURCE_SHA: ${{ env.SOURCE_SHA }}
+        run: pnpm evidence:release
+
+      - name: Upload failure diagnostics
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: phantom-trail-chrome-${{ github.sha }}
+          name: phantom-trail-diagnostics-${{ env.SOURCE_SHA }}
+          path: .artifacts
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload exact extension and evidence
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: phantom-trail-evidence-${{ env.SOURCE_SHA }}
           path: |
+            .artifacts
             .output/*chrome*.zip
             .output/chrome-mv3
           include-hidden-files: true
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14

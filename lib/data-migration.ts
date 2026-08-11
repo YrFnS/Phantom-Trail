@@ -3,6 +3,13 @@ import { SettingsStorage } from './storage/settings-storage';
 import { DataProtectionStorage } from './storage/data-protection-storage';
 import { EventsStorage } from './storage/events-storage';
 
+function isControlledBrowserShutdown(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /browser is shutting down|extension context (?:was )?invalidated/iu.test(
+    message
+  );
+}
+
 /**
  * Versioned compatibility and minimization migrations.
  */
@@ -37,7 +44,9 @@ export class DataMigration {
         `[Phantom Trail] Migration completed; ${eventResult.changedRows} event rows minimized and ${eventResult.removedByRetention} expired rows removed`
       );
     } catch (error) {
-      console.error('[Phantom Trail] Local data migration failed:', error);
+      if (!isControlledBrowserShutdown(error)) {
+        console.error('[Phantom Trail] Local data migration failed:', error);
+      }
       // The extension remains usable with in-memory defaults if migration fails.
     }
   }
@@ -47,7 +56,9 @@ export class DataMigration {
       const result = await chrome.storage.local.get(this.MIGRATION_VERSION_KEY);
       return result[this.MIGRATION_VERSION_KEY] || '0.0.0';
     } catch (error) {
-      console.error('Failed to get migration version:', error);
+      if (!isControlledBrowserShutdown(error)) {
+        console.error('Failed to get migration version:', error);
+      }
       return '0.0.0';
     }
   }

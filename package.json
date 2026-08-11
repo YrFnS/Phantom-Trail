@@ -15,7 +15,14 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,mts,mtsx,js,jsx,json,md}\"",
-    "validate": "pnpm test && pnpm type-check && pnpm lint && pnpm build",
+    "evidence:detectors": "node --experimental-strip-types scripts/evaluate-detectors.mts",
+    "evidence:security": "node scripts/security-gate.mjs",
+    "evidence:performance": "node --experimental-strip-types scripts/performance-gate.mts",
+    "evidence:browser": "node scripts/chromium-lifecycle.mjs",
+    "evidence:dependencies": "node scripts/dependency-audit.mjs",
+    "evidence:release": "node scripts/release-evidence.mjs",
+    "validate": "pnpm test && pnpm evidence:detectors && pnpm type-check && pnpm lint && pnpm build && pnpm zip && pnpm evidence:security && pnpm evidence:performance",
+    "release:verify": "pnpm validate && pnpm evidence:dependencies",
     "fix-deps": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\fix-dependencies.ps1"
   },
   "repository": {
@@ -45,10 +52,8 @@
     "react": "^19.2.3",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.3",
-    "tailwindcss": "^3.4.0",
     "trystero": "^0.22.0",
     "vis-network": "^9.1.9",
-    "wxt": "^0.20.13",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
@@ -66,6 +71,8 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "prettier": "^3.4.2",
     "sharp": "^0.34.5",
-    "typescript": "^5.9.3"
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.9.3",
+    "wxt": "^0.20.13"
   }
 }

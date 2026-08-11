@@ -1,191 +1,201 @@
 # Phantom Trail Project Status
 
 **Version:** 0.1.0  
-**Assessment date:** August 10, 2026  
-**Release posture:** Experimental prototype  
-**P0 status:** In progress pending final human, authenticated external-copy, and publication gates
+**Assessment date:** August 11, 2026  
+**Release posture:** Experimental prototype; stable release blocked  
+**Default-branch publication:** P0 gate still incomplete  
+**Current implementation branch:** `agent/p5-evidence-release-discipline`
 
-This matrix separates source presence from validated product behavior.
-“Implemented” means code exists for the stated narrow behavior; it does not mean
-the capability is accurate, complete, secure, or production-ready.
+This document distinguishes source implementation, automated regression
+evidence, human review, public integration, and production readiness.
+
+“Implemented” means that code exists for a narrow stated behavior. It does not
+mean the behavior is accurate, secure, private, accessible, legally compliant,
+or production-ready.
+
+## Branch and phase stack
+
+```text
+PR #1  P0 truthfulness baseline             draft
+  └── PR #2  P1 detection attribution       draft
+        └── PR #3  P2 evidence scoring      draft
+              └── PR #4  P3 data protection draft
+                    └── PR #5  P4 integrity draft
+                          └── PR #6  P5 evidence/release draft
+```
+
+Nothing in this stack is authorized for independent merge out of dependency
+order. The public default branch is not corrected until the reviewed P0–P5 stack
+is deliberately integrated and verified.
 
 ## Capability matrix
 
-| Capability | Status | Current reality |
+| Capability | Current status | Current reality |
 | --- | --- | --- |
-| Extension shell | Implemented | WXT/Manifest V3 extension with a React popup and six main views. |
-| Request observation | Partial | `webRequest` events are observed, but page attribution and third-party-resource attribution are not modeled reliably. Non-HTTP(S) extension resources are excluded from stored network events. |
-| Tracker catalog | Implemented data / experimental detection | 56 manually listed domain entries across analytics, advertising, social, fingerprinting, and cryptomining categories. Broad path/query rules can create false positives. |
-| In-page instrumentation | Experimental | Eleven signal types are instrumented. Normal browser API use can trigger them; a signal is not proof of tracking. |
-| Event storage | Implemented | Local event storage, a 1,000-record cap, and cleanup code for records older than 30 days. Stored URLs are not minimized before storage. |
-| Signal feed | Implemented | Displays recorded event objects with explicit evidence limitations. Accuracy depends on detector quality. |
-| Relationship graph | Partial | Visualizes links inferred from stored event URLs. It is not a verified data-flow or ownership map. |
-| Heuristic score | Experimental / unvalidated | Hand-written penalties produce A–F labels. No independent calibration, benchmark, or consistent unknown state. |
-| Toolbar badge | Partial / opt-in | Can display the heuristic grade or score. It defaults off, is labeled non-authoritative, and run #131 verified that disabling clears existing per-tab text. |
-| OpenRouter event summary | Partial / opt-in | Requires both an explicit AI toggle and a stored API key. Summarizes sanitized recent-event data. Live provider behavior was not exercised in P0. |
-| Signal Q&A | Partial | Keyword-routed local analyzers exist. The general OpenRouter path summarizes events rather than reliably answering the question wording. |
-| Coaching and goals | Prototype | Generates goals, history, and suggestions from heuristic event data. UI copy states that these are not behavior or safety measurements. |
-| Privacy-tool discovery | Partial | Supported extension names and enabled state can be read through `management`; actual blocked requests and effectiveness are not measured. |
-| Notifications | Hidden / incomplete | Utility code exists, but detector wiring and daily summary execution are incomplete. P0 hides automatic-alert controls. |
-| Trends and reports | Partial | Calculation and storage modules exist; automatic daily snapshot and summary alarms remain incomplete. Visible data is labeled heuristic. |
-| CSV/JSON export | Implemented | Raw stored events can be exported, including stored URL fields. UI warns users to review files before sharing. |
-| PDF export | Not implemented as PDF | The legacy `pdf` code path generates a plain-text `.txt` report and is labeled as such. |
-| Scheduled export | Hidden / incomplete | Scheduler code exists, but alarm routing, date-range behavior, and delivery options are incomplete. P0 hides the controls. |
-| Personal site annotations | Implemented | Users can save domain labels and notes. They cannot boost a score, suppress monitoring, inherit to subdomains, or establish safety. |
-| Cross-device sync | Experimental / incomplete | Chrome sync code exists with known storage-key, data-shape, conflict, and application inconsistencies. |
-| Link estimates | Experimental / opt-in | Uses URL/hostname rules and prior recorded events. Defaults off and is explicitly not a destination audit. |
-| P2P transport | Experimental / opt-in | Run #131 verified initialization and join/leave state after fixing Trystero action names. No successful peer exchange or authenticity property is claimed. |
-| Community benchmarks | Not established | Fabricated adoption percentages, percentiles, and hard-coded distributions are removed. Received samples remain unverified. |
-| Category comparison | Hidden synthetic prototype | Category averages and distributions are hard-coded and not sourced from a documented dataset. The dashboard does not present them as benchmarks. |
-| GDPR/CCPA compliance | Not assessed | Retention and deletion-related code exists, but no legal or independent compliance review has occurred. |
-| Security review | Not completed | No independent extension-security audit or permission-minimization gate. |
-| Performance targets | Unverified | CPU, memory, bundle, and page-load claims have not been reproduced through a documented benchmark. |
-| Build CI | Established | `validate.yml` checks lockfile consistency, install, type-check, lint, production build, manifest metadata, ZIP creation, and artifact upload. |
-| Runtime smoke evidence | Established / bounded | The exact run #131 artifact completed an isolated Chromium fixture with zero detected defects and zero runtime errors. This is not an accuracy, security, performance, or privacy benchmark. |
-| Public repository copy | Blocking until publication | The public default branch remains `main` and still serves retired README, installation, privacy, version, and licensing claims. The truthful P0 copy is not the public default until reviewed and published. |
-| External listings | Partially audited / unproven | Public exact-name searches found no matching store, demo, submission, or video result, but authenticated release/store/submission surfaces still require owner review. |
-| Behavioral test suite | Not established | No complete unit, detector-accuracy, browser integration, runtime permission, performance, or privacy regression suite. |
+| Extension shell | Implemented | WXT/Manifest V3 extension with a React popup and six views: Feed, Map, Stats, Explore, Reports, and Peers. |
+| Request observation | Implemented with attribution limits | Observes HTTP(S) request metadata through `webRequest`; does not request bodies. Stores explicit page/resource, tab/frame, request type/method, initiator, party, evidence, and confidence where available. Browser metadata can still be absent or wrong. |
+| Tracker catalog | Implemented source data / unvalidated coverage | 56 manually maintained domain entries across Analytics, Advertising, Social Media, Fingerprinting, and Cryptomining. A catalog match is not proof of tracking or ownership. |
+| URL/path rules | Experimental | Exact/subdomain catalog matches are high-confidence rule matches; bounded path and standalone hostname-token rules remain low-confidence. Real-site false-positive and false-negative rates are not established. |
+| In-page instrumentation | Experimental | Selected browser API operations are counted and thresholded. Normal API use can trigger signals. Mouse movement and form-input interaction-only storage paths were removed. |
+| Event attribution | Implemented / incomplete | Separates visited page and resource context and records attribution/party basis and confidence. Site-key logic is approximate; CNAME cloaking, iframe ambiguity, redirects, and missing initiators remain limitations. |
+| Event aggregation | Implemented | Equivalent short-window events aggregate into one row while retaining occurrence count and first/last-seen timestamps. The same resource on different pages remains separate. |
+| Event storage | Implemented with P3 minimization | Origin-only URL retention by default, optional redacted pathname mode, seven-day default retention, and 1,000-row cap. Origins/domains/timestamps can still reveal browsing patterns. |
+| Signal feed | Implemented | Displays stored rule evidence, page→resource attribution, confidence, party classification, and occurrence counts with uncertainty language. |
+| Relationship map | Implemented as inference | Visualizes inferred page/resource relationships from stored events. It is not a verified data-flow, ownership, or broker map. |
+| Evidence index | Implemented experimental model | Uses score-qualified evidence units, confidence factors, distinct parties, and bounded recurrence. Empty/weak evidence returns N/A rather than a favorable default. It is not an independently validated privacy rating. |
+| Toolbar badge | Implemented / opt-in | Displays the same experimental N/A or estimated state; off by default. Green/A does not mean safe or private. |
+| Local Evidence Explorer | Implemented | Supports deterministic local questions about stored signals, patterns, current-page evidence, timelines, domains, and score breakdowns. Unsupported prompts return bounded guidance. |
+| OpenRouter aggregate summary | Implemented / opt-in / provider-unverified | Separate explicit action requiring enablement and credential. Uses the canonical bounded aggregate payload. Live provider routing, retention, account, cost, and response quality remain outside default automation. |
+| OpenRouter credential handling | Implemented | Separate credential storage; session/memory by default, persistent only after explicit remember choice. Credential is excluded from prompts, exports, peer payloads, and evidence manifests by policy and regression checks. |
+| Daily snapshots | Implemented | Local date-keyed evidence snapshot generated manually and by alarm; preserves N/A. |
+| Weekly reports | Implemented | Local week-keyed aggregation generated manually and by alarm; preserves nullable evidence state. Not a verified privacy trend. |
+| Evidence notifications | Implemented / optional | Optional permission plus separate enablement. Qualifying high/critical evidence alerts and daily local summaries are throttled and respect quiet hours. OS delivery still requires human/platform review. |
+| CSV/JSON export | Implemented | Exports minimized attributed evidence and formula disclosures. Files can reveal browsing patterns. |
+| Text report | Implemented | Legacy source identifier `pdf` generates a labeled plain-text `.txt` report, not PDF. |
+| Scheduled/email/cloud export | Removed | Incomplete scheduler, email/cloud placeholders, and background export command were removed in P4. |
+| Personal site annotations | Implemented | Local user annotations only. They cannot alter score, suppress evidence, verify safety, or imply reputation. |
+| Privacy-tool discovery | Implemented / optional | Optional `management` permission can show recognized installed extension names and enabled state. It cannot measure blocking effectiveness. |
+| Cross-device feature sync | Removed | Obsolete/incomplete sync manager, UI, storage adapter, and claims were removed in P4. |
+| Link destination prediction | Removed | URL-pattern hover score and tooltip were removed in P4. |
+| Generated coaching goals | Removed | Coach/journey engines and generated goal UI were removed; the current Reports view replaces that product surface. |
+| P2P transport | Experimental / opt-in | Versioned consent, separate connection/sharing choices, and validated aggregate sample shape. Peer identity, authenticity, representativeness, and reputation integrity are not established. |
+| Peer domain reputation | Removed | Domain-label reputation request/response behavior was removed in P3/P4. |
+| Clear All Data | Implemented | Typed confirmation clears extension-controlled local/session/sync storage, alarms, badge state, active peer session, and supported optional permissions. Cannot recall exports or externally processed data. |
+| Required permissions | Implemented boundary | `webRequest`, `storage`, `tabs`, and `alarms`; HTTP(S) host access only. Broad HTTP(S) access remains a material prototype risk. |
+| Optional permissions | Implemented boundary | `management` and `notifications`; neither is granted or enabled by default. |
+| Build CI | Implemented | Exact source-head checkout, frozen install, lockfile equality, tests, type-check, lint, build, ZIP, and evidence artifacts. |
+| Curated detector evidence | Implemented P5 gate | Versioned corpus, generated exact/subdomain coverage for the source catalog, reviewed explicit negative/storage cases, confusion matrix, and machine-readable report. It is regression evidence—not real-web accuracy. |
+| Security gate | Implemented P5 gate | Checks source/package invariants, permission boundary, remote executable code, request-body paths, credential diagnostics, outbound calls, retired features, and stale tests. Not an independent audit. |
+| Dependency gate | Implemented P5 gate | Production dependency inventory and registry advisory audit. Advisory data is time-dependent and incomplete. |
+| Performance gate | Implemented P5 gate | Package-size and deterministic matcher/evidence-qualification/sanitization ceilings plus isolated browser timing ceilings. Not real-device or real-site performance validation. |
+| Accessibility gate | Implemented bounded P5 contract | Popup language, accessible names, labels, duplicate IDs, landmarks, focusability, and Chrome accessibility-tree checks. Not WCAG certification or assistive-technology review. |
+| Browser lifecycle gate | Implemented P5 harness | Isolated Chrome for Testing fixture covers worker startup, attribution/storage, popup, alarms, timing, and browser-restart local/session behavior. Not multi-day or full-platform QA. |
+| Release evidence | Implemented P5 generator | Records exact commit, versions, tests, reports, dependency status, manifest, unpacked tree hash, ZIP SHA-256, and unresolved manual gates. Stable release remains blocked. |
+| GDPR/CCPA/WCAG compliance | Not assessed | No legal or independent compliance review. No compliance claim is authorized. |
+| Production readiness | Not established | Independent security/privacy review, human accessibility, real-site accuracy, long-duration lifecycle, provider review, external-copy audit, public integration, and owner approval remain incomplete. |
 
 ## P0 — Truthfulness baseline
 
-P0 prevents documentation and visible UI from presenting assumptions, generated
-values, or incomplete modules as measured product facts.
+**Implementation:** Complete on `agent/p0-truthfulness-baseline`.  
+**PR:** #1 remains draft.  
+**Closure:** Blocked.
 
-### Implemented in this branch
+P0 corrected product status, version/license, tracker count, unsupported
+compliance/performance/accuracy claims, fabricated blocker/peer metrics, defaults,
+visible wording, and documentation. It established deterministic build evidence
+and bounded Chromium runtime evidence.
 
-- Align package and manifest versions at `0.1.0`.
-- Align package and repository licensing on MIT.
-- Replace the marketing README with an experimental-product disclosure.
-- Remove unsupported production, performance, compliance, detection-rate, and
-  release-readiness claims.
-- Replace “62+ across eight categories” with the actual 56-entry,
-  five-category source count.
-- Replace prebuilt-release instructions with source-build instructions.
-- Add an implementation-based privacy and data-flow disclosure.
-- Remove fabricated blocker effectiveness, blocked-request, and missed-request
-  metrics.
-- Remove fabricated peer adoption rates, percentile claims, and hard-coded
-  community distributions.
-- Aggregate displayed community values only from valid samples received during
-  the current session.
-- Label peer identity and samples unauthenticated and unrepresentative.
-- Make P2P, OpenRouter summaries, link estimates, and the toolbar badge default
-  off.
-- Require both explicit AI enablement and an API key before an OpenRouter call.
-- Label feed entries, graph links, grades, trends, coaching, recommendations,
-  and link estimates as heuristic or generated.
-- Hide synthetic category comparison from the dashboard.
-- Convert trusted-site behavior into neutral personal annotations.
-- Prevent personal annotations from changing scores or suppressing detector
-  output.
-- Disable automatic reputation suggestions based on hard-coded “reputable”
-  domains.
-- Hide incomplete automatic notification and scheduled-export controls.
-- Disclose that CSV/JSON exports can include full stored URLs and that the
-  legacy report path creates text rather than PDF.
-- Exclude non-HTTP(S) extension assets from network-event storage.
-- Replace certainty-heavy network-event descriptions with evidence-bounded URL
-  and hostname rule-match descriptions.
-- Fix P2P initialization by keeping Trystero action names within its 12-byte
-  limit and surface initialization failure instead of remaining indefinitely at
-  “Connecting”.
-- Clear global and per-tab action badges when the badge feature is disabled.
-- Add a deterministic GitHub Actions build gate in
-  `.github/workflows/validate.yml`.
-- Remove temporary duplicate and self-modifying workflows so CI remains
-  read-only and deterministic.
-- Record exact-artifact Chromium evidence in
-  [P0-RUNTIME-EVIDENCE.md](P0-RUNTIME-EVIDENCE.md).
-- Audit the public repository and public discovery surfaces in
-  [P0-EXTERNAL-COPY-AUDIT.md](P0-EXTERNAL-COPY-AUDIT.md).
+P0 remains open because the default branch and authenticated external surfaces
+have not completed their human review, publication, and post-publication audit.
 
-### Evidence available
+## P1 — Detection and attribution
 
-Validate run #131 passed on tested head
-`838d036752d558e02b9fad084c6a8952c5b19297` and produced artifact
-`9076926716`.
+**Implementation:** Complete on `agent/p1-detection-attribution`.  
+**PR:** #2 remains stacked and draft.
 
-The exact unpacked artifact was loaded in an isolated Chromium profile and
-exercised with a deterministic local fixture. The run verified:
+P1 introduced event schema v2, page/resource separation, browser metadata,
+party/attribution basis and confidence, detector evidence, storage migration,
+deduplication, false-positive controls, and attribution-aware consumers and
+exports.
 
-- service-worker startup and generated manifest metadata;
-- content-script and main-world signal capture;
-- request observation and local event storage;
-- zero unqualified network “detected” descriptions;
-- zero self-events from `chrome-extension://` assets;
-- all six packaged popup views and relevant settings screens;
-- conservative feature defaults;
-- local AI-off query behavior and AI consent persistence;
-- personal site annotation storage;
-- badge off/on/off behavior;
-- P2P initialization and join/leave lifecycle;
-- CSV, JSON, and plain-text downloads; and
-- policy restoration after the isolated run.
+Known limits include approximate site-key logic, missing browser context,
+iframes, redirects, CNAME cloaking, catalog ownership, and remaining heuristic
+false positives/negatives.
 
-The fixture completed with zero detected defects and zero runtime errors. See
-[P0 Runtime Evidence](P0-RUNTIME-EVIDENCE.md) for the scope and limitations.
+## P2 — Evidence-based scoring
 
-The external-copy audit verified that the public default branch still exposes
-the older README, installation guide, privacy policy, package version,
-description, and license metadata. Public searches did not identify a matching
-Chrome Web Store, demo, submission, or video result, but search absence is not
-proof of nonexistence. See
-[P0 External-Copy Audit](P0-EXTERNAL-COPY-AUDIT.md).
+**Implementation:** Complete on `agent/p2-evidence-based-scoring`.  
+**PR:** #3 remains stacked and draft.
 
-This evidence does not validate detector accuracy, score quality, website
-privacy, performance, security, legal compliance, live OpenRouter behavior, or
-a real peer-to-peer sample exchange.
+P2 added a true insufficient-evidence/N/A state, published evidence-unit formula,
+confidence weighting, bounded recurrence, explicit exclusions, and nullable
+score handling across badge, reports, trends, comparisons, exports, AI, and P2P.
 
-### Still required before P0 can be closed
+The formula remains experimental and independently uncalibrated.
 
-- Require the validation workflow to pass on the final P0 documentation head.
-- Complete a human review of the actual toolbar browser-action popup in a normal,
-  unmanaged Chrome installation.
-- Human-review the captured views and real-event wording rather than relying
-  only on automation.
-- Inspect GitHub Releases, Tags, and assets while authenticated and correct or
-  withdraw any stale `1.0.0` object or production-ready copy.
-- Inspect Chrome Web Store drafts/listings, demos, submissions, videos, shared
-  downloads, and other known owner-controlled surfaces.
-- Decide whether live OpenRouter verification belongs in P0 or should remain a
-  later feature-completion gate.
-- Decide whether to add a visible clear-data workflow or continue documenting
-  uninstall as the most complete current deletion path.
-- After human approval, publish the reviewed P0 copy to the default branch and
-  verify it again as an unauthenticated visitor.
-- Record final human, authenticated external-copy, and post-publication findings
-  in pull request #1.
+## P3 — Data protection
 
-P0 must remain open and the pull request must remain draft until these human,
-authenticated external-copy, and publication gates are complete. P0 cannot close
-while the public default branch serves the retired claims.
+**Implementation:** Complete on `agent/p3-data-protection`.  
+**PR:** #4 remains stacked and draft.
 
-## Next phases
+P3 added pre-persistence URL/text minimization, origin-only default, shorter
+retention, credential separation, outbound previews, versioned P2P consent,
+permission minimization, storage inventory, complete deletion, fixtures, package
+checks, and exact-artifact Chromium evidence.
 
-### P1 — Detection and attribution
+Minimization does not provide anonymity or secure a compromised profile.
 
-Create an event model that distinguishes page URL/domain, resource URL/domain,
-initiator, tab, request type, first/third-party state, detector, evidence, and
-confidence. Build false-positive fixtures before expanding the catalog.
+## P4 — Functionality integrity
 
-### P2 — Scoring
+**Implementation:** Complete on `agent/p4-functionality-integrity`.  
+**PR:** #5 remains stacked and draft.
 
-Introduce an explicit unknown/insufficient-evidence state, score unique parties
-rather than raw request volume, publish the formula, and validate it against
-labeled cases.
+P4 finished the local Evidence Explorer, explicit aggregate OpenRouter action,
+daily/weekly reports, optional notifications, and truthful keyboard commands.
+It removed incomplete sync, scheduled export, background export, generic AI chat,
+link prediction, generated coaching, and peer domain reputation.
 
-### P3 — Data protection
+Live provider behavior, OS notification delivery, and long-duration alarm
+behavior remain later review gates.
 
-Minimize permissions, sanitize before storage, document external flows, and add
-retention/deletion runtime tests.
+## P5 — Evidence and release discipline
 
-### P4 — Feature completion
+**Implementation:** In progress on `agent/p5-evidence-release-discipline`.  
+**PR:** #6 remains stacked and draft.  
+**Stable release:** Blocked.
 
-Finish or remove incomplete sync, snapshots, reports, notifications, scheduled
-export, general Q&A, prediction, and community-reputation workflows.
+P5 adds:
 
-### P5 — Evidence
+- versioned detector regression corpus and catalog drift checks;
+- machine-readable confusion matrix and per-family results;
+- exact-head CI checkout and artifact provenance;
+- executable security and dependency gates;
+- deterministic package-size and throughput ceilings;
+- isolated Chrome lifecycle/restart evidence;
+- bounded popup DOM/accessibility-tree checks;
+- `SECURITY.md` and repository threat model;
+- changelog and release checklist;
+- commit-bound release-evidence manifest; and
+- explicit unresolved human and independent release gates.
 
-Add unit and browser integration tests, labeled detector fixtures, reproducible
-performance benchmarks, release checklists, and independent security/privacy
-review gates.
+P5 automation must not be described as real-world accuracy, accessibility
+certification, penetration testing, production performance, privacy protection,
+or legal compliance.
+
+Final P5 run IDs, hashes, assertion counts, measurements, and limitations are
+recorded in `P5-RUNTIME-EVIDENCE.md` only after the final exact source head passes
+all automated gates.
+
+## Blocking release gates
+
+The authoritative machine-readable list is
+`release/manual-gates.v1.json`. Current blockers include:
+
+1. Review and publish P0–P5 in dependency order, then verify public `main`.
+2. Human review of the actual browser-action popup in normal unmanaged Chrome.
+3. Keyboard, screen-reader, zoom, contrast, focus, reduced-motion, and cognitive
+   accessibility review.
+4. Multi-day worker, retention, report, alarm, and notification lifecycle review.
+5. Labeled real-site false-positive/false-negative assessment.
+6. Live OpenRouter provider/routing/retention/cost/failure review.
+7. Real P2P exchange and abuse/authenticity/metadata review.
+8. Independent extension-security and privacy assessment.
+9. Authenticated GitHub Release/Tag, Chrome Web Store, demo, submission, video,
+   download, portfolio, and social-copy audit.
+10. Qualified legal review before any compliance claim or regulated use.
+11. Final owner approval of exact artifact hash, notes, limitations, known
+    issues, and rollback/withdrawal plan.
+
+Until these gates are resolved, Phantom Trail must remain labeled experimental
+and must not be described as stable or production-ready.
+
+## Authoritative documents
+
+- [README](../README.md)
+- [Installation](../INSTALL.md)
+- [Privacy and Data Disclosure](PRIVACY_POLICY.md)
+- [Security Policy](../SECURITY.md)
+- [Threat Model](THREAT-MODEL.md)
+- [P5 Evidence and Release Discipline](P5-EVIDENCE-AND-RELEASE.md)
+- [Release Checklist](RELEASE-CHECKLIST.md)
+- [Changelog](../CHANGELOG.md)

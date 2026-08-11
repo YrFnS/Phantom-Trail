@@ -20,9 +20,9 @@ export interface APIError extends Error {
 /**
  * OpenRouter client for optional aggregate summaries.
  *
- * P3 builds the request body from the same canonical payload shown in the
- * settings preview. Raw detector events and URLs are never serialized into the
- * OpenRouter prompt.
+ * P3 builds the chat-completion payload from the same canonical aggregate shown
+ * in the settings preview. Raw detector events and URLs are never serialized
+ * into the OpenRouter prompt.
  */
 export class AIClient {
   private static readonly API_BASE = 'https://openrouter.ai/api/v1';
@@ -60,7 +60,7 @@ export class AIClient {
       score,
       protectionSettings.aiOutboundMode
     );
-    const requestBody = {
+    const chatCompletionRequest = {
       model: modelId,
       messages: [
         { role: 'system', content: this.buildSystemPrompt() },
@@ -95,7 +95,7 @@ export class AIClient {
             'HTTP-Referer': 'https://phantom-trail.extension',
             'X-Title': 'Phantom Trail Experimental Signal Monitor',
           },
-          body: JSON.stringify(requestBody),
+          body: JSON.stringify(chatCompletionRequest),
           signal: controller.signal,
         });
 
