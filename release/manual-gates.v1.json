@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "gateVersion": "2026-08-11.1",
+  "gates": [
+    {
+      "id": "stack-published",
+      "status": "blocked",
+      "owner": "repository owner",
+      "requirement": "P0–P4 are reviewed, published in dependency order, and the P5 PR is retargeted to corrected main."
+    },
+    {
+      "id": "normal-chrome-review",
+      "status": "pending",
+      "owner": "human reviewer",
+      "requirement": "Review the actual toolbar browser-action popup in a normal unmanaged supported Chrome installation."
+    },
+    {
+      "id": "assistive-technology-review",
+      "status": "pending",
+      "owner": "accessibility reviewer",
+      "requirement": "Keyboard, screen-reader, zoom, contrast, motion, and cognitive-usability review."
+    },
+    {
+      "id": "long-duration-lifecycle",
+      "status": "pending",
+      "owner": "QA reviewer",
+      "requirement": "Multi-day service-worker, retention, alarm, report, and notification lifecycle review."
+    },
+    {
+      "id": "real-site-accuracy",
+      "status": "pending",
+      "owner": "detector reviewer",
+      "requirement": "Review labeled real-site false positives and false negatives beyond the curated regression corpus."
+    },
+    {
+      "id": "live-openrouter-review",
+      "status": "pending",
+      "owner": "privacy/security reviewer",
+      "requirement": "Review live provider behavior, account routing, cost, retention, and response handling with a dedicated test credential."
+    },
+    {
+      "id": "real-p2p-review",
+      "status": "pending",
+      "owner": "privacy/security reviewer",
+      "requirement": "Review real peer exchange, abuse resistance, authenticity limits, connection metadata, and provider dependencies."
+    },
+    {
+      "id": "independent-security-privacy-review",
+      "status": "pending",
+      "owner": "independent reviewer",
+      "requirement": "Independent extension-security and privacy assessment; automated gates are insufficient."
+    },
+    {
+      "id": "authenticated-external-copy-audit",
+      "status": "pending",
+      "owner": "repository owner",
+      "requirement": "Audit GitHub Releases, tags, Chrome Web Store drafts/listings, demos, submissions, videos, downloads, portfolio, and social copy while authenticated."
+    },
+    {
+      "id": "legal-review-if-needed",
+      "status": "not-started",
+      "owner": "qualified legal reviewer",
+      "requirement": "Required before making compliance claims or deploying in a regulated context."
+    },
+    {
+      "id": "final-release-approval",
+      "status": "pending",
+      "owner": "repository owner",
+      "requirement": "Approve final artifact hash, release notes, limitations, known issues, and rollback plan."
+    }
+  ]
+}
