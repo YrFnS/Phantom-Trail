@@ -3,9 +3,9 @@ import { P2PPrivacyNetwork } from '../../lib/p2p-privacy-network';
 import type {
   CommunityStats,
   EvidenceCoverageConfidence,
-  P2PSettings,
 } from '../../lib/types';
 import { P2PStorage } from '../../lib/storage/p2p-storage';
+import { hasCurrentP2PConsent } from '../../lib/p2p-consent.mts';
 
 interface CommunityInsightsProps {
   userScore: number | null;
@@ -24,6 +24,7 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
   );
   const [networkStatus, setNetworkStatus] = useState<string>('Disabled');
   const [isEnabled, setIsEnabled] = useState(false);
+  const [consentCurrent, setConsentCurrent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const updateNetworkStatus = useCallback(() => {
@@ -40,9 +41,11 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
   const loadP2PSettings = useCallback(async () => {
     try {
       const settings = await P2PStorage.getSettings();
-      setIsEnabled(settings.joinPrivacyNetwork);
+      const hasConsent = hasCurrentP2PConsent(settings);
+      setConsentCurrent(hasConsent);
+      setIsEnabled(hasConsent && settings.joinPrivacyNetwork);
 
-      if (settings.joinPrivacyNetwork) {
+      if (hasConsent && settings.joinPrivacyNetwork) {
         await network.initializeNetwork();
       }
 
@@ -54,50 +57,21 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
 
   useEffect(() => {
     void loadP2PSettings();
-
     const interval = setInterval(updateNetworkStatus, 10000);
     return () => clearInterval(interval);
   }, [loadP2PSettings, updateNetworkStatus]);
 
-  const enableP2PNetwork = async () => {
-    setLoading(true);
-    try {
-      const settings: P2PSettings = {
-        joinPrivacyNetwork: true,
-        // An N/A local result is never advertised as zero. The user can still
-        // join the transport without publishing a score sample.
-        shareAnonymousData: userScore !== null,
-        shareRegionalData: false,
-        maxConnections: 10,
-        autoReconnect: true,
-      };
-
-      await P2PStorage.saveSettings(settings);
-      await network.initializeNetwork();
-
-      setIsEnabled(true);
-      updateNetworkStatus();
-    } catch (error) {
-      console.error('Failed to enable P2P network:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const disableP2PNetwork = async () => {
     setLoading(true);
     try {
-      const settings: P2PSettings = {
+      const current = await P2PStorage.getSettings();
+      await P2PStorage.saveSettings({
+        ...current,
         joinPrivacyNetwork: false,
         shareAnonymousData: false,
         shareRegionalData: false,
-        maxConnections: 10,
-        autoReconnect: true,
-      };
-
-      await P2PStorage.saveSettings(settings);
+      });
       await network.disconnectFromNetwork();
-
       setIsEnabled(false);
       setCommunityStats(null);
       setNetworkStatus('Disabled');
@@ -121,47 +95,27 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
         </div>
 
         <p className="text-[var(--text-secondary)] text-sm mb-4">
-          Join an experimental peer-to-peer transport for exchanging aggregate
-          evidence-index samples. This is not a verified reputation service or
-          a representative community benchmark.
+          The peer transport is disabled. Connection and sharing can only be
+          enabled from Settings → P2P after reviewing the canonical aggregate
+          payload and acknowledging the current versioned disclosure.
         </p>
 
         <div className="bg-[var(--bg-secondary)] border border-[var(--warning)]/30 rounded p-3 mb-4">
-          <h4 className="text-[var(--warning)] text-sm font-medium mb-2">
-            Before joining
-          </h4>
           <ul className="text-[var(--text-secondary)] text-xs space-y-1">
             <li>• Peer identity and submitted data are not authenticated.</li>
-            <li>
-              • Only an estimated local result may be shared; N/A is never
-              converted to zero.
-            </li>
-            <li>
-              • Shared fields can include score, band, coverage confidence,
-              counts, categories, and optional broad region.
-            </li>
-            <li>• Connected peers must be treated as untrusted.</li>
-            <li>
-              • No adoption percentages or peer percentiles are verified.
-            </li>
+            <li>• Domain-reputation exchange was removed in P3.</li>
+            <li>• Connection and aggregate sharing are separate choices.</li>
+            <li>• N/A is never converted to zero or shared as a score.</li>
+            <li>• WebRTC and signalling metadata can be exposed.</li>
           </ul>
         </div>
 
-        {userScore === null && (
-          <div className="p-2 mb-3 rounded border border-gray-600/40 bg-gray-700/10 text-xs text-[var(--text-secondary)]">
-            Your current local result is N/A. Joining will not enable score-data
-            sharing until an estimated result exists and sharing is explicitly
-            enabled in settings.
-          </div>
-        )}
-
-        <button
-          onClick={enableP2PNetwork}
-          disabled={loading}
-          className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50 transition-colors"
-        >
-          {loading ? 'Connecting...' : 'Join Experimental Network'}
-        </button>
+        <div className="text-xs text-[var(--text-secondary)]">
+          Consent status:{' '}
+          <span className="font-medium text-[var(--text-primary)]">
+            {consentCurrent ? 'acknowledged; connection disabled' : 'not acknowledged'}
+          </span>
+        </div>
       </div>
     );
   }
@@ -244,7 +198,7 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
       )}
 
       <button
-        onClick={disableP2PNetwork}
+        onClick={() => void disableP2PNetwork()}
         disabled={loading}
         className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-primary)] hover:border-[var(--border-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-4 py-2 rounded text-sm disabled:opacity-50 transition-colors"
       >
