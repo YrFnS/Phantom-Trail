@@ -189,6 +189,9 @@ export function sanitizeTrackingEventForStorage(
       : undefined,
   };
 
+  // Redaction metadata is cumulative. Once a row records that material was
+  // removed, a later idempotent pass over the already-minimized value must not
+  // erase that fact or rewrite the row indefinitely.
   const metadataWithoutTimestamp: Omit<
     TrackingEventDataProtection,
     'sanitizedAt'
@@ -196,21 +199,25 @@ export function sanitizeTrackingEventForStorage(
     policyVersion: DATA_PROTECTION_POLICY_VERSION,
     urlRetentionMode: mode,
     queryStripped:
+      event.dataProtection?.queryStripped === true ||
       page.queryStripped ||
       resource.queryStripped ||
       initiator.queryStripped ||
       compatibilityUrl.queryStripped,
     fragmentStripped:
+      event.dataProtection?.fragmentStripped === true ||
       page.fragmentStripped ||
       resource.fragmentStripped ||
       initiator.fragmentStripped ||
       compatibilityUrl.fragmentStripped,
     credentialsStripped:
+      event.dataProtection?.credentialsStripped === true ||
       page.credentialsStripped ||
       resource.credentialsStripped ||
       initiator.credentialsStripped ||
       compatibilityUrl.credentialsStripped,
     pathSegmentsRedacted: Math.max(
+      event.dataProtection?.pathSegmentsRedacted || 0,
       page.pathSegmentsRedacted,
       resource.pathSegmentsRedacted,
       compatibilityUrl.pathSegmentsRedacted
