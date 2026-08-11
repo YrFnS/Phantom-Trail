@@ -4,6 +4,8 @@ import { P2PStorage } from './storage/p2p-storage';
 import {
   hasCurrentP2PConsent,
   normalizeP2PSettings,
+  P2P_ROOM_ID,
+  P2P_STATS_ACTION,
 } from './p2p-consent.mts';
 import type {
   AnonymousPrivacyData,
@@ -27,10 +29,6 @@ interface TrysteroRoom {
   onPeerLeave: (cb: (peerId: string) => void) => void;
   leave: () => void;
 }
-
-const ACTION_NAMES = {
-  stats: 'stats_v3',
-} as const;
 
 /**
  * Experimental aggregate sample transport.
@@ -79,11 +77,11 @@ export class P2PPrivacyNetwork {
 
       this.room = joinRoom(
         { appId: 'phantom-trail-p3' },
-        'aggregate-sample-exchange-v3'
+        P2P_ROOM_ID
       ) as unknown as TrysteroRoom;
 
       const [sendStats, getStats] =
-        this.room.makeAction<AnonymousPrivacyData>(ACTION_NAMES.stats);
+        this.room.makeAction<AnonymousPrivacyData>(P2P_STATS_ACTION);
       this.sendStats = sendStats;
 
       this.room.onPeerJoin((peerId: string) => {
