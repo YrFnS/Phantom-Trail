@@ -52,6 +52,7 @@ function createSensitiveEvent(): TrackingEvent {
       evidence: [
         'URL https://tracker.test/pixel/123456?token=secret#x',
         'Page https://page.test/private/user@example.com?key=value',
+        'Resource path /analytics/user@example.com/550e8400-e29b-41d4-a716-446655440000/123456 matched token=plain-secret',
       ],
     },
     occurrences: 2,
@@ -70,7 +71,7 @@ function createSensitiveEvent(): TrackingEvent {
   };
 }
 
-test('origin-only mode removes paths, queries, fragments, and credentials', () => {
+test('origin-only mode removes paths, queries, fragments, credentials, and standalone identifiers', () => {
   const result = sanitizeTrackingEventForStorage(
     createSensitiveEvent(),
     DEFAULT_DATA_PROTECTION_SETTINGS,
@@ -95,7 +96,13 @@ test('origin-only mode removes paths, queries, fragments, and credentials', () =
   const serialized = JSON.stringify(event);
   assert.equal(serialized.includes('password'), false);
   assert.equal(serialized.includes('token=secret'), false);
+  assert.equal(serialized.includes('plain-secret'), false);
   assert.equal(serialized.includes('user@example.com'), false);
+  assert.equal(
+    serialized.includes('550e8400-e29b-41d4-a716-446655440000'),
+    false
+  );
+  assert.equal(serialized.includes('123456'), false);
   assert.equal(serialized.includes('#fragment'), false);
 });
 
@@ -114,14 +121,14 @@ test('origin-and-path mode keeps ordinary paths and redacts identifier-like segm
   assert.equal(value.pathSegmentsRedacted, 2);
 });
 
-test('URL-like substrings in text are minimized under the selected policy', () => {
+test('URL-like and standalone sensitive tokens in text are minimized', () => {
   const text = sanitizeTextForStorage(
-    'See https://page.test/private/123456?token=secret#x, then continue.',
+    'See https://page.test/private/123456?token=secret#x, user@example.com, 550e8400-e29b-41d4-a716-446655440000, and auth=plain-secret.',
     'origin-and-path'
   );
   assert.equal(
     text,
-    'See https://page.test/private/:redacted, then continue.'
+    'See https://page.test/private/:redacted, :redacted, :redacted, and auth=:redacted'
   );
 });
 
