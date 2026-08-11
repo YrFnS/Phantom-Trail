@@ -9,13 +9,13 @@ import { ThemeSettings } from './ThemeSettings';
 import { BadgeSettingsComponent } from './BadgeSettings';
 import { P2PSettingsComponent } from './P2PSettings';
 import { DataProtectionSettings } from './DataProtectionSettings';
+import { NotificationSettings } from './NotificationSettings';
 
 type SettingsTab =
   | 'general'
   | 'data'
   | 'appearance'
   | 'badge'
-  | 'export'
   | 'notifications'
   | 'trusted-sites'
   | 'shortcuts'
@@ -47,12 +47,13 @@ function TabButton({ id, label, activeTab, onSelect }: TabButtonProps) {
   );
 }
 
-interface FeatureNoticeProps {
+function FeatureNotice({
+  title,
+  children,
+}: {
   title: string;
   children: ReactNode;
-}
-
-function FeatureNotice({ title, children }: FeatureNoticeProps) {
+}) {
   return (
     <div className="rounded-lg border border-[var(--warning)]/40 bg-[var(--warning)]/10 p-4">
       <h3 className="text-sm font-medium text-[var(--warning)] mb-1">
@@ -67,7 +68,6 @@ function FeatureNotice({ title, children }: FeatureNoticeProps) {
 
 export function Settings({ onClose }: SettingsProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-
   const {
     settings,
     setSettings,
@@ -100,60 +100,14 @@ export function Settings({ onClose }: SettingsProps) {
           </div>
 
           <div className="flex gap-1 mt-4 border-b border-[var(--border-primary)] overflow-x-auto pb-1">
-            <TabButton
-              id="general"
-              label="General"
-              activeTab={activeTab}
-              onSelect={setActiveTab}
-            />
-            <TabButton
-              id="data"
-              label="Data"
-              activeTab={activeTab}
-              onSelect={setActiveTab}
-            />
-            <TabButton
-              id="appearance"
-              label="Theme"
-              activeTab={activeTab}
-              onSelect={setActiveTab}
-            />
-            <TabButton
-              id="badge"
-              label="Badge*"
-              activeTab={activeTab}
-              onSelect={setActiveTab}
-            />
-            <TabButton
-              id="export"
-              label="Export*"
-              activeTab={activeTab}
-              onSelect={setActiveTab}
-            />
-            <TabButton
-              id="notifications"
-              label="Alerts*"
-              activeTab={activeTab}
-              onSelect={setActiveTab}
-            />
-            <TabButton
-              id="trusted-sites"
-              label="Sites"
-              activeTab={activeTab}
-              onSelect={setActiveTab}
-            />
-            <TabButton
-              id="shortcuts"
-              label="Keys"
-              activeTab={activeTab}
-              onSelect={setActiveTab}
-            />
-            <TabButton
-              id="p2p"
-              label="P2P*"
-              activeTab={activeTab}
-              onSelect={setActiveTab}
-            />
+            <TabButton id="general" label="General" activeTab={activeTab} onSelect={setActiveTab} />
+            <TabButton id="data" label="Data" activeTab={activeTab} onSelect={setActiveTab} />
+            <TabButton id="appearance" label="Theme" activeTab={activeTab} onSelect={setActiveTab} />
+            <TabButton id="badge" label="Badge" activeTab={activeTab} onSelect={setActiveTab} />
+            <TabButton id="notifications" label="Alerts" activeTab={activeTab} onSelect={setActiveTab} />
+            <TabButton id="trusted-sites" label="Sites" activeTab={activeTab} onSelect={setActiveTab} />
+            <TabButton id="shortcuts" label="Keys" activeTab={activeTab} onSelect={setActiveTab} />
+            <TabButton id="p2p" label="P2P" activeTab={activeTab} onSelect={setActiveTab} />
           </div>
         </CardHeader>
 
@@ -161,9 +115,9 @@ export function Settings({ onClose }: SettingsProps) {
           {activeTab === 'general' && (
             <div className="space-y-6">
               <FeatureNotice title="Interpret results cautiously">
-                Detector events, model bands, predictions, and recommendations
-                are heuristic prototype output. They can be wrong and are not a
-                security verdict, privacy certification, or legal assessment.
+                Detector events, model bands, reports, and generated summaries
+                can be wrong. They are not a security verdict, privacy
+                certification, or legal assessment.
               </FeatureNotice>
 
               <div>
@@ -197,16 +151,13 @@ export function Settings({ onClose }: SettingsProps) {
                   />
                   <span>
                     Remember this key across browser restarts. Off by default;
-                    otherwise the key is kept only in extension session storage
-                    or memory and is removed when the session ends.
+                    otherwise it remains in extension session storage or memory.
                   </span>
                 </label>
                 <p className="text-xs text-[var(--text-secondary)] mt-2 leading-relaxed">
-                  When summaries are enabled, only the aggregate payload shown in
-                  the Data tab is sent directly to OpenRouter. The key is never
-                  included in prompts, logs, exports, or peer payloads. A key
-                  stored by a browser extension is still exposed to a compromised
-                  browser profile.
+                  The Evidence Explorer never sends unsupported questions. Only
+                  its separate aggregate-summary button can use OpenRouter, and
+                  it sends the field set previewed in the Data tab.
                 </p>
               </div>
 
@@ -233,7 +184,8 @@ export function Settings({ onClose }: SettingsProps) {
                   ))}
                 </select>
                 <p className="text-xs text-[var(--text-secondary)] mt-1">
-                  Availability, limits, and cost are controlled by OpenRouter.
+                  Availability, limits, cost, and provider retention are
+                  controlled by OpenRouter.
                 </p>
               </div>
 
@@ -243,9 +195,8 @@ export function Settings({ onClose }: SettingsProps) {
                     OpenRouter aggregate summaries
                   </label>
                   <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
-                    Off by default. Sends only the selected aggregate field set;
-                    raw events and URLs are excluded. The model output can still
-                    be inaccurate.
+                    Off by default. Enables only the explicit aggregate-summary
+                    action; local Evidence Explorer queries do not use it.
                   </p>
                 </div>
                 <input
@@ -253,30 +204,6 @@ export function Settings({ onClose }: SettingsProps) {
                   checked={settings.enableAI}
                   onChange={event =>
                     setSettings({ ...settings, enableAI: event.target.checked })
-                  }
-                  className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
-                />
-              </div>
-
-              <div className="flex items-center justify-between gap-4 p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
-                <div>
-                  <label className="text-sm font-medium text-[var(--text-primary)]">
-                    Link signal estimates
-                  </label>
-                  <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
-                    Experimental and unvalidated. Hover cards use domain-name
-                    patterns and prior recorded signals, not a live audit of the
-                    destination. Off by default.
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.enablePrivacyPredictions ?? false}
-                  onChange={event =>
-                    setSettings({
-                      ...settings,
-                      enablePrivacyPredictions: event.target.checked,
-                    })
                   }
                   className="rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
                 />
@@ -339,41 +266,23 @@ export function Settings({ onClose }: SettingsProps) {
           {activeTab === 'badge' && (
             <div className="space-y-4">
               <FeatureNotice title="Experimental evidence badge">
-                The toolbar value inherits the unvalidated evidence model and is
-                disabled by default. It must not be read as a safety or privacy
-                certification.
+                Disabled by default. It displays the same unvalidated evidence
+                model as the popup and is not a safety or privacy certification.
               </FeatureNotice>
               <BadgeSettingsComponent />
             </div>
           )}
 
-          {activeTab === 'export' && (
-            <FeatureNotice title="Scheduled export unavailable in 0.1.0">
-              Use the manual export button in the popup header for CSV or JSON.
-              Exports contain the locally minimized event representation and a
-              data-protection disclosure. The current “PDF” path remains a
-              plain-text report.
-            </FeatureNotice>
-          )}
-
-          {activeTab === 'notifications' && (
-            <FeatureNotice title="Automatic alerts unavailable in 0.1.0">
-              Notification utilities are incomplete and the required permission
-              is no longer requested. Controls remain hidden until P4 completes
-              and validates the workflow.
-            </FeatureNotice>
-          )}
-
+          {activeTab === 'notifications' && <NotificationSettings />}
           {activeTab === 'trusted-sites' && <TrustedSitesSettings />}
           {activeTab === 'shortcuts' && <ShortcutSettings />}
 
           {activeTab === 'p2p' && (
             <div className="space-y-4">
               <FeatureNotice title="Unauthenticated experimental peer network">
-                Peer identity, sample authenticity, population
-                representativeness, and reputation integrity are not established.
-                Current versioned consent is required before connection or
-                sharing. Domain-reputation exchange was removed in P3.
+                Current versioned consent is required. Peer identity, sample
+                authenticity, and population representativeness are not
+                established. Domain-reputation exchange is not part of P4.
               </FeatureNotice>
               <P2PSettingsComponent />
             </div>
