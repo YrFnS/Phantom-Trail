@@ -746,6 +746,69 @@ async function firstRun(chromeExecutable, fixture) {
     accessibility.domAudit.focusFailures
   );
 
+  phase('verifying small stored batches render in the signal graph');
+  const expectedGraphDomains = new Set(
+    storedEvents.flatMap(event =>
+      [event.context?.pageDomain, event.context?.resourceDomain].filter(Boolean)
+    )
+  );
+  const expectedGraphEdges = new Set(
+    storedEvents.flatMap(event => {
+      const pageDomain = event.context?.pageDomain;
+      const resourceDomain = event.context?.resourceDomain;
+      return pageDomain && resourceDomain && pageDomain !== resourceDomain
+        ? [`${pageDomain}->${resourceDomain}`]
+        : [];
+    })
+  );
+  const mapClicked = await evaluate(
+    instance.cdp,
+    popupSession,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('nav button'))
+        .find(item => (item.textContent || '').trim().includes('Map'));
+      button?.click();
+      return Boolean(button);
+    })()`
+  );
+  let graphSummary = null;
+  try {
+    graphSummary = await waitFor(
+      async () => {
+        const text = await evaluate(
+          instance.cdp,
+          popupSession,
+          'document.body.innerText'
+        );
+        const match = text.match(/(\d+) recorded domains, (\d+) inferred links/u);
+        return match
+          ? { domainCount: Number(match[1]), edgeCount: Number(match[2]) }
+          : null;
+      },
+      { timeout: 20_000 }
+    );
+  } catch {
+    // The assertion below records the missing graph instead of hiding it in a timeout.
+  }
+  record(
+    'map-renders-small-stored-batch',
+    Boolean(
+      mapClicked &&
+        graphSummary &&
+        graphSummary.domainCount === expectedGraphDomains.size &&
+        graphSummary.edgeCount === expectedGraphEdges.size
+    ),
+    graphSummary
+      ? `${graphSummary.domainCount} domains and ${graphSummary.edgeCount} links rendered from ${storedEvents.length} stored row(s)`
+      : `Map remained empty for ${storedEvents.length} stored row(s)`,
+    {
+      storedRows: storedEvents.length,
+      expectedDomains: expectedGraphDomains.size,
+      expectedEdges: expectedGraphEdges.size,
+      graphSummary,
+    }
+  );
+
   phase('verifying current-report refresh from popup views');
   await evaluate(
     instance.cdp,
@@ -852,6 +915,47 @@ async function firstRun(chromeExecutable, fixture) {
     reportsClicked && reportsText.includes(String(refreshedFromStats.daily.eventCounts.total)),
     `Reports view contains refreshed occurrence count ${refreshedFromStats.daily.eventCounts.total}.`
   );
+  phase('verifying the local evidence-index query');
+  const exploreClicked = await evaluate(
+    instance.cdp,
+    popupSession,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('nav button'))
+        .find(item => (item.textContent || '').trim().includes('Explore'));
+      button?.click();
+      return Boolean(button);
+    })()`
+  );
+  const queryClicked = await waitFor(
+    () =>
+      evaluate(
+        instance.cdp,
+        popupSession,
+        `(() => {
+          const button = Array.from(document.querySelectorAll('button'))
+            .find(item => (item.textContent || '').includes('Show the evidence index'));
+          button?.click();
+          return Boolean(button);
+        })()`
+      ).then(clicked => (clicked ? true : null)),
+    { timeout: 20_000 }
+  );
+  const evidenceIndexText = await waitFor(
+    async () => {
+      const text = await evaluate(instance.cdp, popupSession, 'document.body.innerText');
+      return text.includes('Experimental Signal-Risk Summary') ? text : null;
+    },
+    { timeout: 20_000 }
+  );
+  record(
+    'local-evidence-index-query-renders',
+    exploreClicked &&
+      queryClicked &&
+      evidenceIndexText.includes('Observed-evidence index:') &&
+      !evidenceIndexText.includes('could not generate this summary'),
+    'Evidence Explorer rendered the local evidence-index summary without a fallback error.'
+  );
+
   const falseRepairWarnings = consoleWarnings.filter(entry =>
     entry.values.some(value =>
       String(value).includes('Migrated or removed 0 invalid')

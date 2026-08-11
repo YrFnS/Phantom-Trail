@@ -4,6 +4,7 @@ import {
   type RiskData,
 } from '../tracking-analysis';
 import type { TrackingEvent, PrivacyScore } from '../types';
+import { formatEvidenceIndexValue } from '../risk-response-policy.mts';
 
 /**
  * Formats the experimental score and recorded detector signals.
@@ -30,7 +31,8 @@ export class RiskAnalyzer {
   }
 
   private static formatRiskData(data: RiskData): string {
-    let output = `## Experimental Heuristic: ${data.overallScore.score}/100 (${data.overallScore.grade})\n`;
+    let output = `## Experimental Heuristic: ${formatEvidenceIndexValue(data.overallScore)}\n`;
+    output += `**Evidence coverage confidence:** ${data.overallScore.confidence}\n`;
     output += `**Stored trend label:** ${data.trend}\n\n`;
 
     if (data.riskySites.length > 0) {

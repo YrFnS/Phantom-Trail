@@ -9,6 +9,7 @@ import {
   getEventOccurrenceCount,
   getPageDomain,
 } from '../event-attribution.mts';
+import { buildRiskRecommendations } from '../risk-recommendation-policy.mts';
 
 /**
  * Groups recorded detector signals by attributed page domain and applies the
@@ -85,65 +86,14 @@ export class RiskAnalyzer {
         criticalEvents,
         historicalScores,
       },
-      recommendations: this.generateRecommendations(
+      recommendations: buildRiskRecommendations(
         lowIndexPages,
         insufficientPages.length,
-        criticalEvents,
+        criticalEvents.length,
         events.length,
         unattributedRows
       ),
     };
   }
 
-  private static generateRecommendations(
-    lowIndexPages: Array<{
-      domain: string;
-      score: PrivacyScore;
-      events: number;
-    }>,
-    insufficientPageCount: number,
-    criticalEvents: TrackingEvent[],
-    rowCount: number,
-    unattributedRows: number
-  ): string[] {
-    const recommendations: string[] = [];
-
-    if (rowCount === 0) {
-      return [
-        'Collect and inspect evidence before assigning any numeric index or conclusion.',
-      ];
-    }
-
-    const lowestGroup = lowIndexPages[0];
-    if (lowestGroup?.score.score !== null) {
-      recommendations.push(
-        `${lowestGroup.domain} has the largest estimated evidence penalty in this window (${lowestGroup.score.score}/100, ${lowestGroup.score.confidence} coverage confidence). Review its ${lowestGroup.events} occurrences and contribution routes before acting.`
-      );
-    }
-
-    if (insufficientPageCount > 0) {
-      recommendations.push(
-        `${insufficientPageCount} attributed page group${
-          insufficientPageCount === 1 ? ' is' : 's are'
-        } N/A. Do not interpret missing score-qualified evidence as favorable privacy.`
-      );
-    }
-
-    if (criticalEvents.length > 0) {
-      recommendations.push(
-        `${criticalEvents.length} stored rows carry the prototype critical label. Some may be excluded from scoring; inspect detector evidence and attribution rather than treating the label as a verified incident.`
-      );
-    }
-
-    if (unattributedRows > 0) {
-      recommendations.push(
-        `${unattributedRows} stored rows lack a visited-page domain and are excluded from page-scoped scoring.`
-      );
-    }
-
-    recommendations.push(
-      'Treat index changes as changes in qualifying recorded evidence, not measured changes in real-world privacy.'
-    );
-    return recommendations;
-  }
 }
