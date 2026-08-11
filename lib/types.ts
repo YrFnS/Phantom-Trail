@@ -41,6 +41,28 @@ export type DetectorMatchType =
   | 'internal'
   | 'legacy';
 
+export type UrlRetentionMode = 'origin-only' | 'origin-and-path';
+export type AIOutboundMode = 'counts-only' | 'include-domain-labels';
+
+export interface DataProtectionSettings {
+  schemaVersion: 1;
+  urlRetentionMode: UrlRetentionMode;
+  retentionDays: 1 | 7 | 14 | 30;
+  rememberOpenRouterKey: boolean;
+  aiOutboundMode: AIOutboundMode;
+}
+
+export interface TrackingEventDataProtection {
+  policyVersion: 1;
+  urlRetentionMode: UrlRetentionMode;
+  sanitizedAt: number;
+  queryStripped: boolean;
+  fragmentStripped: boolean;
+  credentialsStripped: boolean;
+  pathSegmentsRedacted: number;
+  rawDetailsRemoved: boolean;
+}
+
 export interface TrackingEventContext {
   source: DetectionSource;
   pageUrl: string;
@@ -93,6 +115,7 @@ export interface TrackingEvent {
   firstSeenAt?: number;
   lastSeenAt?: number;
   privacyScore?: number;
+  dataProtection?: TrackingEventDataProtection;
   inPageTracking?: {
     method: InPageTrackingMethod;
     details: string;
@@ -159,6 +182,7 @@ export type InPageTrackingMethod =
   | 'sensor-api';
 
 export interface ExtensionSettings {
+  /** @deprecated P3 migrates this value to dedicated credential storage. */
   openRouterApiKey?: string;
   enableAI: boolean;
   enableNotifications: boolean;
@@ -348,6 +372,8 @@ export interface NetworkMessage {
 }
 
 export interface AnonymousPrivacyData {
+  payloadVersion?: 1;
+  consentVersion?: number;
   /** P2P samples may only contain an estimated numeric result. */
   privacyScore: number;
   scoreStatus?: 'estimated';
@@ -398,6 +424,8 @@ export interface P2PSettings {
   shareRegionalData: boolean;
   maxConnections: number;
   autoReconnect: boolean;
+  consentVersion?: number;
+  consentAcknowledgedAt?: number;
 }
 
 export interface PrivacyData {
