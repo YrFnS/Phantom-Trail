@@ -2,7 +2,10 @@ import type { TrackingEvent } from '../../lib/types';
 
 export class MessageHandler {
   static initialize(): void {
-    chrome.runtime.onMessage.addListener(this.handleMessage.bind(this));
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      void this.handleMessage(message, sender, sendResponse);
+      return true;
+    });
     console.log('[Phantom Trail] Message handler initialized');
   }
 
@@ -15,30 +18,35 @@ export class MessageHandler {
       if (
         typeof message !== 'object' ||
         message === null ||
-        !('type' in message)
+        !('type' in message) ||
+        typeof (message as { type?: unknown }).type !== 'string'
       ) {
         sendResponse({ error: 'Invalid message format' });
         return;
       }
 
-      const msg = message as { type: string; [key: string]: unknown };
+      const parsedMessage = message as {
+        type: string;
+        [key: string]: unknown;
+      };
 
-      switch (msg.type) {
+      switch (parsedMessage.type) {
         case 'TRACKING_DETECTED':
           await this.handleTrackingDetected(
-            msg as { event?: TrackingEvent },
+            parsedMessage as { event?: TrackingEvent },
+            sender,
             sendResponse
           );
-          break;
+          return;
         case 'GET_PRIVACY_SCORE':
           await this.handleGetPrivacyScore(
-            msg as { domain?: string },
+            parsedMessage as { domain?: string },
             sendResponse
           );
-          break;
+          return;
         case 'QUICK_ANALYSIS_REQUEST':
           await this.handleQuickAnalysis(sender, sendResponse);
-          break;
+          return;
         default:
           sendResponse({ error: 'Unknown message type' });
       }
@@ -50,6 +58,7 @@ export class MessageHandler {
 
   private static async handleTrackingDetected(
     message: { event?: TrackingEvent },
+    sender: chrome.runtime.MessageSender,
     sendResponse: (response?: unknown) => void
   ): Promise<void> {
     try {
@@ -57,41 +66,52 @@ export class MessageHandler {
         sendResponse({ error: 'Missing event data' });
         return;
       }
+
       const { EventsStorage } =
         await import('../../lib/storage/events-storage');
       await EventsStorage.addEvent(message.event);
 
-      // Update badge for the tab where tracking was detected
-      const tabs = await chrome.tabs.query({
-        url: `*://${message.event.domain}/*`,
-      });
-      if (tabs.length > 0 && tabs[0].id) {
-        await this.updateBadgeForDomain(tabs[0].id, message.event.domain);
+      if (sender.tab?.id !== undefined) {
+        await this.updateBadgeForTab(sender.tab.id, message.event);
       }
 
       sendResponse({ success: true });
-    } catch {
-      sendResponse({ error: 'Failed to store tracking event' });
+    } catch (error) {
+      console.error('[Message Handler] Failed to store detector signal:', error);
+      sendResponse({ error: 'Failed to store detector signal' });
     }
   }
 
-  private static async updateBadgeForDomain(
+  private static async updateBadgeForTab(
     tabId: number,
-    domain: string
+    event: TrackingEvent
   ): Promise<void> {
     try {
+      const tab = await chrome.tabs.get(tabId);
+      if (!tab.url) return;
+
+      const pageDomain = new URL(tab.url).hostname;
       const { EventsStorage } =
         await import('../../lib/storage/events-storage');
-      const events = await EventsStorage.getRecentEvents(100);
-      const domainEvents = events.filter(e => e.domain === domain);
+      const events = await EventsStorage.getRecentEvents(1000);
+      const domainEvents = events.filter(candidate =>
+        this.matchesPageDomain(candidate, pageDomain)
+      );
 
       const { calculatePrivacyScore } = await import('../../lib/privacy-score');
-      const score = calculatePrivacyScore(domainEvents);
+      const score = calculatePrivacyScore(
+        domainEvents,
+        tab.url.startsWith('https://')
+      );
 
       const { BadgeManager } = await import('../../lib/badge-manager');
       await BadgeManager.updateBadge(tabId, score);
     } catch (error) {
-      console.error('[Message Handler] Failed to update badge:', error);
+      console.error(
+        '[Message Handler] Failed to update experimental badge:',
+        error,
+        event.id
+      );
     }
   }
 
@@ -100,15 +120,18 @@ export class MessageHandler {
     sendResponse: (response?: unknown) => void
   ): Promise<void> {
     try {
-      if (!message.domain) {
+      const domain = message.domain?.trim();
+      if (!domain) {
         sendResponse({ error: 'Missing domain' });
         return;
       }
+
       const { PrivacyScoreClass } = await import('../../lib/privacy-score');
-      const score = await PrivacyScoreClass.calculateDomainScore();
+      const score = await PrivacyScoreClass.calculateDomainScore(domain);
       sendResponse({ success: true, score });
-    } catch {
-      sendResponse({ error: 'Failed to calculate privacy score' });
+    } catch (error) {
+      console.error('[Message Handler] Domain heuristic failed:', error);
+      sendResponse({ error: 'Failed to calculate domain heuristic' });
     }
   }
 
@@ -122,7 +145,6 @@ export class MessageHandler {
         return;
       }
 
-      // Get current tab info
       const tab = await chrome.tabs.get(sender.tab.id);
       if (!tab.url) {
         sendResponse({ error: 'No tab URL' });
@@ -130,33 +152,48 @@ export class MessageHandler {
       }
 
       const domain = new URL(tab.url).hostname;
-
-      // Get privacy score and event count
       const { PrivacyScoreClass } = await import('../../lib/privacy-score');
       const { EventsStorage } =
         await import('../../lib/storage/events-storage');
 
-      const score = await PrivacyScoreClass.calculateDomainScore();
+      const score = await PrivacyScoreClass.calculateDomainScore(domain);
       const events = await EventsStorage.getTrackingEvents();
-      const domainEvents = events.filter(
-        (e: { domain: string }) => e.domain === domain
+      const domainEvents = events.filter(event =>
+        this.matchesPageDomain(event, domain)
       );
 
       const analysisData = {
         domain,
         score,
         eventCount: domainEvents.length,
+        disclaimer:
+          'Experimental local heuristic based on recorded detector signals; not a website audit.',
       };
 
-      // Send analysis to content script
-      chrome.tabs.sendMessage(sender.tab.id, {
-        type: 'SHOW_QUICK_ANALYSIS',
-        data: analysisData,
-      });
+      await chrome.tabs
+        .sendMessage(sender.tab.id, {
+          type: 'SHOW_QUICK_ANALYSIS',
+          data: analysisData,
+        })
+        .catch(() => {
+          // The page may not have a content script ready; the response remains useful.
+        });
 
-      sendResponse({ success: true });
+      sendResponse({ success: true, data: analysisData });
+    } catch (error) {
+      console.error('[Message Handler] Quick heuristic failed:', error);
+      sendResponse({ error: 'Quick heuristic failed' });
+    }
+  }
+
+  private static matchesPageDomain(
+    event: TrackingEvent,
+    pageDomain: string
+  ): boolean {
+    try {
+      return new URL(event.url).hostname === pageDomain;
     } catch {
-      sendResponse({ error: 'Quick analysis failed' });
+      return event.domain === pageDomain;
     }
   }
 }

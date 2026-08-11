@@ -1,125 +1,198 @@
-# Installation Instructions
+# Installing Phantom Trail 0.1.0
 
-## Quick Install (Manual)
+> **Experimental software**
+>
+> Phantom Trail is a development prototype. Its detections, grades, trends,
+> graph links, coaching output, and link estimates are heuristic. It can report
+> false positives or miss tracking behavior. Do not rely on it as a security
+> control, privacy certification, or legal-compliance tool.
+
+## Build from source
 
 ### Prerequisites
 
-- Google Chrome browser (version 88+)
-- 5 minutes of your time
+- A current Google Chrome or Chromium-based browser
+- Node.js 22 recommended
+- `pnpm` as pinned by `package.json`
 
-### Installation Steps
+### Steps
 
-1. **Download the Extension**
-   - Download `phantom-trail-1.0.0-chrome.zip` from the releases page
-   - Or get it from the shared link
+```bash
+git clone https://github.com/YrFnS/Phantom-Trail.git
+cd Phantom-Trail
+pnpm install --frozen-lockfile
+pnpm type-check
+pnpm lint
+pnpm build
+```
 
-2. **Extract the ZIP File**
-   - Right-click the ZIP file → "Extract All" (Windows) or double-click (Mac)
-   - Remember the extraction location
+Load the built extension:
 
-3. **Open Chrome Extensions Page**
-   - Open Google Chrome
-   - Go to `chrome://extensions/`
-   - Or: Menu (⋮) → Extensions → Manage Extensions
+1. Open `chrome://extensions/`.
+2. Enable **Developer mode**.
+3. Click **Load unpacked**.
+4. Select `.output/chrome-mv3`.
+5. Pin the Phantom Trail icon if desired.
 
-4. **Enable Developer Mode**
-   - Toggle "Developer mode" switch in the top-right corner
-   - This allows loading unpacked extensions
+A successful build confirms only that the source compiled in that environment.
+It does not validate detector accuracy, scores, privacy properties, performance,
+or every browser workflow.
 
-5. **Load the Extension**
-   - Click "Load unpacked" button
-   - Navigate to the extracted folder
-   - Select the folder containing `manifest.json`
-   - Click "Select Folder"
+## Automated build gate
 
-6. **Verify Installation**
-   - You should see "Phantom Trail" in your extensions list
-   - The extension icon (👻) should appear in your Chrome toolbar
-   - Status should show "Enabled"
+The repository workflow `.github/workflows/validate.yml` checks lockfile
+consistency, frozen-lockfile install, type checking, lint, production build,
+generated manifest metadata, ZIP creation, and artifact upload.
 
-### First-Time Setup
+It is not a behavioral test suite. Manual Chrome review remains required.
 
-**Basic Usage (No API Key Required):**
+## What to expect
 
-- Extension works immediately for tracking detection
-- Click the extension icon to see tracking events
-- View privacy scores and network graphs
+The extension can record request and browser-API rule matches, store recent
+events locally, show a signal feed and inferred graph, calculate an experimental
+score, and export local data.
 
-**Optional: Enable AI Features**
+Treat these as incomplete or experimental:
 
-1. Get a free OpenRouter API key:
-   - Visit https://openrouter.ai/
-   - Sign up for an account
-   - Generate an API key
-   - Copy the key (starts with `sk-or-...`)
+- page/resource attribution and cross-site correlation;
+- A–F heuristic scoring;
+- general-purpose Q&A and coaching;
+- link estimates;
+- peer-to-peer community samples;
+- cross-device sync;
+- automatic snapshots and reports;
+- notification workflows;
+- scheduled exports; and
+- PDF, email, and cloud delivery.
 
-2. Configure in extension:
-   - Click the Phantom Trail icon
-   - Go to Settings tab
-   - Paste your API key in "OpenRouter API Key" field
-   - Click "Save Settings"
+Synthetic category comparisons are hidden in P0.
 
-3. AI features now enabled:
-   - Real-time AI narrative explaining tracking
-   - Natural language chat interface
-   - Personalized privacy recommendations
-   - AI-powered privacy coaching
+## Optional OpenRouter summaries
 
-### Testing the Extension
+OpenRouter requests default off and require both:
 
-1. **Visit a website** (try cnn.com or amazon.com)
-2. **Click the extension icon**
-3. **Check the Live Feed tab** - you should see tracking events
-4. **View Privacy Score** - see current site and overall scores
-5. **Explore Network Graph** - visualize data flows
-6. **Try the Chat** (if AI enabled) - ask "What trackers are on this page?"
+1. enabling **OpenRouter event summaries** in Settings; and
+2. storing an OpenRouter API key.
 
-### Troubleshooting
+A stored key alone does not enable requests.
 
-**Extension doesn't appear:**
+When enabled, Phantom Trail removes query strings and fragments from event URLs
+before analysis and currently sends a prompt built mainly from domains, event
+counts, tracker types, and heuristic labels. The API key is sent to OpenRouter
+to authenticate the request.
 
-- Make sure you selected the correct folder (contains `manifest.json`)
-- Check that Developer mode is enabled
-- Try reloading the extension (click refresh icon)
+Review both documents before enabling it:
 
-**No tracking events showing:**
+- [Privacy and Data Disclosure](docs/PRIVACY_POLICY.md)
+- OpenRouter’s terms and privacy documentation
 
-- Visit a different website (some sites have minimal tracking)
-- Check browser console (F12) for errors
-- Ensure the extension is enabled
+## Experimental peer network
 
-**AI features not working:**
+P2P defaults off. Joining the network can exchange reduced aggregate fields
+such as heuristic score, grade, capped event count, label distribution,
+category labels, rounded timestamp, and optional broad region.
 
-- Verify API key is correct (starts with `sk-or-...`)
-- Check your OpenRouter account has credits
-- Extension works without AI (basic tracking detection)
+Peer identity and messages are unauthenticated. They are not verified website
+reputation, community adoption, or representative benchmarks.
 
-**Extension errors:**
+WebRTC/Trystero can use third-party signaling, relay, and NAT traversal
+infrastructure. Peers and providers may observe normal connection metadata such
+as IP addresses.
 
-- Open Chrome DevTools (F12) → Console tab
-- Look for error messages
-- Report issues on GitHub with error details
+## Personal site annotations
 
-### Uninstallation
+The star control and Settings list save personal domain annotations only. They
+do not improve grades, suppress monitoring, verify safety, or automatically
+apply to subdomains.
 
-1. Go to `chrome://extensions/`
-2. Find "Phantom Trail"
-3. Click "Remove"
-4. Confirm removal
+## Toolbar badge
 
-### Privacy & Security
+The experimental toolbar badge defaults off. When enabled, it displays the same
+unvalidated heuristic used by the popup. Green or an A grade does not mean that
+a website is safe or private.
 
-- **Local-first:** All data processing happens on your device
-- **Optional AI:** Extension works without API key
-- **No data collection:** We don't collect or transmit your browsing data
-- **Open source:** Code is available for review on GitHub
+## Permissions
 
-### Support
+The prototype requests broad permissions, including:
 
-- **Issues:** https://github.com/YrFnS/Phantom-Trail/issues
-- **Documentation:** See README.md for detailed features
-- **Questions:** Open a GitHub discussion
+- `<all_urls>`
+- `webRequest`
+- `storage`
+- `activeTab`
+- `tabs`
+- `alarms`
+- `notifications`
+- `downloads`
+- `management`
 
----
+These permissions must be minimized before a production release.
 
-**Enjoy your privacy awareness journey! 👻**
+## Local data and exports
+
+Recorded events are stored in Chrome extension storage. Stored URLs can include
+paths, query strings, or fragments depending on the event source.
+
+The event store is capped at 1,000 records and contains cleanup logic targeting
+events older than 30 days. Runtime lifecycle testing has not yet established an
+absolute retention guarantee.
+
+CSV and JSON exports can contain raw stored URLs and descriptions. Inspect files
+before sharing them. The plain-text report option downloads `.txt`; it is not a
+PDF document.
+
+## Troubleshooting
+
+### Build fails
+
+Run:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm type-check
+pnpm lint
+pnpm build
+```
+
+Review the first reported error rather than assuming generated output is valid.
+
+### No signals appear
+
+- Reload the extension after building.
+- Refresh the website being tested.
+- Remember that no result does not prove that a site has no tracking.
+- Review the extension service-worker and page console for errors.
+
+### Too many signals appear
+
+Current rules can classify normal API usage or broad URL patterns as possible
+tracking. Record the page, event description, and reproduction steps in a
+GitHub issue.
+
+### OpenRouter summaries do not work
+
+- Confirm the explicit AI toggle is enabled.
+- Confirm an API key is configured.
+- Confirm the selected model is available to the OpenRouter account.
+- Local prototype views can still run with AI disabled.
+
+### P2P remains disconnected
+
+- Confirm the experimental network was explicitly enabled.
+- Network or browser policies can prevent WebRTC connectivity.
+- Zero peers does not indicate an application-wide outage or population size.
+
+## Remove the extension
+
+Open `chrome://extensions/`, locate Phantom Trail, and select **Remove**. Export
+anything needed before removal.
+
+## Reporting problems
+
+Open a repository issue and include:
+
+- Chrome version;
+- Phantom Trail commit or version;
+- reproduction steps;
+- expected and actual behavior;
+- relevant console errors; and
+- whether AI, sync, P2P, or the badge was enabled.

@@ -11,16 +11,13 @@ export interface APIError extends Error {
 }
 
 /**
- * OpenRouter API client for AI requests with enhanced error handling
+ * OpenRouter client for optional summaries of recorded detector signals.
  */
 export class AIClient {
   private static readonly API_BASE = 'https://openrouter.ai/api/v1';
-  private static readonly REQUEST_TIMEOUT = 30000; // 30 seconds
+  private static readonly REQUEST_TIMEOUT = 30000;
   private static readonly MAX_RETRIES = 3;
 
-  /**
-   * Make API request to OpenRouter with retry logic and timeout limits
-   */
   static async makeRequest(
     events: TrackingEvent[],
     modelId: string = DEFAULT_MODEL
@@ -28,89 +25,79 @@ export class AIClient {
     const settings = await SettingsStorage.getSettings();
     const apiKey = settings.openRouterApiKey;
 
-    if (!apiKey) {
-      throw new Error('OpenRouter API key not configured');
+    if (!settings.enableAI || !apiKey) {
+      throw new Error(
+        'OpenRouter summaries require explicit enablement and a configured API key'
+      );
     }
 
-    // Check rate limiting before making request
     const rateLimitStatus = await RateLimiter.getStatus();
     if (!rateLimitStatus.canMakeRequest) {
-      const error = new Error('Rate limit exceeded') as APIError;
+      const error = new Error('Local OpenRouter rate limit exceeded') as APIError;
       error.isRateLimit = true;
       error.retryAfter =
         rateLimitStatus.retryAfter || rateLimitStatus.resetTime - Date.now();
       throw error;
     }
 
-    const systemPrompt = this.buildSystemPrompt();
-    const userPrompt = this.buildUserPrompt(events);
-
     const requestBody = {
       model: modelId,
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
+        { role: 'system', content: this.buildSystemPrompt() },
+        { role: 'user', content: this.buildUserPrompt(events) },
       ],
       max_tokens: 500,
-      temperature: 0.7,
+      temperature: 0.3,
     };
 
     let lastError: APIError | null = null;
-    const maxRetryTime = 30000; // 30 seconds total retry limit
     const startTime = Date.now();
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
-      // Check if we've exceeded total retry time
-      if (Date.now() - startTime > maxRetryTime) {
-        const timeoutError = new Error('Retry timeout exceeded') as APIError;
+      if (Date.now() - startTime > this.REQUEST_TIMEOUT) {
+        const timeoutError = new Error('Retry window exceeded') as APIError;
         timeoutError.status = 408;
         throw timeoutError;
       }
 
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(
-          () => controller.abort(),
-          this.REQUEST_TIMEOUT
-        );
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        this.REQUEST_TIMEOUT
+      );
 
+      try {
         const response = await fetch(`${this.API_BASE}/chat/completions`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://phantom-trail.extension',
-            'X-Title': 'Phantom Trail Extension',
+            'X-Title': 'Phantom Trail Experimental Signal Monitor',
           },
           body: JSON.stringify(requestBody),
           signal: controller.signal,
         });
 
-        clearTimeout(timeoutId);
-
         if (!response.ok) {
           const error = new Error(
-            `API request failed: ${response.status}`
+            `OpenRouter request failed: ${response.status}`
           ) as APIError;
           error.status = response.status;
 
           if (response.status === 429) {
             error.isRateLimit = true;
-            // Try to get retry-after header
             const retryAfter = response.headers.get('retry-after');
             if (retryAfter) {
-              error.retryAfter = parseInt(retryAfter) * 1000; // Convert to ms
+              error.retryAfter = Number.parseInt(retryAfter, 10) * 1000;
             }
-
-            // Record rate limit for backoff
             await RateLimiter.recordRateLimit();
             throw error;
           }
 
-          // For 5xx errors, retry
           if (response.status >= 500 && attempt < this.MAX_RETRIES) {
             lastError = error;
-            await this.delay(Math.pow(2, attempt) * 1000); // Exponential backoff
+            await this.delay(2 ** attempt * 1000);
             continue;
           }
 
@@ -119,98 +106,85 @@ export class AIClient {
 
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content;
-
-        if (!content) {
-          throw new Error('No content in API response');
+        if (typeof content !== 'string' || !content.trim()) {
+          throw new Error('OpenRouter response did not contain summary text');
         }
 
-        // Record successful request
         await RateLimiter.recordRequest();
-
         return this.parseAIResponse(content);
       } catch (error) {
         lastError = error as APIError;
 
-        // Don't retry on rate limits or client errors
         if (
           lastError.isRateLimit ||
-          (lastError.status && lastError.status < 500)
+          (lastError.status !== undefined && lastError.status < 500) ||
+          attempt === this.MAX_RETRIES
         ) {
           break;
         }
 
-        // Don't retry on last attempt
-        if (attempt === this.MAX_RETRIES) {
-          break;
-        }
-
-        console.warn(`API request attempt ${attempt} failed:`, error);
-        await this.delay(Math.pow(2, attempt) * 1000); // Exponential backoff
+        console.warn(
+          `OpenRouter summary attempt ${attempt} failed:`,
+          error
+        );
+        await this.delay(2 ** attempt * 1000);
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
 
-    // Try fallback model if primary fails and it's not a rate limit
     if (modelId === DEFAULT_MODEL && !lastError?.isRateLimit) {
       try {
         return await this.makeRequest(events, FALLBACK_MODEL);
       } catch (fallbackError) {
-        console.error('Fallback model also failed:', fallbackError);
+        console.error('OpenRouter fallback summary failed:', fallbackError);
       }
     }
 
-    throw lastError || new Error('All retry attempts failed');
+    throw lastError || new Error('OpenRouter summary attempts failed');
   }
 
-  /**
-   * Delay helper for retry logic
-   */
-  private static delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  private static delay(milliseconds: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
   }
 
-  /**
-   * Build system prompt for AI
-   */
   private static buildSystemPrompt(): string {
-    return `You are a privacy expert analyzing web tracking activity. Provide clear, actionable insights about data collection.
+    return `You summarize possible tracking-related detector signals from an experimental browser extension.
 
-RESPONSE FORMAT (JSON):
+The input is incomplete and can contain false positives, false negatives, duplicate events, and incorrect page/resource attribution. A domain or API label does not prove who operated code, what data was collected, whether data was retained or shared, whether a website is safe, or whether any law was violated.
+
+RESPONSE FORMAT (valid JSON only):
 {
-  "narrative": "Brief explanation in plain English (max 100 words)",
+  "narrative": "A cautious plain-language summary of the recorded signal counts, maximum 100 words",
   "riskAssessment": "low|medium|high|critical",
-  "recommendations": ["action1", "action2"],
-  "confidence": 0.85
+  "recommendations": ["one cautious review step", "another cautious review step"],
+  "confidence": 0.0
 }
 
-GUIDELINES:
-- Use simple language, avoid technical jargon
-- Focus on user impact, not technical details
-- Provide specific, actionable recommendations
-- Be accurate but not alarmist`;
+RULES:
+- Always call the input recorded detector signals or heuristic labels.
+- State uncertainty and attribution limits in the narrative.
+- Never claim collection, surveillance, sharing, sale, fingerprinting, attack, safety, reputation, compliance, or intent as established fact.
+- Treat riskAssessment as a prototype severity label, not a verified threat rating.
+- Recommend reviewing evidence and browser controls; do not prescribe installing software as automatically necessary.
+- Keep confidence at or below 0.6 because the source evidence is unvalidated.
+- Do not infer personal traits, habits, identity, sensitive interests, or user intent.`;
   }
 
-  /**
-   * Build user prompt from tracking events
-   */
   private static buildUserPrompt(events: TrackingEvent[]): string {
-    const summary = this.summarizeEvents(events);
-    return `Analyze this tracking activity:
-
-${summary}
-
-Provide analysis in the specified JSON format.`;
+    return `Summarize these recorded detector-signal aggregates without adding facts that are not present:\n\n${this.summarizeEvents(
+      events
+    )}\n\nReturn only the required JSON object.`;
   }
 
-  /**
-   * Summarize events for AI prompt
-   */
   private static summarizeEvents(events: TrackingEvent[]): string {
     const domainCounts = new Map<string, number>();
     const typeCounts = new Map<string, number>();
     const riskCounts = new Map<RiskLevel, number>();
 
-    events.forEach(event => {
-      domainCounts.set(event.domain, (domainCounts.get(event.domain) || 0) + 1);
+    for (const event of events) {
+      const domain = event.domain || 'unknown';
+      domainCounts.set(domain, (domainCounts.get(domain) || 0) + 1);
       typeCounts.set(
         event.trackerType,
         (typeCounts.get(event.trackerType) || 0) + 1
@@ -219,60 +193,75 @@ Provide analysis in the specified JSON format.`;
         event.riskLevel,
         (riskCounts.get(event.riskLevel) || 0) + 1
       );
-    });
+    }
 
     const topDomains = Array.from(domainCounts.entries())
-      .sort(([, a], [, b]) => b - a)
+      .sort(([, first], [, second]) => second - first)
       .slice(0, 5)
-      .map(([domain, count]) => `${domain} (${count}x)`)
+      .map(([domain, count]) => `${domain}: ${count}`)
       .join(', ');
 
     const typesSummary = Array.from(typeCounts.entries())
       .map(([type, count]) => `${type}: ${count}`)
       .join(', ');
 
-    const riskSummary = Array.from(riskCounts.entries())
-      .map(([risk, count]) => `${risk}: ${count}`)
+    const labelSummary = Array.from(riskCounts.entries())
+      .map(([label, count]) => `${label}: ${count}`)
       .join(', ');
 
-    return `Total events: ${events.length}
-Top domains: ${topDomains}
-Tracker types: ${typesSummary}
-Risk levels: ${riskSummary}`;
+    return `Recorded signal count: ${events.length}\nMost frequent event-domain labels: ${topDomains || 'none'}\nPrototype category labels: ${typesSummary || 'none'}\nPrototype severity labels: ${labelSummary || 'none'}`;
   }
 
-  /**
-   * Parse AI response JSON
-   */
   private static parseAIResponse(content: string): AIAnalysis {
     try {
-      // Try to extract JSON from response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? jsonMatch[0] : content;
+      const repairedJson = jsonrepair(jsonMatch ? jsonMatch[0] : content);
+      const parsed = JSON.parse(repairedJson) as Record<string, unknown>;
 
-      // Repair and parse JSON
-      const repairedJson = jsonrepair(jsonStr);
-      const parsed = JSON.parse(repairedJson);
+      const narrative =
+        typeof parsed.narrative === 'string' && parsed.narrative.trim()
+          ? parsed.narrative.trim()
+          : 'The optional model returned no usable recorded-signal summary.';
+      const recommendations = Array.isArray(parsed.recommendations)
+        ? parsed.recommendations
+            .filter((item): item is string => typeof item === 'string')
+            .map(item => item.trim())
+            .filter(Boolean)
+            .slice(0, 3)
+        : [];
+      const confidenceValue =
+        typeof parsed.confidence === 'number' ? parsed.confidence : 0;
 
       return {
-        narrative: parsed.narrative || 'Analysis completed',
-        riskAssessment: parsed.riskAssessment || 'medium',
-        recommendations: parsed.recommendations || [],
-        confidence: parsed.confidence || 0.5,
+        narrative: `${narrative}\n\nThis generated summary may be inaccurate and is not a verified privacy conclusion.`,
+        riskAssessment: this.normalizeRiskLevel(parsed.riskAssessment),
+        recommendations:
+          recommendations.length > 0
+            ? recommendations
+            : ['Review the underlying detector events and attribution limits.'],
+        confidence: Math.max(0, Math.min(0.6, confidenceValue)),
       };
     } catch (error) {
-      console.error('Failed to parse AI response:', error);
-
-      // Fallback analysis
+      console.error('Failed to parse OpenRouter summary:', error);
       return {
-        narrative: 'Unable to analyze tracking data at this time.',
+        narrative:
+          'The optional model response could not be parsed. No conclusion was produced.',
         riskAssessment: 'medium',
         recommendations: [
-          'Review privacy settings',
-          'Consider using ad blockers',
+          'Review the underlying detector events directly.',
+          'Do not treat an unavailable summary as evidence of safety or risk.',
         ],
-        confidence: 0.1,
+        confidence: 0,
       };
     }
+  }
+
+  private static normalizeRiskLevel(value: unknown): RiskLevel {
+    return value === 'low' ||
+      value === 'medium' ||
+      value === 'high' ||
+      value === 'critical'
+      ? value
+      : 'medium';
   }
 }

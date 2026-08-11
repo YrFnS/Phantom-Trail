@@ -6,8 +6,6 @@ import {
   TimelineAnalyzer,
 } from './analyzers';
 import { aiEngine } from './ai-engine';
-import { PrivacyCoach } from './ai-coaching';
-import { PrivacyInsights } from './privacy-insights';
 import type { TrackingEvent } from './types';
 import { EventsStorage } from './storage/events-storage';
 
@@ -22,14 +20,18 @@ export interface AnalysisQuery {
 }
 
 /**
- * AI-powered analysis prompt handler
+ * Routes a limited set of English phrases to local recorded-signal summaries.
+ * Unmatched text can request an optional OpenRouter event summary when the user
+ * explicitly enabled that feature.
  */
 export class AIAnalysisPrompts {
-  /**
-   * Process natural language analysis queries
-   */
   static async processQuery(query: string): Promise<string> {
-    const analysisQuery = this.parseQuery(query);
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      return this.getSupportedQueriesMessage();
+    }
+
+    const analysisQuery = this.parseQuery(trimmedQuery);
 
     try {
       switch (analysisQuery.type) {
@@ -39,63 +41,50 @@ export class AIAnalysisPrompts {
           );
           return PatternAnalyzer.formatResponse(result);
         }
-
         case 'risk': {
           const result = await RiskAnalyzer.analyze(
             analysisQuery.parameters?.timeframe
           );
           return RiskAnalyzer.formatResponse(result);
         }
-
         case 'tracker': {
-          if (analysisQuery.parameters?.trackerDomain) {
-            const result = await TrackerAnalyzer.analyze(
-              analysisQuery.parameters.trackerDomain
-            );
-            return TrackerAnalyzer.formatResponse(result);
-          }
-          break;
+          const domain = analysisQuery.parameters?.trackerDomain;
+          if (!domain) return this.getSupportedQueriesMessage();
+          return TrackerAnalyzer.formatResponse(
+            await TrackerAnalyzer.analyze(domain)
+          );
         }
-
         case 'website': {
-          if (analysisQuery.parameters?.websiteUrl) {
-            const result = await WebsiteAnalyzer.analyze(
-              analysisQuery.parameters.websiteUrl
-            );
-            return WebsiteAnalyzer.formatResponse(result);
-          }
-          break;
+          const websiteUrl = analysisQuery.parameters?.websiteUrl;
+          if (!websiteUrl) return this.getSupportedQueriesMessage();
+          return WebsiteAnalyzer.formatResponse(
+            await WebsiteAnalyzer.analyze(websiteUrl)
+          );
         }
-
         case 'timeline': {
           const result = await TimelineAnalyzer.analyze(
             analysisQuery.parameters?.timeframe
           );
           return TimelineAnalyzer.formatResponse(result);
         }
-
         case 'chat':
-          return await this.handleChatQuery(query);
+          return await this.handleChatQuery(trimmedQuery);
       }
-
-      return "I couldn't analyze that request. Please try asking about tracking patterns, privacy risks, specific trackers, or website audits.";
     } catch (error) {
-      console.error('Analysis query failed:', error);
-      return 'Sorry, I encountered an error while analyzing your request. Please try again.';
+      console.error('Recorded-signal query failed:', error);
+      return 'The prototype could not generate this recorded-signal summary. No conclusion was produced.';
     }
   }
 
-  /**
-   * Parse natural language query into structured analysis request
-   */
   private static parseQuery(query: string): AnalysisQuery {
     const lowerQuery = query.toLowerCase();
 
-    // Pattern analysis queries
     if (
       this.matchesPatterns(lowerQuery, [
         'tracking patterns',
+        'signal patterns',
         'top trackers',
+        'top domains',
         'most common trackers',
         'cross-site tracking',
         'tracker frequency',
@@ -109,11 +98,11 @@ export class AIAnalysisPrompts {
       };
     }
 
-    // Risk assessment queries
     if (
       this.matchesPatterns(lowerQuery, [
         'privacy risk',
         'privacy score',
+        'heuristic score',
         'how private',
         'risk assessment',
         'privacy rating',
@@ -128,13 +117,13 @@ export class AIAnalysisPrompts {
       };
     }
 
-    // Specific tracker queries
     const trackerDomain = TrackerAnalyzer.extractTrackerDomain(query);
     if (
       trackerDomain ||
       this.matchesPatterns(lowerQuery, [
         'analyze tracker',
         'tracker behavior',
+        'domain profile',
         'what does',
         'who owns',
       ])
@@ -146,7 +135,6 @@ export class AIAnalysisPrompts {
       };
     }
 
-    // Website audit queries
     const websiteUrl = WebsiteAnalyzer.extractWebsiteUrl(query);
     if (
       websiteUrl ||
@@ -154,6 +142,7 @@ export class AIAnalysisPrompts {
         'audit website',
         'website privacy',
         'site privacy',
+        'website signals',
         'how private is',
       ])
     ) {
@@ -164,13 +153,13 @@ export class AIAnalysisPrompts {
       };
     }
 
-    // Timeline analysis queries
     if (
       this.matchesPatterns(lowerQuery, [
         'timeline',
         'when am i tracked',
         'tracking over time',
         'tracking history',
+        'signal history',
         'peak tracking',
         'tracking trends',
         'anomalies',
@@ -183,64 +172,14 @@ export class AIAnalysisPrompts {
       };
     }
 
-    // Default to chat for everything else
     return { type: 'chat', query };
   }
 
-  /**
-   * Handle general chat queries with AI and personalized coaching context
-   */
   private static async handleChatQuery(query: string): Promise<string> {
-    // Get recent tracking events for context
-    const recentEvents = await this.getRecentEvents(24 * 60 * 60 * 1000); // Last 24 hours
-
-    // Get personalized insights for coaching context
-    let personalizedPrompt = query;
-    try {
-      const insights = await PrivacyInsights.getStoredInsights();
-      if (insights && this.isCoachingQuery(query)) {
-        personalizedPrompt = PrivacyCoach.createPersonalizedPrompt(
-          query,
-          insights
-        );
-      }
-    } catch (error) {
-      console.warn('Failed to load personalized context:', error);
-    }
-
-    // Use AI engine for natural language response
-    const response = await aiEngine.chatQuery(personalizedPrompt, recentEvents);
-    return response;
+    const recentEvents = await this.getRecentEvents(24 * 60 * 60 * 1000);
+    return await aiEngine.chatQuery(query, recentEvents);
   }
 
-  /**
-   * Check if query is coaching-related and should use personalized context
-   */
-  private static isCoachingQuery(query: string): boolean {
-    const lowerQuery = query.toLowerCase();
-    const coachingKeywords = [
-      'improve',
-      'better',
-      'help',
-      'advice',
-      'recommend',
-      'suggest',
-      'goal',
-      'progress',
-      'achievement',
-      'privacy score',
-      'how can i',
-      'what should i',
-      'tips',
-      'guidance',
-      'coach',
-      'personal',
-    ];
-
-    return coachingKeywords.some(keyword => lowerQuery.includes(keyword));
-  }
-
-  // Helper methods
   private static matchesPatterns(query: string, patterns: string[]): boolean {
     return patterns.some(pattern => query.includes(pattern));
   }
@@ -256,13 +195,12 @@ export class AIAnalysisPrompts {
       '30 days': 30 * 24 * 60 * 60 * 1000,
     };
 
+    const lowerQuery = query.toLowerCase();
     for (const [key, value] of Object.entries(timeframes)) {
-      if (query.toLowerCase().includes(key)) {
-        return value;
-      }
+      if (lowerQuery.includes(key)) return value;
     }
 
-    return 7 * 24 * 60 * 60 * 1000; // Default to 1 week
+    return 7 * 24 * 60 * 60 * 1000;
   }
 
   private static async getRecentEvents(
@@ -270,8 +208,10 @@ export class AIAnalysisPrompts {
   ): Promise<TrackingEvent[]> {
     const allEvents = await EventsStorage.getRecentEvents(1000);
     const cutoff = Date.now() - timeframe;
-    return allEvents.filter(
-      (event: TrackingEvent) => event.timestamp >= cutoff
-    );
+    return allEvents.filter(event => event.timestamp >= cutoff);
+  }
+
+  private static getSupportedQueriesMessage(): string {
+    return `Phantom Trail 0.1.0 supports a limited set of English recorded-signal summaries:\n\n- "Analyze signal patterns this week"\n- "Show my heuristic score"\n- "Show the signal timeline"\n- "Summarize signals for example.com"\n- "Show the domain profile for google-analytics.com"\n\nThese outputs summarize stored heuristic events. They are not live audits or verified privacy conclusions. Unmatched questions require the optional OpenRouter event-summary feature, which must be explicitly enabled.`;
   }
 }

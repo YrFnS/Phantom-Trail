@@ -10,26 +10,23 @@ const EXPORT_FORMATS: ExportFormatOption[] = [
   {
     format: 'csv',
     label: 'CSV',
-    description: 'Spreadsheet format for Excel/Google Sheets',
-    icon: '📊',
+    description: 'Recorded event rows for spreadsheet software',
+    icon: '▦',
   },
   {
     format: 'json',
     label: 'JSON',
-    description: 'Structured data format for developers',
-    icon: '🔧',
+    description: 'Structured export of the recorded event objects',
+    icon: '{}',
   },
   {
     format: 'pdf',
-    label: 'Report',
-    description: 'Human-readable summary report',
-    icon: '📄',
+    label: 'Plain-text report',
+    description: 'Downloads a .txt summary; this is not a PDF document',
+    icon: '≡',
   },
 ];
 
-/**
- * Export Button Component
- */
 export function ExportButton({
   events,
   privacyScore,
@@ -53,8 +50,12 @@ export function ExportButton({
         dateRange:
           events.length > 0
             ? {
-                start: new Date(Math.min(...events.map(e => e.timestamp))),
-                end: new Date(Math.max(...events.map(e => e.timestamp))),
+                start: new Date(
+                  Math.min(...events.map(event => event.timestamp))
+                ),
+                end: new Date(
+                  Math.max(...events.map(event => event.timestamp))
+                ),
               }
             : undefined,
       };
@@ -66,17 +67,20 @@ export function ExportButton({
       );
       ExportService.downloadBlob(blob, filename);
 
+      const formatLabel =
+        EXPORT_FORMATS.find(option => option.format === format)?.label || format;
       setExportStatus({
         type: 'success',
-        message: `Successfully exported ${events.length} events as ${format.toUpperCase()}`,
+        message: `Exported ${events.length} recorded events as ${formatLabel} (${filename})`,
       });
-
       setIsOpen(false);
     } catch (error) {
       console.error('Export failed:', error);
       setExportStatus({
         type: 'error',
-        message: `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Export failed: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
       });
     } finally {
       setIsExporting(false);
@@ -87,7 +91,6 @@ export function ExportButton({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Main Export Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled || !hasData}
@@ -101,7 +104,9 @@ export function ExportButton({
           }
         `}
         title={
-          hasData ? 'Export tracking data (Ctrl+Shift+E)' : 'No data to export'
+          hasData
+            ? 'Export recorded detector data; exports can contain full stored URLs'
+            : 'No recorded data to export'
         }
       >
         <svg
@@ -119,69 +124,70 @@ export function ExportButton({
         <span className="ml-1">{isOpen ? '▲' : '▼'}</span>
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && hasData && (
-        <div className="absolute right-0 mt-2 w-72 bg-[var(--bg-elevated)] rounded-md shadow-lg border border-[var(--border-primary)] z-50">
-          <div className="py-1">
-            <div className="px-4 py-2 text-xs text-[var(--text-tertiary)] border-b border-[var(--border-primary)]">
-              Export {events.length} tracking event
-              {events.length !== 1 ? 's' : ''}
-            </div>
+        <>
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute right-0 mt-2 w-72 bg-[var(--bg-elevated)] rounded-md shadow-lg border border-[var(--border-primary)] z-50">
+            <div className="py-1">
+              <div className="px-4 py-2 border-b border-[var(--border-primary)]">
+                <div className="text-xs text-[var(--text-secondary)]">
+                  Export {events.length} recorded event
+                  {events.length === 1 ? '' : 's'}
+                </div>
+                <div className="text-[10px] text-[var(--warning)] mt-1 leading-relaxed">
+                  CSV and JSON include stored event URLs and descriptions. Review
+                  the file before sharing it.
+                </div>
+              </div>
 
-            {EXPORT_FORMATS.map(option => (
-              <button
-                key={option.format}
-                onClick={() => handleExport(option.format)}
-                disabled={isExporting}
-                className={`
-                  w-full text-left px-4 py-3 hover:bg-[var(--bg-tertiary)]
-                  transition-colors duration-150
-                  ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
-              >
-                <div className="flex items-start space-x-3">
-                  <span className="text-lg">{option.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-[var(--text-primary)]">
-                      {option.label}
-                    </div>
-                    <div className="text-xs text-[var(--text-tertiary)] mt-1">
-                      {option.description}
+              {EXPORT_FORMATS.map(option => (
+                <button
+                  key={option.format}
+                  onClick={() => void handleExport(option.format)}
+                  disabled={isExporting}
+                  className={`w-full text-left px-4 py-3 hover:bg-[var(--bg-tertiary)] transition-colors duration-150 ${
+                    isExporting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <span className="text-lg">{option.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-[var(--text-primary)]">
+                        {option.label}
+                      </div>
+                      <div className="text-xs text-[var(--text-tertiary)] mt-1">
+                        {option.description}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Loading Indicator */}
       {isExporting && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-elevated)] bg-opacity-75 rounded-md">
+        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-elevated)] bg-opacity-75 rounded-md z-50">
           <div className="flex items-center space-x-2 text-sm text-[var(--text-secondary)]">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[var(--accent-primary)] border-t-transparent"></div>
-            <span>Exporting...</span>
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[var(--accent-primary)] border-t-transparent" />
+            <span>Preparing local export...</span>
           </div>
         </div>
       )}
 
-      {/* Status Messages */}
       {exportStatus.type && (
         <div
-          className={`
-          absolute top-full left-0 right-0 mt-2 p-3 rounded-md text-sm z-40
-          ${
+          className={`absolute top-full left-0 right-0 mt-2 p-3 rounded-md text-sm z-40 ${
             exportStatus.type === 'success'
               ? 'bg-[var(--success)]/10 text-[var(--success)] border border-[var(--success)]/30'
               : 'bg-[var(--error)]/10 text-[var(--error)] border border-[var(--error)]/30'
-          }
-        `}
+          }`}
         >
           <div className="flex items-center">
-            <span className="mr-2">
-              {exportStatus.type === 'success' ? '✅' : '❌'}
-            </span>
             <span>{exportStatus.message}</span>
             <button
               onClick={() => setExportStatus({ type: null, message: '' })}
@@ -191,11 +197,6 @@ export function ExportButton({
             </button>
           </div>
         </div>
-      )}
-
-      {/* Click outside to close */}
-      {isOpen && (
-        <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
       )}
     </div>
   );

@@ -6,7 +6,10 @@ import type {
 } from '../../components/LiveNarrative/LiveNarrative.types';
 
 /**
- * Hook for detecting tracking patterns across events
+ * Detect possible patterns in recorded events.
+ *
+ * These are heuristic groupings, not proof that tracking, fingerprinting, or
+ * data sharing actually occurred.
  */
 export function usePatternDetection(events: TrackingEvent[]) {
   const [patterns, setPatterns] = useState<TrackingPattern[]>([]);
@@ -22,7 +25,6 @@ export function usePatternDetection(events: TrackingEvent[]) {
     const detectedPatterns: TrackingPattern[] = [];
     const newAlerts: PatternAlert[] = [];
 
-    // Detect cross-site tracking
     const crossSitePattern = detectCrossSiteTracking(events);
     if (crossSitePattern) {
       detectedPatterns.push(crossSitePattern);
@@ -31,19 +33,19 @@ export function usePatternDetection(events: TrackingEvent[]) {
         pattern: {
           id: `cross-site-${Date.now()}`,
           type: 'cross-site',
-          domains: [],
+          domains: crossSitePattern.domains,
           events: crossSitePattern.events,
           riskLevel: 'medium',
           description: crossSitePattern.description,
           detectedAt: Date.now(),
         },
         severity: 'warning',
-        message: 'Cross-site tracking detected across multiple domains',
+        message:
+          'Possible repeated-domain pattern across recorded page contexts',
         actionable: true,
       });
     }
 
-    // Detect fingerprinting patterns
     const fingerprintingPattern = detectFingerprintingPattern(events);
     if (fingerprintingPattern) {
       detectedPatterns.push(fingerprintingPattern);
@@ -52,14 +54,14 @@ export function usePatternDetection(events: TrackingEvent[]) {
         pattern: {
           id: `fingerprinting-${Date.now()}`,
           type: 'fingerprinting',
-          domains: [],
+          domains: fingerprintingPattern.domains,
           events: fingerprintingPattern.events,
           riskLevel: 'high',
           description: fingerprintingPattern.description,
           detectedAt: Date.now(),
         },
         severity: 'warning',
-        message: 'Device fingerprinting attempts detected',
+        message: 'Possible fingerprinting-related signals recorded',
         actionable: true,
       });
     }
@@ -82,39 +84,41 @@ export function usePatternDetection(events: TrackingEvent[]) {
 function detectCrossSiteTracking(
   events: TrackingEvent[]
 ): TrackingPattern | null {
-  // Group events by tracker domain
-  const trackerDomains = new Map<string, TrackingEvent[]>();
+  const eventsByRecordedDomain = new Map<string, TrackingEvent[]>();
 
-  events.forEach(event => {
-    const domain = extractDomain(event.url);
-    if (!trackerDomains.has(domain)) {
-      trackerDomains.set(domain, []);
+  for (const event of events) {
+    if (!eventsByRecordedDomain.has(event.domain)) {
+      eventsByRecordedDomain.set(event.domain, []);
     }
-    trackerDomains.get(domain)!.push(event);
-  });
+    eventsByRecordedDomain.get(event.domain)!.push(event);
+  }
 
-  // Find trackers present on multiple sites
-  const crossSiteTrackers = Array.from(trackerDomains.entries()).filter(
-    ([, trackerEvents]) => {
-      const uniqueSites = new Set(trackerEvents.map(e => extractDomain(e.url)));
-      return uniqueSites.size > 1;
+  const repeatedAcrossPages = Array.from(eventsByRecordedDomain.entries()).filter(
+    ([, domainEvents]) => {
+      const pageContexts = new Set(domainEvents.map(event => extractDomain(event.url)));
+      return pageContexts.size > 1;
     }
   );
 
-  if (crossSiteTrackers.length === 0) return null;
+  if (repeatedAcrossPages.length === 0) return null;
 
-  const allCrossSiteEvents = crossSiteTrackers.flatMap(([, events]) => events);
-  const uniqueSites = new Set(
-    allCrossSiteEvents.map(e => extractDomain(e.url))
+  const repeatedEvents = repeatedAcrossPages.flatMap(([, domainEvents]) =>
+    domainEvents
   );
+  const pageContexts = new Set(
+    repeatedEvents.map(event => extractDomain(event.url))
+  );
+  const recordedDomains = repeatedAcrossPages.map(([domain]) => domain);
 
   return {
     id: `cross-site-${Date.now()}`,
     type: 'cross-site',
-    domains: Array.from(uniqueSites),
-    events: allCrossSiteEvents,
-    riskLevel: uniqueSites.size > 3 ? 'high' : 'medium',
-    description: `Tracker present on ${uniqueSites.size} different sites`,
+    domains: recordedDomains,
+    events: repeatedEvents,
+    riskLevel: pageContexts.size > 3 ? 'high' : 'medium',
+    description: `${recordedDomains.length} recorded domain${
+      recordedDomains.length === 1 ? '' : 's'
+    } appeared across ${pageContexts.size} page contexts; data sharing is not confirmed`,
     detectedAt: Date.now(),
   };
 }
@@ -131,10 +135,12 @@ function detectFingerprintingPattern(
   return {
     id: `fingerprinting-${Date.now()}`,
     type: 'fingerprinting',
-    domains: [],
+    domains: Array.from(new Set(fingerprintingEvents.map(event => event.domain))),
     events: fingerprintingEvents,
     riskLevel: 'high',
-    description: `${fingerprintingEvents.length} fingerprinting attempts detected`,
+    description: `${fingerprintingEvents.length} event${
+      fingerprintingEvents.length === 1 ? '' : 's'
+    } classified as possible fingerprinting-related signals`,
     detectedAt: Date.now(),
   };
 }

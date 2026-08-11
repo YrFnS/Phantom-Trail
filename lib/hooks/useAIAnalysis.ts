@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { aiEngine } from '../../lib/ai-engine';
+import { SettingsStorage } from '../../lib/storage/settings-storage';
 import type { TrackingEvent, AIAnalysis } from '../../lib/types';
 import { AnalysisCache } from '../../components/LiveNarrative/LiveNarrative.cache';
 import type { EventAnalysis } from '../../components/LiveNarrative/LiveNarrative.types';
 
 /**
- * Hook for AI-powered analysis of tracking events
+ * Generate an optional OpenRouter summary only when the user explicitly enables
+ * AI analysis. Recorded detector events remain available without this feature.
  */
 export function useAIAnalysis(events: TrackingEvent[]) {
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
@@ -15,6 +17,15 @@ export function useAIAnalysis(events: TrackingEvent[]) {
   const generateAnalysis = useCallback(async () => {
     if (events.length === 0) {
       setAnalysis(null);
+      setError(null);
+      return;
+    }
+
+    const settings = await SettingsStorage.getSettings();
+    if (!settings.enableAI || !settings.openRouterApiKey) {
+      setAnalysis(null);
+      setError(null);
+      setLoading(false);
       return;
     }
 
@@ -22,48 +33,48 @@ export function useAIAnalysis(events: TrackingEvent[]) {
     setError(null);
 
     try {
-      // Check cache first
-      const recentEvents = events.slice(-5); // Last 5 events
-      if (recentEvents.length === 0) return;
+      const recentEvents = events.slice(-5);
+      const firstEvent = recentEvents[0];
+      if (!firstEvent) return;
 
-      const cached = await AnalysisCache.getCachedAnalysis(recentEvents[0]);
-
+      const cached = await AnalysisCache.getCachedAnalysis(firstEvent);
       if (cached) {
         setAnalysis(cached);
-        setLoading(false);
         return;
       }
 
-      // Generate new analysis
       const aiAnalysis = await aiEngine.analyzeEvents(recentEvents);
+      if (!aiAnalysis) return;
 
-      if (aiAnalysis && recentEvents[0]) {
-        // Create EventAnalysis from AIAnalysis
-        const eventAnalysis: EventAnalysis = {
-          ...aiAnalysis,
-          eventId: recentEvents[0].id,
-          timestamp: Date.now(),
-        };
+      const eventAnalysis: EventAnalysis = {
+        ...aiAnalysis,
+        eventId: firstEvent.id,
+        timestamp: Date.now(),
+      };
 
-        // Cache the result
-        await AnalysisCache.setCachedAnalysis(recentEvents[0], eventAnalysis);
-        setAnalysis(aiAnalysis);
-      }
-    } catch (err) {
-      console.error('AI analysis failed:', err);
-      setError(err instanceof Error ? err.message : 'Analysis failed');
+      await AnalysisCache.setCachedAnalysis(firstEvent, eventAnalysis);
+      setAnalysis(aiAnalysis);
+    } catch (caughtError) {
+      console.error('Optional AI summary failed:', caughtError);
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Optional analysis failed'
+      );
     } finally {
       setLoading(false);
     }
   }, [events]);
 
   const regenerate = useCallback(() => {
-    generateAnalysis();
+    void generateAnalysis();
   }, [generateAnalysis]);
 
   useEffect(() => {
-    // Debounce analysis generation
-    const timeoutId = setTimeout(generateAnalysis, 1000);
+    const timeoutId = setTimeout(() => {
+      void generateAnalysis();
+    }, 1000);
+
     return () => clearTimeout(timeoutId);
   }, [generateAnalysis]);
 

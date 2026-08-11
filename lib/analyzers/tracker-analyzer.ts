@@ -5,77 +5,65 @@ import {
 } from '../tracking-analysis';
 
 /**
- * Specialized analyzer for individual tracker behavior
+ * Formats stored signals associated with an event-domain label.
  */
 export class TrackerAnalyzer {
-  /**
-   * Analyze a specific tracker's behavior
-   */
   static async analyze(trackerDomain: string): Promise<AnalysisResult> {
     return await TrackingAnalysis.analyzeTracker(trackerDomain);
   }
 
-  /**
-   * Format tracker analysis results into readable text
-   */
   static formatResponse(result: AnalysisResult): string {
-    let response = `# Tracker Behavior Analysis\n\n`;
+    let response = `# Event-Domain Signal Profile\n\n`;
+    response += `> This profile summarizes stored labels. It does not verify ownership, tracking behavior, data collection, or prevalence.\n\n`;
     response += `${result.summary}\n\n`;
     response += this.formatTrackerData(result.data as TrackerData | null);
 
     if (result.recommendations.length > 0) {
-      response += `\n## Recommendations\n`;
-      result.recommendations.forEach((rec: string, i: number) => {
-        response += `${i + 1}. ${rec}\n`;
+      response += `\n## Review Notes\n`;
+      result.recommendations.forEach((recommendation: string, index: number) => {
+        response += `${index + 1}. ${recommendation}\n`;
       });
     }
 
     return response;
   }
 
-  /**
-   * Format tracker data into readable sections
-   */
   private static formatTrackerData(data: TrackerData | null): string {
-    if (!data) return 'No data available for this tracker.';
+    if (!data) {
+      return 'No stored detector signals were available for this domain label.\n';
+    }
 
-    let output = `## Tracker Profile\n`;
-    output += `- **Owner:** ${data.owner}\n`;
-    output += `- **Type:** ${data.type}\n`;
-    output += `- **Risk Level:** ${data.riskLevel}\n`;
-    output += `- **Prevalence:** ${data.prevalence}\n\n`;
+    let output = `## Catalog and Event Labels\n`;
+    output += `- **Catalog owner label:** ${data.owner}\n`;
+    output += `- **Prototype category:** ${data.type}\n`;
+    output += `- **Prototype severity:** ${data.riskLevel}\n`;
+    output += `- **Stored association summary:** ${data.prevalence}\n`;
+    output += `- **Recorded occurrences:** ${data.occurrences}\n\n`;
 
-    output += `## Data Collection\n`;
+    output += `## In-Page Instrumentation Labels\n`;
     if (data.trackingMethods.length > 0) {
-      output += `**Methods detected:**\n`;
-      data.trackingMethods.forEach((method: string) => {
-        output += `- ${method.replace('-', ' ')}\n`;
+      data.trackingMethods.forEach(method => {
+        output += `- ${method.replace(/-/g, ' ')} signal\n`;
       });
     } else {
-      output += `- Standard web tracking (cookies, pixels)\n`;
+      output += '- No in-page instrumentation method is attached to these stored events.\n';
     }
 
     if (data.sites.length > 0) {
-      output += `\n## Found on these sites:\n`;
-      data.sites.forEach((site: string) => {
+      output += `\n## Associated URL-Host Labels\n`;
+      data.sites.forEach(site => {
         output += `- ${site}\n`;
       });
+      output += `\nThese associations can reflect page/resource attribution errors and do not prove cross-site tracking.\n`;
     }
 
     return output;
   }
 
-  /**
-   * Extract tracker domain from natural language query
-   */
   static extractTrackerDomain(query: string): string | undefined {
-    // Look for domain patterns in the query
     const domainMatch = query.match(/([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}/);
-    if (domainMatch) {
-      return domainMatch[0];
-    }
+    if (domainMatch) return domainMatch[0];
 
-    // Look for common tracker names
     const trackerNames: Record<string, string> = {
       'google analytics': 'google-analytics.com',
       doubleclick: 'doubleclick.net',
@@ -86,9 +74,7 @@ export class TrackerAnalyzer {
 
     const lowerQuery = query.toLowerCase();
     for (const [name, domain] of Object.entries(trackerNames)) {
-      if (lowerQuery.includes(name)) {
-        return domain;
-      }
+      if (lowerQuery.includes(name)) return domain;
     }
 
     return undefined;

@@ -27,7 +27,7 @@ export class OfflineMode {
 
   private constructor(config: Partial<OfflineModeConfig> = {}) {
     this.config = {
-      cacheMaxAge: 24 * 60 * 60 * 1000, // 24 hours
+      cacheMaxAge: 24 * 60 * 60 * 1000,
       maxCachedAnalyses: 100,
       enableRuleBasedAnalysis: true,
       ...config,
@@ -52,13 +52,11 @@ export class OfflineMode {
   }
 
   async handleAPIFailure(events: TrackingEvent[]): Promise<AIAnalysis | null> {
-    // Try to find cached analysis for similar events
     const cachedResult = await this.findSimilarAnalysis(events);
     if (cachedResult) {
       return this.adaptCachedAnalysis(cachedResult, events);
     }
 
-    // Fall back to rule-based analysis if enabled
     if (this.config.enableRuleBasedAnalysis) {
       return this.generateRuleBasedAnalysis(events);
     }
@@ -75,12 +73,11 @@ export class OfflineMode {
       ...analysis,
       cacheKey,
       timestamp: Date.now(),
-      events: events.slice(), // Create a copy
+      events: events.slice(),
     };
 
     this.cachedAnalyses.set(cacheKey, cachedAnalysis);
 
-    // Limit cache size
     if (this.cachedAnalyses.size > this.config.maxCachedAnalyses) {
       this.evictOldestCache();
     }
@@ -98,7 +95,6 @@ export class OfflineMode {
     let bestScore = 0;
 
     for (const cached of this.cachedAnalyses.values()) {
-      // Check if cache is still valid
       if (Date.now() - cached.timestamp > this.config.cacheMaxAge) {
         continue;
       }
@@ -112,7 +108,6 @@ export class OfflineMode {
       );
 
       if (similarity > bestScore && similarity > 0.6) {
-        // 60% similarity threshold
         bestScore = similarity;
         bestMatch = cached;
       }
@@ -127,19 +122,18 @@ export class OfflineMode {
     risks1: string[],
     risks2: string[]
   ): number {
-    // Domain similarity
     const intersection = new Set([...domains1].filter(d => domains2.has(d)));
     const union = new Set([...domains1, ...domains2]);
-    const domainSimilarity = intersection.size / union.size;
-
-    // Risk level similarity
+    const domainSimilarity = union.size > 0 ? intersection.size / union.size : 1;
     const riskSimilarity = this.calculateRiskSimilarity(risks1, risks2);
 
-    // Weighted average
     return domainSimilarity * 0.7 + riskSimilarity * 0.3;
   }
 
   private calculateRiskSimilarity(risks1: string[], risks2: string[]): number {
+    if (risks1.length === 0 && risks2.length === 0) return 1;
+    if (risks1.length === 0 || risks2.length === 0) return 0;
+
     const riskWeights = { low: 1, medium: 2, high: 3, critical: 4 };
 
     const avg1 =
@@ -155,24 +149,25 @@ export class OfflineMode {
         0
       ) / risks2.length;
 
-    return 1 - Math.abs(avg1 - avg2) / 4; // Normalize to 0-1
+    return 1 - Math.abs(avg1 - avg2) / 4;
   }
 
   private adaptCachedAnalysis(
     cached: CachedAnalysis,
     currentEvents: TrackingEvent[]
   ): AIAnalysis {
-    // Adapt the cached analysis to current events
     const adaptedNarrative = cached.narrative.replace(
-      /\d+ trackers?/g,
-      `${currentEvents.length} tracker${currentEvents.length === 1 ? '' : 's'}`
+      /\d+ (?:trackers?|signals?)/g,
+      `${currentEvents.length} recorded signal${
+        currentEvents.length === 1 ? '' : 's'
+      }`
     );
 
     return {
-      narrative: `${adaptedNarrative} (from cache)`,
+      narrative: `${adaptedNarrative} (cached heuristic summary)`,
       riskAssessment: cached.riskAssessment,
       recommendations: cached.recommendations,
-      confidence: cached.confidence * 0.8, // Reduce confidence for cached results
+      confidence: cached.confidence * 0.8,
     };
   }
 
@@ -180,40 +175,47 @@ export class OfflineMode {
     const highRiskEvents = events.filter(
       e => e.riskLevel === 'critical' || e.riskLevel === 'high'
     );
+    const criticalEvents = events.filter(e => e.riskLevel === 'critical');
     const mediumRiskEvents = events.filter(e => e.riskLevel === 'medium');
 
-    let narrative = 'Privacy analysis (offline mode): ';
+    let narrative = 'Offline heuristic summary: ';
     let riskAssessment: 'low' | 'medium' | 'high' | 'critical' = 'low';
     const recommendations: string[] = [];
 
-    if (highRiskEvents.length === 0 && mediumRiskEvents.length === 0) {
-      narrative += 'No significant tracking detected on this page.';
-      riskAssessment = 'low';
+    if (events.length === 0) {
+      narrative += 'No recorded signals are available to summarize.';
+    } else if (highRiskEvents.length === 0 && mediumRiskEvents.length === 0) {
+      narrative += 'No medium, high, or critical-risk signals were recorded.';
     } else if (highRiskEvents.length === 0) {
-      narrative += `${mediumRiskEvents.length} medium-risk tracker${mediumRiskEvents.length === 1 ? '' : 's'} detected.`;
+      narrative += `${mediumRiskEvents.length} medium-risk signal${
+        mediumRiskEvents.length === 1 ? '' : 's'
+      } recorded.`;
       riskAssessment = 'medium';
-      recommendations.push('Consider reviewing privacy settings for this site');
-    } else if (
-      highRiskEvents.filter(e => e.riskLevel === 'critical').length > 0
-    ) {
-      narrative += `${highRiskEvents.length} high-risk tracker${highRiskEvents.length === 1 ? '' : 's'} detected, including critical threats.`;
+      recommendations.push('Review unexpected signals and their evidence');
+    } else if (criticalEvents.length > 0) {
+      narrative += `${highRiskEvents.length} high or critical-risk signal${
+        highRiskEvents.length === 1 ? '' : 's'
+      } recorded, including ${criticalEvents.length} classified as critical.`;
       riskAssessment = 'critical';
       recommendations.push(
-        'Immediate action recommended - consider leaving this site'
+        'Review the underlying evidence before entering sensitive information'
       );
-      recommendations.push('Use a VPN and ad blocker for protection');
+      recommendations.push(
+        'Consider appropriate browser privacy controls after confirming the signal'
+      );
     } else {
-      narrative += `${highRiskEvents.length} high-risk tracker${highRiskEvents.length === 1 ? '' : 's'} detected.`;
+      narrative += `${highRiskEvents.length} high-risk signal${
+        highRiskEvents.length === 1 ? '' : 's'
+      } recorded.`;
       riskAssessment = 'high';
-      recommendations.push('Consider using an ad blocker or privacy browser');
-      recommendations.push('Review and limit data sharing permissions');
+      recommendations.push('Review the recorded evidence for false positives');
+      recommendations.push('Consider browser privacy controls where appropriate');
     }
 
-    // Add domain-specific recommendations
     const uniqueDomains = new Set(events.map(e => e.domain));
     if (uniqueDomains.size > 5) {
       recommendations.push(
-        'Multiple tracking domains detected - consider stricter privacy settings'
+        'Signals reference several domains; this does not by itself prove cross-site data sharing'
       );
     }
 
@@ -223,8 +225,8 @@ export class OfflineMode {
       recommendations:
         recommendations.length > 0
           ? recommendations
-          : ['Continue browsing normally'],
-      confidence: 0.7, // Lower confidence for rule-based analysis
+          : ['Continue collecting evidence before drawing conclusions'],
+      confidence: 0.5,
     };
   }
 

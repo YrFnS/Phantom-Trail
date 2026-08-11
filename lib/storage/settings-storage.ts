@@ -2,38 +2,36 @@ import type { ExtensionSettings } from '../types';
 import { BaseStorage } from './base-storage';
 
 /**
- * Manages extension settings storage
+ * Manages extension settings storage.
+ *
+ * Networked and unvalidated features remain opt-in while Phantom Trail is an
+ * experimental prototype.
  */
 export class SettingsStorage {
   private static readonly SETTINGS_KEY = 'phantom_trail_settings';
 
+  private static readonly DEFAULT_SETTINGS: ExtensionSettings = {
+    enableAI: false,
+    enableNotifications: false,
+    riskThreshold: 'medium',
+    enablePrivacyPredictions: false,
+  };
+
   /**
-   * Get extension settings from storage
+   * Get extension settings from storage.
    */
   static async getSettings(): Promise<ExtensionSettings> {
     try {
       const result = await chrome.storage.local.get(this.SETTINGS_KEY);
-      return (
-        result[this.SETTINGS_KEY] || {
-          enableAI: true,
-          enableNotifications: true,
-          riskThreshold: 'medium' as const,
-          enablePrivacyPredictions: true,
-        }
-      );
+      return result[this.SETTINGS_KEY] || { ...this.DEFAULT_SETTINGS };
     } catch (error) {
       console.error('Failed to get settings:', error);
-      return {
-        enableAI: true,
-        enableNotifications: true,
-        riskThreshold: 'medium' as const,
-        enablePrivacyPredictions: true,
-      };
+      return { ...this.DEFAULT_SETTINGS };
     }
   }
 
   /**
-   * Save extension settings to storage
+   * Save extension settings to storage.
    */
   static async saveSettings(settings: ExtensionSettings): Promise<void> {
     try {
@@ -47,25 +45,19 @@ export class SettingsStorage {
   }
 
   /**
-   * Initialize default settings if none exist
+   * Initialize default settings if none exist.
    */
   static async initializeDefaults(): Promise<void> {
     const existing = await BaseStorage.get(this.SETTINGS_KEY);
     if (!existing) {
-      await this.saveSettings({
-        enableAI: true,
-        enableNotifications: true,
-        riskThreshold: 'medium',
-        enablePrivacyPredictions: true,
-      });
+      await this.saveSettings({ ...this.DEFAULT_SETTINGS });
     }
 
-    // Initialize badge settings
     await this.initializeBadgeDefaults();
   }
 
   /**
-   * Initialize badge settings separately to avoid circular imports
+   * Initialize badge settings separately to avoid circular imports.
    */
   private static async initializeBadgeDefaults(): Promise<void> {
     try {
@@ -73,7 +65,7 @@ export class SettingsStorage {
       const existing = await BaseStorage.get(badgeKey);
       if (!existing) {
         await BaseStorage.set(badgeKey, {
-          enabled: true,
+          enabled: false,
           style: 'grade',
           showScore: false,
           showGrade: true,

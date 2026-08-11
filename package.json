@@ -1,7 +1,7 @@
 {
   "name": "phantom-trail",
-  "version": "1.0.0",
-  "description": "**An AI-native Chrome extension that makes invisible data collection visible in real-time.**",
+  "version": "0.1.0",
+  "description": "Experimental Chrome extension for inspecting possible web-tracking signals.",
   "main": "index.js",
   "directories": {
     "example": "examples"
@@ -11,19 +11,26 @@
     "build": "wxt build",
     "zip": "wxt zip",
     "type-check": "tsc --noEmit",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
-    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "validate": "pnpm type-check && pnpm lint && pnpm build",
     "fix-deps": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\fix-dependencies.ps1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/YrFnS/Phantom-Trail.git"
   },
-  "keywords": [],
+  "keywords": [
+    "chrome-extension",
+    "privacy",
+    "tracking",
+    "experimental"
+  ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
+  "packageManager": "pnpm@10.34.0",
   "bugs": {
     "url": "https://github.com/YrFnS/Phantom-Trail/issues"
   },

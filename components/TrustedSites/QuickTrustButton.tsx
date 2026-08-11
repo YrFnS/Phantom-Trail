@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   TrustedSitesManager,
   TrustLevel,
@@ -10,43 +10,46 @@ interface QuickTrustButtonProps {
   size?: 'sm' | 'md';
 }
 
-export const QuickTrustButton: React.FC<QuickTrustButtonProps> = ({
+/**
+ * Adds a personal site annotation. The historical component name is retained
+ * for compatibility; this control does not change scores or monitoring.
+ */
+export function QuickTrustButton({
   domain,
   className = '',
   size = 'sm',
-}) => {
-  const [isTrusted, setIsTrusted] = useState(false);
+}: QuickTrustButtonProps) {
+  const [isMarked, setIsMarked] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const checkTrustStatus = useCallback(async () => {
+  const checkStatus = useCallback(async () => {
     try {
-      const trusted = await TrustedSitesManager.isTrustedSite(domain);
-      setIsTrusted(trusted);
+      setIsMarked(await TrustedSitesManager.isTrustedSite(domain));
     } catch (error) {
-      console.error('Failed to check trust status:', error);
+      console.error('Failed to check site annotation:', error);
     }
   }, [domain]);
 
   useEffect(() => {
-    checkTrustStatus();
-  }, [checkTrustStatus]);
+    void checkStatus();
+  }, [checkStatus]);
 
-  const handleToggleTrust = async () => {
+  const handleToggle = async () => {
     setLoading(true);
     try {
-      if (isTrusted) {
+      if (isMarked) {
         await TrustedSitesManager.removeTrustedSite(domain);
-        setIsTrusted(false);
+        setIsMarked(false);
       } else {
         await TrustedSitesManager.addTrustedSite(
           domain,
           TrustLevel.PARTIAL_TRUST,
-          'Added via quick trust button'
+          'Added as a personal site annotation'
         );
-        setIsTrusted(true);
+        setIsMarked(true);
       }
     } catch (error) {
-      console.error('Failed to toggle trust:', error);
+      console.error('Failed to update site annotation:', error);
     } finally {
       setLoading(false);
     }
@@ -57,25 +60,29 @@ export const QuickTrustButton: React.FC<QuickTrustButtonProps> = ({
 
   return (
     <button
-      onClick={handleToggleTrust}
+      onClick={() => void handleToggle()}
       disabled={loading}
       className={`
         ${buttonSize}
         ${
-          isTrusted
-            ? 'bg-[var(--success-light)] text-[var(--success)] hover:bg-[var(--success-light)]'
+          isMarked
+            ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
             : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
         }
         border border-[var(--border-primary)] rounded-md transition-colors duration-200
         disabled:opacity-50 disabled:cursor-not-allowed
         ${className}
       `}
-      title={isTrusted ? 'Remove from trusted sites' : 'Add to trusted sites'}
+      title={
+        isMarked
+          ? 'Remove personal annotation; scores and monitoring are unchanged'
+          : 'Add personal annotation; scores and monitoring are unchanged'
+      }
     >
       <span className={`${iconSize} mr-1`}>
-        {loading ? '⏳' : isTrusted ? '🛡️' : '🔒'}
+        {loading ? '…' : isMarked ? '★' : '☆'}
       </span>
-      {isTrusted ? 'Trusted' : 'Trust'}
+      {isMarked ? 'Marked' : 'Mark'}
     </button>
   );
-};
+}

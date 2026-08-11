@@ -1,38 +1,33 @@
 import type { RiskFactor, DomainPattern } from './types';
 
+/**
+ * URL-pattern heuristics used by the optional link estimate.
+ *
+ * These rules do not fetch, execute, or audit the destination and must not be
+ * described as domain reputation or measured privacy behavior.
+ */
 export class RiskAnalysis {
   private static readonly DOMAIN_PATTERNS = new Map<string, DomainPattern>();
 
   static async analyzeDomainReputation(domain: string): Promise<RiskFactor[]> {
     const factors: RiskFactor[] = [];
+    const storedPattern = this.DOMAIN_PATTERNS.get(domain);
 
-    // Check known patterns
-    const pattern = this.DOMAIN_PATTERNS.get(domain);
-    if (pattern) {
+    if (storedPattern) {
       factors.push({
         type: 'domain-reputation',
-        impact: pattern.averageScore > 70 ? 10 : -15,
-        description: `Domain has ${pattern.averageScore > 70 ? 'good' : 'poor'} privacy reputation`,
-        confidence: 0.8,
+        impact: storedPattern.averageScore > 70 ? 10 : -15,
+        description: 'A locally stored prototype domain rule matched',
+        confidence: 0.5,
       });
     }
 
-    // Analyze domain characteristics
     if (domain.includes('analytics') || domain.includes('tracking')) {
       factors.push({
         type: 'domain-reputation',
         impact: -25,
-        description: 'Domain name suggests tracking functionality',
-        confidence: 0.9,
-      });
-    }
-
-    if (domain.includes('privacy') || domain.includes('secure')) {
-      factors.push({
-        type: 'domain-reputation',
-        impact: 15,
-        description: 'Domain name suggests privacy focus',
-        confidence: 0.7,
+        description: 'Hostname contains a tracking-related token',
+        confidence: 0.55,
       });
     }
 
@@ -43,10 +38,8 @@ export class RiskAnalysis {
     const factors: RiskFactor[] = [];
 
     try {
-      const urlObj = new URL(url);
-      const domain = urlObj.hostname.toLowerCase();
+      const domain = new URL(url).hostname.toLowerCase();
 
-      // Social media platforms
       if (
         domain.includes('facebook') ||
         domain.includes('instagram') ||
@@ -56,13 +49,11 @@ export class RiskAnalysis {
         factors.push({
           type: 'category-risk',
           impact: -20,
-          description:
-            'Social media platforms typically have extensive tracking',
-          confidence: 0.9,
+          description: 'Hostname matched a social-platform category rule',
+          confidence: 0.45,
         });
       }
 
-      // E-commerce
       if (
         domain.includes('shop') ||
         domain.includes('store') ||
@@ -72,12 +63,11 @@ export class RiskAnalysis {
         factors.push({
           type: 'category-risk',
           impact: -10,
-          description: 'E-commerce sites often use behavioral tracking',
-          confidence: 0.8,
+          description: 'Hostname matched an e-commerce category rule',
+          confidence: 0.4,
         });
       }
 
-      // News sites
       if (
         domain.includes('news') ||
         domain.includes('cnn') ||
@@ -87,32 +77,18 @@ export class RiskAnalysis {
         factors.push({
           type: 'category-risk',
           impact: -15,
-          description: 'News sites commonly use advertising trackers',
-          confidence: 0.7,
-        });
-      }
-
-      // Government/Educational
-      if (domain.includes('.gov') || domain.includes('.edu')) {
-        factors.push({
-          type: 'category-risk',
-          impact: 20,
-          description:
-            'Government/educational sites typically have better privacy',
-          confidence: 0.8,
+          description: 'Hostname matched a news-category rule',
+          confidence: 0.4,
         });
       }
     } catch {
-      // Invalid URL, no category prediction
+      // Invalid URL: no category rule is applied.
     }
 
     return factors;
   }
 
   static analyzeTrackerPatterns(domain: string): RiskFactor[] {
-    const factors: RiskFactor[] = [];
-
-    // Common tracker domains
     const trackerPatterns = [
       'google-analytics',
       'googletagmanager',
@@ -127,16 +103,18 @@ export class RiskAnalysis {
       domain.includes(pattern)
     );
 
-    if (matchedPatterns.length > 0) {
-      factors.push({
+    if (matchedPatterns.length === 0) return [];
+
+    return [
+      {
         type: 'tracker-patterns',
         impact: -15 * matchedPatterns.length,
-        description: `Domain matches ${matchedPatterns.length} known tracker patterns`,
-        confidence: 0.9,
-      });
-    }
-
-    return factors;
+        description: `Hostname matched ${matchedPatterns.length} maintained tracker string${
+          matchedPatterns.length === 1 ? '' : 's'
+        }`,
+        confidence: 0.6,
+      },
+    ];
   }
 
   static calculateWeightedPrediction(factors: RiskFactor[]): {
@@ -144,31 +122,27 @@ export class RiskAnalysis {
     confidence: number;
   } {
     if (factors.length === 0) {
-      return { score: 50, confidence: 0.1 }; // Default neutral score
+      return { score: 50, confidence: 0 };
     }
 
     let totalImpact = 0;
-    let totalConfidence = 0;
-    let weightedConfidence = 0;
+    let totalWeight = 0;
 
     for (const factor of factors) {
-      const weight = factor.confidence;
-      totalImpact += factor.impact * weight;
-      totalConfidence += weight;
-      weightedConfidence += factor.confidence;
+      totalImpact += factor.impact * factor.confidence;
+      totalWeight += factor.confidence;
     }
 
-    // Base score of 70, adjusted by weighted factors
-    const baseScore = 70;
+    const baseScore = 50;
     const adjustedScore =
-      baseScore + (totalConfidence > 0 ? totalImpact / totalConfidence : 0);
+      baseScore + (totalWeight > 0 ? totalImpact / totalWeight : 0);
+    const score = Math.max(0, Math.min(100, Math.round(adjustedScore)));
+    const confidence = Math.min(
+      0.6,
+      factors.reduce((sum, factor) => sum + factor.confidence, 0) /
+        factors.length
+    );
 
-    // Clamp to 0-100 range
-    const finalScore = Math.max(0, Math.min(100, Math.round(adjustedScore)));
-
-    // Average confidence
-    const finalConfidence = Math.min(1, weightedConfidence / factors.length);
-
-    return { score: finalScore, confidence: finalConfidence };
+    return { score, confidence };
   }
 }

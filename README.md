@@ -1,404 +1,203 @@
 # 👻 Phantom Trail
 
-**An AI-native Chrome extension that transforms invisible data collection into actionable privacy education.**
+> **Experimental prototype — version 0.1.0**
+>
+> Phantom Trail is under active remediation. It is not a production privacy
+> product, tracker blocker, security scanner, legal-compliance tool, or validated
+> privacy-rating service.
 
-Every time you browse the web, dozens of companies silently track your clicks, read your behavior, and sell your data—but you never see it happening. Phantom Trail changes that by acting as your personal privacy coach, not only showing what's tracking you but guiding you through your privacy improvement journey with AI-powered insights and personalized recommendations.
+Phantom Trail is a Chrome extension prototype for recording and visualizing
+**possible web-tracking signals**. It combines request classification, in-page
+instrumentation, local history, heuristic scoring, optional OpenRouter event
+summaries, and an experimental peer-to-peer transport.
 
-## ✨ Feature Highlights
+A detector signal can be a false positive or false negative. It means that a
+rule matched a request, hostname, URL pattern, or browser API operation. It does
+**not** by itself prove that a company collected, retained, shared, or sold data.
 
-- 🎯 **6 Main Views**: Live Feed, Network Map, Stats Dashboard, AI Chat, Privacy Coach, Community Insights
-- 🔍 **62+ Trackers Detected**: Comprehensive coverage across 8 categories (fingerprinting, session recording, advertising, analytics, social media, and more)
-- 🛡️ **11 Detection Methods**: Canvas, WebRTC, font, audio, WebGL fingerprinting, storage access, mouse tracking, form monitoring, device APIs, and more
-- 📊 **Privacy Scoring**: Real-time A-F grades with risk-weighted algorithm and trend analysis
-- 🤖 **AI-Powered**: Natural language chat, personalized coaching, and smart recommendations
-- ⚙️ **8 Settings Tabs**: Complete customization for theme, notifications, export, trusted sites, shortcuts, P2P, and more
-- 🌐 **Community Features**: Anonymous peer-to-peer privacy insights and comparisons
-- 🔒 **Privacy-First**: GDPR/CCPA compliant with 30-day retention, data sanitization, and local-first processing
+## Current implementation
 
-## 🎯 Core Features
+The repository currently contains:
 
-### 🤖 AI-Powered Privacy Education
+- A WXT/Manifest V3 extension with a React popup and six main views.
+- A manually maintained catalog of **56 domain entries across five code
+  categories**.
+- Eleven in-page instrumentation signal types covering canvas, WebRTC, fonts,
+  audio, WebGL, storage, mouse, forms, device APIs, battery, and sensors.
+- Local event storage with a 1,000-record cap and cleanup code for events older
+  than 30 days.
+- A live signal feed, an inferred relationship graph, charts, and an
+  unvalidated A–F heuristic.
+- Manual CSV and JSON exports. The option historically called PDF produces a
+  plain-text `.txt` report and is labeled accordingly in the UI.
+- Optional OpenRouter event summaries, available only when the user explicitly
+  enables AI **and** stores an API key.
+- Experimental coaching, link-estimate, cross-device sync, and P2P modules.
+- Personal site annotations that do not change scores or suppress detection.
 
-- **Live AI Narrative**: Real-time explanations of tracking as it happens ("Amazon just tracked your mouse movements on this product page")
-- **Smart Recommendations**: Actionable privacy advice based on detected trackers ("Install uBlock Origin for 95% tracker blocking")
-- **Natural Language Chat**: Ask questions like "What did Google learn about me today?" or "Is this website trustworthy?"
-- **Personalized Coaching**: AI-driven privacy journey tracking with goals, achievements, and progress monitoring
+See [Project Status](docs/PROJECT_STATUS.md) for the capability matrix.
 
-### 🛡️ Comprehensive Protection Analysis
+## P0 truthfulness changes
 
-- **Privacy Tool Detection**: Automatically detects installed privacy tools (uBlock Origin, Privacy Badger, Ghostery, etc.)
-- **Effectiveness Analysis**: Shows how well your current setup protects you with percentage scores
-- **Protection Gaps**: Identifies missed trackers and suggests improvements
-- **Tool Recommendations**: Smart suggestions for missing privacy tools based on your browsing patterns
+The P0 branch removes or qualifies claims that were not supported by the
+implementation:
 
-### 📊 Advanced Privacy Intelligence
+- Product status and version are aligned at experimental `0.1.0`.
+- Unsupported production-readiness, performance, compliance, detection-rate,
+  and release claims are removed.
+- The tracker catalog is described by its actual source count and categories.
+- Grades, trends, graph links, coaching output, and link estimates are labeled
+  as heuristic.
+- Synthetic category percentiles are hidden.
+- Fabricated blocker-effectiveness, blocked-request, peer-adoption, and peer
+  percentile metrics are removed.
+- Community samples are labeled unauthenticated and unrepresentative.
+- P2P, OpenRouter summaries, link estimates, and the toolbar badge default off.
+- A stored API key alone cannot authorize an OpenRouter request.
+- “Trusted sites” are converted to personal annotations and cannot boost a
+  score or suppress monitoring.
+- Incomplete scheduled export and automatic notification controls are hidden.
+- Data-flow and permission disclosures replace legal-compliance claims.
 
-- **Risk Assessment**: AI scores each tracking event and alerts to suspicious activity
-- **Pattern Detection**: Identifies cross-site tracking patterns and behavioral profiling attempts
-- **Privacy Score**: Real-time privacy scoring (A-F grades) with detailed breakdowns and improvement suggestions
-- **Trend Analysis**: Track your privacy improvements over time with 7-day visual charts
-- **Privacy Comparison**: Compare current site privacy with similar websites and industry benchmarks
+These changes make the prototype more honest; they do **not** fix detector
+accuracy, attribution, or scoring methodology.
 
-### 🌐 Visual Data Flow Mapping
+## Important limitations
 
-- **Network Graph**: See exactly where your data flows—from sites through ad networks to data brokers
-- **Real-time Visualization**: Watch tracking happen live with animated network connections
-- **Risk-based Coloring**: High-risk trackers highlighted in red, safe connections in green
-- **Interactive Exploration**: Click nodes to see detailed tracker information and relationships
+### Detection and attribution
 
-### 🎯 Privacy Journey Tracking
+The current event model does not reliably separate the visited page from every
+third-party resource it loads. Some request and API heuristics are broad. Normal
+canvas, WebRTC, form, storage, audio, WebGL, and other API use can trigger a
+signal.
 
-- **Personal Dashboard**: Track your privacy journey with score history and milestones
-- **Smart Goals**: AI creates personalized privacy improvement goals based on your browsing patterns
-- **Community Insights**: Anonymous peer-to-peer comparison with other privacy-conscious users
-- **Weekly Reports**: Get AI-generated summaries of your privacy progress and recommendations
+### Scores and trends
 
-### 🔍 Advanced Tracking Detection (62+ Trackers)
+Grades and trend values come from hand-written penalties applied to recorded
+events. They have not been calibrated against an independent dataset, audited
+methodology, or reproducible benchmark. Unknown or incomplete evidence is not
+yet modeled consistently.
 
-- **Network-Level Detection**: Monitors 62+ tracker domains across 8 categories:
-  - Fingerprinting (FingerprintJS, SEON, MaxMind, ThreatMetrix, iovation)
-  - Session Recording (FullStory, LogRocket, Smartlook, Lucky Orange, Mouseflow, Inspectlet)
-  - Social Media (LinkedIn, Pinterest, Snapchat, Reddit, Twitter, Instagram)
-  - Advertising (Criteo, Taboola, Outbrain, Quantcast, AppNexus, and more)
-  - Analytics (Amplitude, Heap, Pendo, Kissmetrics, Google Analytics, Mixpanel)
-  - Audience Measurement (comScore, Nielsen, ScorecardResearch)
-  - CDN Analytics (Cloudflare, Fastly, Akamai)
-  - Additional (Optimizely, VWO, Crazy Egg, Branch, AppsFlyer)
+### Graph
 
-- **In-Page Tracking Detection** (11 Methods):
-  - Canvas fingerprinting
-  - WebRTC IP leak detection (CRITICAL)
-  - Font fingerprinting
-  - Audio fingerprinting
-  - WebGL fingerprinting
-  - Storage access monitoring (localStorage, sessionStorage, IndexedDB)
-  - Mouse tracking and behavioral analysis
-  - Form monitoring (including password fields)
-  - Device API access (Battery, Sensors)
-  - Cross-site tracking correlation
-  - Real-time alerts for high-risk events
+Graph nodes come from stored events. Edges are inferred from event URLs and are
+not proof of a data transfer, ownership relationship, or data-broker chain.
 
-### 🎛️ Advanced Privacy Management
+### AI and Q&A
 
-- **Real-Time Notifications**: Proactive browser alerts for critical tracking events with customizable thresholds
-- **Privacy Score Trends**: 7-day historical visualization showing privacy improvements over time
-- **Website Privacy Comparison**: Compare privacy levels across different sites and categories
-- **Trusted Sites Management**: User-controlled whitelist with quick-trust button for domains you trust
-- **Enhanced AI Context**: Smarter AI analysis with improved contextual understanding
-- **Keyboard Shortcuts**: Quick access to privacy functions:
-  - `Ctrl+Shift+P` (Mac: `Cmd+Shift+P`) - Toggle popup
-  - `Ctrl+Shift+A` (Mac: `Cmd+Shift+A`) - Quick privacy analysis
-  - `Ctrl+Shift+E` (Mac: `Cmd+Shift+E`) - Export data
+OpenRouter receives sanitized event summaries only after explicit opt-in. The
+current model path summarizes recorded domains, counts, types, and labels; it
+does not provide dependable general-purpose Q&A or a verified website audit.
+Keyword-routed local analyzers handle some supported prompts.
 
-### 🎨 User Experience & Interface
+### Community data
 
-- **Dark/Light Theme Toggle**: Seamless theme switching with system preference detection and persistence
-- **Export Scheduling**: Automated privacy data exports with customizable schedules (CSV, JSON formats)
-- **Privacy Score Badges**: Visual indicators showing site privacy levels in browser toolbar
-- **Cross-Device Sync**: Synchronize privacy data and settings across devices (experimental)
-- **Privacy Impact Predictions**: AI-powered forecasting of privacy risks and improvements
-- **Rate Limiting**: Smart API rate limiting with visual indicators to prevent quota exhaustion
+The Trystero P2P layer is experimental. Peer identity and sample authenticity
+are not established. Connected peers and signaling/relay infrastructure may
+observe normal WebRTC connection metadata. Peer samples are not a population
+benchmark or reputation authority.
 
-### 🌐 Community & Sharing Features
+### Incomplete modules
 
-- **P2P Privacy Network**: Anonymous peer-to-peer privacy insights and community comparisons
-- **Performance Optimization**: Advanced caching, lazy loading, and efficient resource management
-- **Enhanced Error Recovery**: Robust error handling with automatic recovery mechanisms and circuit breakers
-- **GDPR/CCPA Compliance**: 30-day automatic data retention with full privacy policy documentation
+Cross-device sync, automatic snapshots, automatic summaries, scheduled export,
+notifications, and several lifecycle integrations remain incomplete. Category
+comparison data in source is synthetic and is hidden from the dashboard.
 
-## 🚀 Quick Start
+## Data and privacy disclosure
 
-### Option 1: Install Pre-built Extension (Recommended)
+The extension currently requests broad permissions, including access to all
+sites, web requests, tabs, downloads, notifications, alarms, storage, and
+installed-extension metadata.
 
-**For users and hackathon judges:**
+Recorded event objects are stored locally. Depending on the event source, a
+stored URL can contain a path, query string, or fragment. CSV and JSON exports
+can include those stored values, so exported files should be reviewed before
+sharing.
 
-1. **Download** the latest release: [phantom-trail-1.0.0-chrome.zip](https://github.com/YrFnS/Phantom-Trail/releases)
-2. **Follow** the installation guide: [INSTALL.md](INSTALL.md)
-3. **Start using** - No build required!
+Optional external flows are disabled by default:
 
-### Option 2: Build from Source
+- **OpenRouter:** sanitized event summaries are sent only when AI is enabled and
+  an API key is present.
+- **P2P:** reduced aggregate fields may be shared after the user joins the
+  experimental network.
 
-**For developers:**
+Read [Privacy and Data Disclosure](docs/PRIVACY_POLICY.md) before installing or
+enabling optional network features.
 
-#### Prerequisites
+## Installation
 
-- Node.js 18+
-- Chrome browser with Developer Mode enabled
-- pnpm (recommended) or npm
-
-#### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/YrFnS/Phantom-Trail.git
-   cd phantom-trail
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   pnpm install
-   ```
-
-3. **Set up environment variables**
-
-   ```bash
-   cp .env.example .env.local
-   # Add your OpenRouter API key (optional - extension works without AI features)
-   ```
-
-4. **Start development**
-
-   ```bash
-   pnpm dev
-   ```
-
-5. **Load extension in Chrome**
-   - Open Chrome and go to `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked" and select the `.output/chrome-mv3` folder
-
-## 🏗️ Tech Stack
-
-- **Framework**: WXT (Vite-based, Manifest V3)
-- **UI**: React 19 + TypeScript + Tailwind CSS
-- **State**: Zustand
-- **Visualization**: Vis.js (network graphs), Chart.js (metrics), Cytoscape
-- **AI**: OpenRouter API (Claude Haiku primary, GPT-4o-mini backup)
-- **Data Sources**: EasyList/EasyPrivacy, Disconnect.me, ipapi.co
-- **Advanced Features**: P2P networking, cross-device sync, performance monitoring, error recovery
-
-## 📁 Project Structure
-
-```
-phantom-trail/
-├── entrypoints/               # Extension entry points
-│   ├── background/            # Service worker (network interception, AI coordination)
-│   │   ├── index.ts           # Main background script
-│   │   ├── network-monitor.ts # Network request monitoring
-│   │   ├── message-handler.ts # Inter-script communication
-│   │   └── alarm-manager.ts   # Scheduled tasks
-│   ├── content/               # Content scripts (in-page tracking detection)
-│   │   ├── index.ts           # Main content script
-│   │   ├── dom-monitoring.ts  # DOM change detection
-│   │   ├── event-detection.ts # User interaction tracking
-│   │   └── messaging.ts       # Content-background communication
-│   └── popup/                 # Main UI
-├── components/                # React components (feature-based)
-│   ├── LiveNarrative/         # Real-time tracking narrative
-│   ├── NetworkGraph/          # Vis.js data flow visualization
-│   ├── ChatInterface/         # Natural language Q&A
-│   ├── RiskDashboard/         # Risk scores and metrics
-│   ├── PrivacyActions/        # Actionable privacy recommendations
-│   ├── PrivacyToolsStatus/    # Privacy tool effectiveness analysis
-│   ├── PrivacyCoaching/       # AI-powered journey tracking
-│   ├── Settings/              # Theme, notifications, sync, export settings
-│   ├── TrustedSites/          # Trusted sites management
-│   ├── CommunityInsights/     # P2P privacy sharing
-│   └── PrivacyTrends/         # Historical privacy analysis
-├── lib/                       # Core utilities and services
-│   ├── ai-engine.ts           # OpenRouter integration
-│   ├── tracker-db.ts          # Tracker classification logic
-│   ├── privacy-coach.ts       # AI coaching and journey tracking
-│   ├── privacy-recommendations.ts # Smart privacy actions
-│   ├── privacy-tool-detector.ts   # Tool detection and analysis
-│   ├── notification-manager.ts    # Real-time alerts
-│   ├── sync-manager.ts        # Cross-device synchronization
-│   ├── export-scheduler.ts    # Automated data exports
-│   ├── theme-manager.ts       # Dark/light theme system
-│   ├── keyboard-shortcuts.ts  # Hotkey management
-│   ├── p2p-privacy-network.ts # Community features
-│   ├── privacy-predictor.ts   # Impact predictions
-│   ├── performance-monitor.ts # System optimization
-│   ├── error-recovery.ts      # Resilience and fault tolerance
-│   ├── circuit-breaker.ts     # API failure protection
-│   ├── cache-optimizer.ts     # Performance caching
-│   └── storage-manager.ts     # Chrome storage wrapper
-└── assets/                    # Static assets
-```
-
-## 🛠️ Development
-
-### Available Scripts
+No release should currently be treated as production-ready.
 
 ```bash
-pnpm dev          # Start development server with HMR
-pnpm build        # Build for production
-pnpm build:firefox # Build for Firefox
-pnpm zip          # Create distribution package
-pnpm type-check   # Run TypeScript checks
-pnpm lint         # Run ESLint
-pnpm format       # Format code with Prettier
-pnpm fix-deps     # Fix dependency issues (Windows)
+git clone https://github.com/YrFnS/Phantom-Trail.git
+cd Phantom-Trail
+pnpm install --frozen-lockfile
+pnpm type-check
+pnpm lint
+pnpm build
 ```
 
-### Development Workflow
+Then:
 
-1. **Before making changes**: Ensure clean state
+1. Open `chrome://extensions/`.
+2. Enable **Developer mode**.
+3. Select **Load unpacked**.
+4. Choose `.output/chrome-mv3`.
 
-   ```bash
-   pnpm lint && pnpm build && npx tsc --noEmit
-   ```
+Detailed steps and disclosures are in [INSTALL.md](INSTALL.md).
 
-2. **After adding dependencies**: Verify everything works
+## Automated validation
 
-   ```bash
-   # Windows PowerShell
-   .\scripts\verify-deps.ps1
+`.github/workflows/validate.yml` currently checks:
 
-   # Or manually:
-   pnpm install && pnpm lint && pnpm build && npx tsc --noEmit
-   ```
+- lockfile consistency;
+- dependency installation from the committed lockfile;
+- TypeScript type checking;
+- ESLint;
+- the production Chrome build;
+- generated manifest name and version;
+- ZIP creation; and
+- upload of the unpacked build and ZIP as a workflow artifact.
 
-3. **After using Kiro CLI**: Always verify
-   ```bash
-   pnpm install  # Refresh dependencies
-   pnpm lint     # Check code quality
-   pnpm build    # Verify build
-   ```
+That gate proves only that the repository installs and builds under the workflow
+environment. The repository still lacks a complete unit-test suite, detector
+accuracy fixtures, browser integration tests, runtime permission tests,
+performance benchmarks, and independent security/privacy review.
 
-### Code Standards
+## Development commands
 
-- TypeScript strict mode (zero `any` types)
-- 500-line file limit (split into modules)
-- Feature-based component structure
-- Comprehensive error handling
-- Chrome API isolation in `lib/` utilities
-
-### AI Model Configuration
-
-To add or change AI models, edit `lib/ai-models.ts`:
-
-```typescript
-export const AI_MODELS: AIModel[] = [
-  {
-    id: 'anthropic/claude-3-haiku',
-    name: 'Claude Haiku',
-    provider: 'openrouter',
-    category: 'fast',
-    description: 'Fast and cost-effective',
-  },
-  // Add more models here
-];
+```bash
+pnpm dev
+pnpm build
+pnpm zip
+pnpm type-check
+pnpm lint
+pnpm lint:fix
+pnpm format
+pnpm validate
 ```
 
-Models automatically appear in the extension's settings UI.
+## Remediation roadmap
 
-## 🎮 User Experience
+- **P0 — Truthfulness baseline:** truthful copy, metadata, defaults,
+  disclosures, capability matrix, and a deterministic build gate.
+- **P1 — Detection and attribution:** distinguish page and resource domains,
+  reduce false positives, attach evidence/confidence, and improve deduplication.
+- **P2 — Scoring:** add an explicit unknown state and create a reproducible,
+  evidence-based scoring method.
+- **P3 — Data protection:** minimize permissions and stored URLs, tighten
+  optional sharing, and test retention/deletion behavior.
+- **P4 — Feature completion:** finish or remove incomplete sync, reporting,
+  notifications, scheduled export, AI, prediction, and community workflows.
+- **P5 — Evidence:** add unit/browser tests, labeled accuracy fixtures,
+  performance benchmarks, release gates, and independent review.
 
-### Live Privacy Coaching
+## Contributing
 
-```
-🛡️ Privacy Protection: 85%
-Blocked: 12    Missed: 3
+Keep product claims tied to reproducible evidence. New capabilities should be
+labeled experimental until tests, runtime validation, and documentation support
+them.
 
-💡 Recommendations:
-🔥 Install uBlock Origin (easy) - Block advertising trackers automatically
-⚡ Review Social Media Privacy Settings (medium) - Limit data sharing
+## License
 
-🎯 Privacy Journey - Day 15
-Current Score: 78    This Week: +12    Actions Taken: 5
-
-Active Goals:
-[████████░░] Enhance Privacy Settings (80% → Target: 85)
-```
-
-### Real-Time Narrative
-
-```
-Live Feed:
-🚨 Facebook is tracking your clicks on this page
-⚠️ Google Analytics recorded your page views
-💡 Try Signal instead of Facebook for private messaging
-```
-
-## 🎯 Success Criteria
-
-### Functional Requirements
-
-- ✅ Detect trackers on 90%+ of top 100 websites
-- ✅ AI narrative generates within 3 seconds
-- ✅ Network graph renders 50+ nodes smoothly
-- ✅ Chat responses return within 5 seconds
-- ✅ Privacy recommendations appear instantly
-- ✅ Tool detection works across major privacy extensions
-- ✅ Journey tracking persists across browser sessions
-
-### Performance Requirements
-
-- ✅ CPU overhead <5% during browsing
-- ✅ Memory usage <100MB
-- ✅ Extension bundle <5MB
-- ✅ No impact on page load times
-- ✅ Real-time updates without lag
-
-### User Experience
-
-- ✅ Non-technical users understand narratives
-- ✅ Works offline (basic features without AI)
-- ✅ Setup complete in <2 minutes
-- ✅ Graceful degradation when AI unavailable
-- ✅ Actionable recommendations with clear steps
-- ✅ Visual progress tracking motivates continued use
-
-## 🌟 What Makes Phantom Trail Different
-
-### Beyond Detection - Education & Action
-
-Unlike traditional privacy tools that just block or detect, Phantom Trail:
-
-- **Explains** what's happening in plain English
-- **Recommends** specific actions you can take
-- **Analyzes** your current protection effectiveness
-- **Coaches** you through privacy improvement over time
-
-### AI-Native Approach
-
-- Personalized insights based on your browsing patterns
-- Context-aware recommendations for different website types
-- Natural language interface for asking privacy questions
-- Continuous learning from your privacy journey
-
-### Comprehensive Privacy Platform
-
-- **Detection**: Real-time tracking identification
-- **Education**: AI-powered explanations and insights
-- **Action**: One-click privacy improvements
-- **Progress**: Long-term journey tracking with goals
-
-## 🔒 Privacy & Security
-
-- **Local-first**: All data processing happens locally on your device
-- **Optional AI**: Extension works fully without API key (basic tracking detection)
-- **Data Sanitization**: URLs sanitized before AI processing (query params and hashes removed)
-- **30-Day Retention**: Automatic data cleanup after 30 days (GDPR/CCPA compliant)
-- **Minimal permissions**: Only necessary Chrome APIs requested
-- **No remote code**: Manifest V3 compliant (no eval, no remote scripts)
-- **User-controlled**: OpenRouter API key stored locally in chrome.storage
-- **Privacy Policy**: Full transparency about data collection and usage
-- **Right to Deletion**: Clear all data anytime from settings
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Follow the coding standards in `.kiro/steering/coding-rules.md`
-4. Commit changes (`git commit -m 'feat(component): add amazing feature'`)
-5. Push to branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [WXT Framework](https://wxt.dev/) for modern extension development
-- [OpenRouter](https://openrouter.ai/) for AI API access
-- [EasyList](https://easylist.to/) for tracker databases
-- Privacy community for inspiration and feedback
-
----
-
-**Built with ❤️ for digital privacy awareness**
+Phantom Trail is licensed under the [MIT License](LICENSE).

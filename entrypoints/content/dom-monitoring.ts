@@ -8,9 +8,6 @@ import { isDuplicateEvent } from './event-detection';
 const recentDetections = new Map<string, number>();
 const DETECTION_THROTTLE_MS = 3000;
 
-/**
- * Check if extension context is still valid
- */
 function isContextValid(): boolean {
   try {
     return (
@@ -23,24 +20,26 @@ function isContextValid(): boolean {
   }
 }
 
+/**
+ * Observe DOM/API activity that can match prototype signal rules.
+ * A matched rule is not proof that a page or third party collected data.
+ */
 export function setupDOMMonitoring(): void {
-  // Skip setup if context is invalid
   if (!isContextValid()) {
     console.log(
-      '[Phantom Trail] Skipping DOM monitoring setup, context invalid'
+      '[Phantom Trail] Skipping DOM signal setup, extension context invalid'
     );
     return;
   }
 
-  // Monitor DOM mutations for tracking scripts
   const observer = new window.MutationObserver(mutations => {
     mutations.forEach(mutation => {
       mutation.addedNodes.forEach(node => {
-        if (node.nodeType === window.Node.ELEMENT_NODE) {
-          const element = node as HTMLElement;
-          if (element.tagName === 'SCRIPT' || element.tagName === 'IFRAME') {
-            checkForTracking(element);
-          }
+        if (node.nodeType !== window.Node.ELEMENT_NODE) return;
+
+        const element = node as HTMLElement;
+        if (element.tagName === 'SCRIPT' || element.tagName === 'IFRAME') {
+          void checkForPossibleSignal(element);
         }
       });
     });
@@ -51,40 +50,27 @@ export function setupDOMMonitoring(): void {
     subtree: true,
   });
 
-  // Monitor form interactions
+  // These handlers record that Phantom Trail observed the user's interaction.
+  // They do not establish that the page itself monitored or transmitted it.
   document.addEventListener('input', handleFormInput, true);
   document.addEventListener('submit', handleFormSubmit, true);
 
-  // Listen for main world detection events
   window.addEventListener('phantom-trail-detection', handleMainWorldDetection);
 }
 
-async function checkForTracking(element: HTMLElement): Promise<void> {
+async function checkForPossibleSignal(element: HTMLElement): Promise<void> {
   try {
-    // Skip if context is invalid
-    if (!isContextValid()) {
-      console.log('[Phantom Trail] Skipping detection, context invalid');
-      return;
-    }
+    if (!isContextValid()) return;
 
-    const currentDomain = window.location.hostname;
-
-    if (currentDomain.includes('trusted')) {
-      return;
-    }
-
-    const detectionKey = `${element.tagName}-${Date.now()}`;
+    const source = element.getAttribute('src') || '';
+    const detectionKey = `${element.tagName}:${source}`;
     const lastDetection = recentDetections.get(detectionKey);
 
     if (lastDetection && Date.now() - lastDetection < DETECTION_THROTTLE_MS) {
       return;
     }
 
-    // Simplified tracking detection
-    const hasTracking =
-      element.getAttribute('src')?.includes('analytics') || false;
-
-    if (hasTracking) {
+    if (source.toLowerCase().includes('analytics')) {
       const event: TrackingEvent = {
         id: `dom-${Date.now()}`,
         timestamp: Date.now(),
@@ -92,39 +78,30 @@ async function checkForTracking(element: HTMLElement): Promise<void> {
         domain: window.location.hostname,
         trackerType: 'analytics',
         riskLevel: 'medium',
-        description: 'DOM tracking detected',
+        description:
+          'A script or iframe URL contained the token “analytics”; this broad URL rule can produce false positives',
       };
 
       await sendTrackingEvent(event);
+      recentDetections.set(detectionKey, Date.now());
     }
-
-    recentDetections.set(detectionKey, Date.now());
   } catch (error) {
-    console.warn('[Phantom Trail] DOM monitoring error:', error);
+    console.warn('[Phantom Trail] DOM signal check failed:', error);
   }
 }
 
-/**
- * Handle detection events from main world script
- */
 function handleMainWorldDetection(event: Event): void {
   try {
-    // Skip if context is invalid
-    if (!isContextValid()) {
-      console.log('[Phantom Trail] Skipping detection, context invalid');
-      return;
-    }
+    if (!isContextValid()) return;
 
     const customEvent = event as CustomEvent;
     const data = customEvent.detail;
-
-    if (!data || !data.type) {
-      return;
-    }
+    if (!data || typeof data.type !== 'string') return;
 
     const trackingEvent: TrackingEvent = {
       id: `${data.type}-${Date.now()}`,
-      timestamp: data.timestamp || Date.now(),
+      timestamp:
+        typeof data.timestamp === 'number' ? data.timestamp : Date.now(),
       url: window.location.href,
       domain: window.location.hostname,
       trackerType: mapDetectionType(data.type),
@@ -137,41 +114,18 @@ function handleMainWorldDetection(event: Event): void {
           (data as { operations?: string[]; apiCalls?: string[] }).operations ||
           (data as { operations?: string[]; apiCalls?: string[] }).apiCalls,
         frequency:
-          (
-            data as {
-              count?: number;
-              operations?: unknown[];
-              eventCount?: number;
-            }
-          ).count ||
-          (
-            data as {
-              count?: number;
-              operations?: unknown[];
-              eventCount?: number;
-            }
-          ).operations?.length ||
-          (
-            data as {
-              count?: number;
-              operations?: unknown[];
-              eventCount?: number;
-            }
-          ).eventCount ||
+          (data as { count?: number }).count ||
+          (data as { operations?: unknown[] }).operations?.length ||
+          (data as { eventCount?: number }).eventCount ||
           1,
       },
     };
 
     if (!isDuplicateEvent(trackingEvent)) {
-      sendTrackingEvent(trackingEvent).catch(error => {
-        console.warn(
-          '[Phantom Trail] Failed to send main world detection:',
-          error
-        );
-      });
+      void sendTrackingEvent(trackingEvent);
     }
   } catch (error) {
-    console.warn('[Phantom Trail] Main world detection error:', error);
+    console.warn('[Phantom Trail] Main-world signal handling failed:', error);
   }
 }
 
@@ -189,7 +143,7 @@ function mapDetectionType(type: string): TrackerType {
     'battery-api': 'fingerprinting',
     'sensor-api': 'fingerprinting',
   };
-  return typeMap[type] || 'analytics';
+  return typeMap[type] || 'unknown';
 }
 
 function getRiskLevel(type: string): 'low' | 'medium' | 'high' | 'critical' {
@@ -211,59 +165,57 @@ function getRiskLevel(type: string): 'low' | 'medium' | 'high' | 'critical' {
 
 function getDescription(type: string, data: unknown): string {
   const descriptions: Record<string, string> = {
-    'canvas-fingerprint': `Canvas fingerprinting detected (${(data as { operations?: unknown[] })?.operations?.length || 0} operations)`,
-    'storage-access': `Storage access tracking (${(data as { uniqueOperations?: number })?.uniqueOperations || 0} unique operations)`,
-    'mouse-tracking': `Mouse movement tracking (${(data as { eventCount?: number })?.eventCount || 0} events)`,
-    'form-monitoring': `Form field monitoring (${(data as { fields?: unknown[] })?.fields?.length || 0} fields)`,
-    'device-api': `Device fingerprinting (${(data as { apiCalls?: unknown[] })?.apiCalls?.length || 0} API calls)`,
-    'webrtc-leak': 'WebRTC connection detected - potential IP leak',
-    'font-fingerprint': `Font fingerprinting (${(data as { count?: number })?.count || 0} fonts tested)`,
-    'audio-fingerprint': `Audio fingerprinting (${(data as { operations?: unknown[] })?.operations?.length || 0} operations)`,
-    'webgl-fingerprint': `WebGL fingerprinting (${(data as { parameters?: unknown[] })?.parameters?.length || 0} parameters)`,
-    'battery-api': 'Battery API accessed for fingerprinting',
-    'sensor-api': `Sensor API accessed (${(data as { sensor?: string })?.sensor || 'unknown'})`,
+    'canvas-fingerprint': `Canvas operations matched the prototype fingerprinting rule (${(data as { operations?: unknown[] })?.operations?.length || 0} operations); normal rendering can trigger this signal`,
+    'storage-access': `Storage API activity crossed the prototype threshold (${(data as { uniqueOperations?: number })?.uniqueOperations || 0} unique operations); this does not establish tracking intent`,
+    'mouse-tracking': `High-frequency mouse events were observed by Phantom Trail (${(data as { eventCount?: number })?.eventCount || 0} events); this does not show who used the events`,
+    'form-monitoring': `Form-field input activity was observed by Phantom Trail (${(data as { fields?: unknown[] })?.fields?.length || 0} fields); this does not prove page or third-party monitoring`,
+    'device-api': `Device-related API access matched a prototype rule (${(data as { apiCalls?: unknown[] })?.apiCalls?.length || 0} calls); purpose and recipient are unknown`,
+    'webrtc-leak':
+      'An RTCPeerConnection was created; WebRTC can expose connection metadata in some contexts, but creation alone does not prove an IP leak',
+    'font-fingerprint': `Font-related measurements crossed the prototype threshold (${(data as { count?: number })?.count || 0} checks); normal layout work can trigger this signal`,
+    'audio-fingerprint': `AudioContext operations matched the prototype fingerprinting rule (${(data as { operations?: unknown[] })?.operations?.length || 0} operations); normal audio use can trigger it`,
+    'webgl-fingerprint': `WebGL parameter reads crossed the prototype threshold (${(data as { parameters?: unknown[] })?.parameters?.length || 0} reads); normal rendering can trigger this signal`,
+    'battery-api':
+      'The Battery API was called; the call alone does not establish fingerprinting or data transmission',
+    'sensor-api': `A sensor event listener was registered (${(data as { sensor?: string })?.sensor || 'unknown'}); intent and data use are unknown`,
   };
-  return descriptions[type] || `${type} tracking detected`;
+
+  return (
+    descriptions[type] ||
+    `${type} instrumentation signal recorded; attribution and purpose are unverified`
+  );
 }
 
 function handleFormInput(event: Event): void {
-  const target = event.target as HTMLInputElement;
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
+
   if (target.type === 'password' || target.type === 'email') {
-    detectSensitiveDataTracking(target).catch(error => {
-      console.warn('[Phantom Trail] Sensitive data tracking failed:', error);
-    });
+    void recordSensitiveFieldInteraction(target.type);
   }
 }
 
 function handleFormSubmit(): void {
-  detectFormTracking().catch(error => {
-    console.warn('[Phantom Trail] Form tracking failed:', error);
-  });
+  void recordFormSubmitInteraction();
 }
 
-async function detectSensitiveDataTracking(
-  input: HTMLInputElement
+async function recordSensitiveFieldInteraction(
+  inputType: string
 ): Promise<void> {
-  const isSensitive = input.type === 'password' || input.type === 'email';
+  const event: TrackingEvent = {
+    id: `sensitive-${Date.now()}`,
+    timestamp: Date.now(),
+    url: window.location.href,
+    domain: window.location.hostname,
+    trackerType: 'analytics',
+    riskLevel: 'high',
+    description: `Phantom Trail observed user input in a ${inputType} field; this does not prove that the page or a third party monitored or transmitted the value`,
+  };
 
-  if (isSensitive) {
-    const event: TrackingEvent = {
-      id: `sensitive-${Date.now()}`,
-      timestamp: Date.now(),
-      url: window.location.href,
-      domain: window.location.hostname,
-      trackerType: 'analytics',
-      riskLevel: 'high',
-      description: `Sensitive ${input.type} field monitoring detected`,
-    };
-
-    if (!isDuplicateEvent(event)) {
-      await sendTrackingEvent(event);
-    }
-  }
+  if (!isDuplicateEvent(event)) await sendTrackingEvent(event);
 }
 
-async function detectFormTracking(): Promise<void> {
+async function recordFormSubmitInteraction(): Promise<void> {
   const event: TrackingEvent = {
     id: `form-${Date.now()}`,
     timestamp: Date.now(),
@@ -271,48 +223,39 @@ async function detectFormTracking(): Promise<void> {
     domain: window.location.hostname,
     trackerType: 'analytics',
     riskLevel: 'medium',
-    description: 'Form submission tracking detected',
+    description:
+      'Phantom Trail observed a form submission event; this does not prove that submission data was retained, shared, or used for tracking',
   };
 
-  if (!isDuplicateEvent(event)) {
-    await sendTrackingEvent(event);
-  }
+  if (!isDuplicateEvent(event)) await sendTrackingEvent(event);
 }
 
 async function sendTrackingEvent(event: TrackingEvent): Promise<void> {
   try {
-    // Check context before sending
-    if (!isContextValid()) {
-      console.log('[Phantom Trail] Skipping event send, context invalid');
-      return;
-    }
+    if (!isContextValid()) return;
 
-    // Send to background script with timeout
-    const message = {
-      type: 'TRACKING_DETECTED',
-      event,
-    };
-
-    // Use a promise race to implement timeout
     await Promise.race([
-      chrome.runtime.sendMessage(message),
+      chrome.runtime.sendMessage({
+        type: 'TRACKING_DETECTED',
+        event,
+      }),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Message timeout')), 3000)
       ),
     ]);
   } catch (error) {
-    // Don't log context invalidation errors as warnings - they're expected
-    const errorMessage = String(error);
+    const message = String(error);
     if (
-      errorMessage.includes('Extension context invalidated') ||
-      errorMessage.includes('Could not establish connection') ||
-      errorMessage.includes('Message timeout')
+      message.includes('Extension context invalidated') ||
+      message.includes('Could not establish connection') ||
+      message.includes('Message timeout')
     ) {
       console.log(
-        '[Phantom Trail] Context lost, event will be retried by messaging system'
+        '[Phantom Trail] Detector signal was not sent because the extension context or message channel was unavailable'
       );
-    } else {
-      console.warn('[Phantom Trail] Failed to send tracking event:', error);
+      return;
     }
+
+    console.warn('[Phantom Trail] Failed to send detector signal:', error);
   }
 }
