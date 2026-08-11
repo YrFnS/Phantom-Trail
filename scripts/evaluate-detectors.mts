@@ -326,10 +326,12 @@ function main(): void {
       {}
     )
   ).sort((first, second) => first.family.localeCompare(second.family));
+  const passed = catalogFailures.length === 0 && failedCases.length === 0;
 
   const report = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
+    status: passed ? 'passed' : 'failed',
     corpus: {
       version: corpus.corpusVersion,
       sha256: sha256(corpusText),
@@ -388,7 +390,7 @@ function main(): void {
   );
   console.log(`Report: ${outputPath}`);
 
-  if (report.failures.length > 0) {
+  if (!passed) {
     for (const failure of report.failures) {
       console.error(JSON.stringify(failure));
     }
