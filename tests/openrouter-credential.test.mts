@@ -1,18 +1,24 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
+function cloneValue<T>(value: T): T {
+  return value === undefined
+    ? value
+    : (JSON.parse(JSON.stringify(value)) as T);
+}
+
 function createStorageArea(values: Map<string, unknown>) {
   return {
     async get(keys: string | string[] | null): Promise<Record<string, unknown>> {
       if (keys === null) return Object.fromEntries(values.entries());
       const requested = Array.isArray(keys) ? keys : [keys];
       return Object.fromEntries(
-        requested.map(key => [key, structuredClone(values.get(key))])
+        requested.map(key => [key, cloneValue(values.get(key))])
       );
     },
     async set(entries: Record<string, unknown>): Promise<void> {
       for (const [key, value] of Object.entries(entries)) {
-        values.set(key, structuredClone(value));
+        values.set(key, cloneValue(value));
       }
     },
     async remove(keys: string | string[]): Promise<void> {
