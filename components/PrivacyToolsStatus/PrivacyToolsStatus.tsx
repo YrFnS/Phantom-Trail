@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   PrivacyToolDetector,
   type PrivacyToolsStatus as ToolsStatus,
@@ -18,7 +18,7 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
   const [status, setStatus] = useState<ToolsStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadStatus = async () => {
+  const loadStatus = useCallback(async () => {
     try {
       setLoading(true);
       const tools = await PrivacyToolDetector.detectInstalledTools();
@@ -28,11 +28,11 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [events]);
 
   useEffect(() => {
     void loadStatus();
-  }, [events]);
+  }, [loadStatus]);
 
   const requestPermission = async () => {
     setLoading(true);
