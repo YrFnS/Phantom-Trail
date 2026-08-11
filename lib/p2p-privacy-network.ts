@@ -1,6 +1,7 @@
 import { joinRoom } from 'trystero';
 import { EventsStorage } from './storage/events-storage';
-import {
+import { eventMatchesPageDomain, normalizeDomain } from './event-attribution.mts';
+import type {
   AnonymousPrivacyData,
   CommunityStats,
   PeerConnection,
@@ -107,7 +108,6 @@ export class P2PPrivacyNetwork {
         'global-discovery'
       ) as unknown as TrysteroRoom;
 
-      // Trystero action names are limited to 12 UTF-8 bytes.
       const [sendStats, getStats] =
         this.room.makeAction<AnonymousPrivacyData>(ACTION_NAMES.stats);
       const [sendReputationRequest, getReputationRequest] =
@@ -160,9 +160,7 @@ export class P2PPrivacyNetwork {
       this.isInitialized = true;
       console.log('P2P Privacy Network initialized (experimental)');
 
-      if (this.broadcastInterval) {
-        clearInterval(this.broadcastInterval);
-      }
+      if (this.broadcastInterval) clearInterval(this.broadcastInterval);
       this.broadcastInterval = setInterval(
         () => this.broadcastLocalStats(),
         60000
@@ -219,9 +217,7 @@ export class P2PPrivacyNetwork {
     const requestId = Math.random().toString(36).substring(7);
     const request: ReputationRequest = { id: requestId, domain };
 
-    if (this.sendReputationRequest) {
-      this.sendReputationRequest(request);
-    }
+    if (this.sendReputationRequest) this.sendReputationRequest(request);
 
     return new Promise(resolve => {
       const responses: number[] = [];
@@ -233,12 +229,11 @@ export class P2PPrivacyNetwork {
           return;
         }
 
-        const sum = responses.reduce((a, b) => a + b, 0);
+        const sum = responses.reduce((first, second) => first + second, 0);
         resolve(Math.round(sum / responses.length));
       };
 
       const timeout = setTimeout(finish, 1500);
-
       this.reputationCallbacks.set(requestId, score => {
         if (!Number.isFinite(score) || score < 0 || score > 100) return;
 
@@ -264,9 +259,7 @@ export class P2PPrivacyNetwork {
   }
 
   private broadcastLocalStats(): void {
-    if (this.localStats && this.sendStats) {
-      this.sendStats(this.localStats);
-    }
+    if (this.localStats && this.sendStats) this.sendStats(this.localStats);
   }
 
   private processPeerPrivacyData(
@@ -274,7 +267,7 @@ export class P2PPrivacyNetwork {
     peerId: string
   ): void {
     if (!this.isValidAnonymousPrivacyData(data)) {
-      console.warn(`Ignored invalid P2P privacy sample from ${peerId}`);
+      console.warn(`Ignored invalid or legacy P2P score sample from ${peerId}`);
       return;
     }
 
@@ -296,7 +289,6 @@ export class P2PPrivacyNetwork {
     const averageScore =
       samples.reduce((sum, sample) => sum + sample.privacyScore, 0) /
       samples.length;
-
     const scoreDistribution = samples.reduce<Record<string, number>>(
       (distribution, sample) => {
         const grade = this.normalizeGrade(sample.grade);
@@ -316,19 +308,22 @@ export class P2PPrivacyNetwork {
     };
   }
 
-  private isValidAnonymousPrivacyData(
-    data: AnonymousPrivacyData
-  ): boolean {
+  private isValidAnonymousPrivacyData(data: AnonymousPrivacyData): boolean {
     const riskLevels = ['low', 'medium', 'high', 'critical'] as const;
+    const validConfidence = ['low', 'medium', 'high'].includes(
+      data.scoreConfidence || ''
+    );
 
     return (
+      data.scoreStatus === 'estimated' &&
+      validConfidence &&
       Number.isFinite(data.privacyScore) &&
       data.privacyScore >= 0 &&
       data.privacyScore <= 100 &&
       Number.isFinite(data.trackerCount) &&
       data.trackerCount >= 0 &&
       data.trackerCount <= 50 &&
-      typeof data.grade === 'string' &&
+      ['A', 'B', 'C', 'D', 'F'].includes(data.grade.toUpperCase()) &&
       Array.isArray(data.websiteCategories) &&
       data.websiteCategories.length <= 5 &&
       Number.isFinite(data.timestamp) &&
@@ -351,22 +346,29 @@ export class P2PPrivacyNetwork {
     request: ReputationRequest,
     peerId: string
   ): Promise<void> {
-    const events = await EventsStorage.getRecentEvents(50);
-    const domainEvents = events.filter(event => event.domain === request.domain);
+    const domain = normalizeDomain(request.domain);
+    if (!domain) return;
 
-    if (domainEvents.length > 0) {
-      const { calculatePrivacyScoreSync } = await import('./privacy-score');
-      const score = calculatePrivacyScoreSync(domainEvents).score;
+    const events = await EventsStorage.getRecentEvents(1000);
+    const domainEvents = events.filter(event =>
+      eventMatchesPageDomain(event, domain)
+    );
+    const { calculatePrivacyScoreSync } = await import('./privacy-score');
+    const result = calculatePrivacyScoreSync(domainEvents, true, {
+      scope: 'page',
+      pageDomain: domain,
+    });
 
-      const response: ReputationResponse = {
-        requestId: request.id,
-        domain: request.domain,
-        score,
-      };
+    if (result.status !== 'estimated' || result.score === null) return;
 
-      if (this.sendReputationResponse) {
-        this.sendReputationResponse(response, peerId);
-      }
+    const response: ReputationResponse = {
+      requestId: request.id,
+      domain,
+      score: result.score,
+    };
+
+    if (this.sendReputationResponse) {
+      this.sendReputationResponse(response, peerId);
     }
   }
 
@@ -380,9 +382,7 @@ export class P2PPrivacyNetwork {
     }
 
     const callback = this.reputationCallbacks.get(response.requestId);
-    if (callback) {
-      callback(response.score);
-    }
+    if (callback) callback(response.score);
   }
 
   async disconnectFromNetwork(): Promise<void> {

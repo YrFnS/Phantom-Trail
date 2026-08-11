@@ -1,8 +1,4 @@
-import type { RiskLevel } from '../../lib/types';
-
-/**
- * Component-specific interfaces for RiskDashboard
- */
+import type { PrivacyScore, RiskLevel } from '../../lib/types';
 
 export interface RiskDashboardProps {
   className?: string;
@@ -10,8 +6,9 @@ export interface RiskDashboardProps {
 }
 
 export interface RiskMetrics {
-  overallRiskScore: number;
-  totalEvents: number;
+  evidenceScore: PrivacyScore;
+  totalRows: number;
+  totalOccurrences: number;
   riskDistribution: RiskDistribution;
   topTrackers: TrackerSummary[];
   riskTrend: RiskTrendPoint[];
@@ -33,7 +30,8 @@ export interface TrackerSummary {
 
 export interface RiskTrendPoint {
   timestamp: number;
-  riskScore: number;
+  evidenceIndex: number | null;
+  confidence: PrivacyScore['confidence'];
   eventCount: number;
 }
 
@@ -51,7 +49,7 @@ export interface ChartData {
 
 export interface ChartDataset {
   label: string;
-  data: number[];
+  data: Array<number | null>;
   backgroundColor?: string | string[];
   borderColor?: string | string[];
   borderWidth?: number;

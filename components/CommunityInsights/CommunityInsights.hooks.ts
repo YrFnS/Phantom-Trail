@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { P2PPrivacyNetwork } from '../../lib/p2p-privacy-network';
-import { CommunityStats, P2PSettings, PrivacyData } from '../../lib/types';
+import type {
+  CommunityStats,
+  P2PSettings,
+  PrivacyData,
+} from '../../lib/types';
 import { ChromeStorage } from '../../lib/chrome-storage';
 
 export const useCommunityInsights = () => {
@@ -15,15 +19,9 @@ export const useCommunityInsights = () => {
   const updateNetworkStatus = useCallback(async () => {
     try {
       const connected = network.isNetworkActive();
-      const count = network.getConnectedPeerCount();
-
       setIsConnected(connected);
-      setPeerCount(count);
-
-      if (connected) {
-        const stats = await network.getCommunityStats();
-        setCommunityStats(stats);
-      }
+      setPeerCount(network.getConnectedPeerCount());
+      setCommunityStats(connected ? network.getCommunityStats() : null);
     } catch (error) {
       console.error('Failed to update network status:', error);
     }
@@ -42,10 +40,9 @@ export const useCommunityInsights = () => {
       };
 
       setIsEnabled(settings.joinPrivacyNetwork);
-
       if (settings.joinPrivacyNetwork) {
         await network.initializeNetwork();
-        updateNetworkStatus();
+        await updateNetworkStatus();
       }
     } catch (error) {
       console.error('Failed to load P2P settings:', error);
@@ -53,12 +50,10 @@ export const useCommunityInsights = () => {
   }, [network, updateNetworkStatus]);
 
   useEffect(() => {
-    loadSettings();
-
+    void loadSettings();
     const interval = setInterval(() => {
-      updateNetworkStatus();
+      void updateNetworkStatus();
     }, 5000);
-
     return () => clearInterval(interval);
   }, [loadSettings, updateNetworkStatus]);
 
@@ -66,7 +61,8 @@ export const useCommunityInsights = () => {
     try {
       const settings: P2PSettings = {
         joinPrivacyNetwork: true,
-        shareAnonymousData: true,
+        // Joining transport does not automatically authorize score sharing.
+        shareAnonymousData: false,
         shareRegionalData: false,
         maxConnections: 10,
         autoReconnect: true,
@@ -74,9 +70,8 @@ export const useCommunityInsights = () => {
 
       await chrome.storage.local.set({ p2pSettings: settings });
       await network.initializeNetwork();
-
       setIsEnabled(true);
-      updateNetworkStatus();
+      await updateNetworkStatus();
     } catch (error) {
       console.error('Failed to enable P2P network:', error);
       throw error;
@@ -95,7 +90,6 @@ export const useCommunityInsights = () => {
 
       await chrome.storage.local.set({ p2pSettings: settings });
       await network.disconnectFromNetwork();
-
       setIsEnabled(false);
       setIsConnected(false);
       setPeerCount(0);
@@ -110,9 +104,14 @@ export const useCommunityInsights = () => {
     if (!isEnabled || !isConnected) return;
 
     try {
-      // Anonymize data before sharing
       const { AnonymizationService } = await import('../../lib/anonymization');
       const anonymizedData = AnonymizationService.anonymizeForP2P(privacyData);
+      if (!anonymizedData) {
+        console.log(
+          '[Phantom Trail] P2P score sample not shared because local evidence is N/A'
+        );
+        return;
+      }
 
       await network.shareAnonymousData(anonymizedData);
     } catch (error) {

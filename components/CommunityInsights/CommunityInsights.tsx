@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { P2PPrivacyNetwork } from '../../lib/p2p-privacy-network';
-import { CommunityStats, P2PSettings } from '../../lib/types';
+import type {
+  CommunityStats,
+  EvidenceCoverageConfidence,
+  P2PSettings,
+} from '../../lib/types';
 import { P2PStorage } from '../../lib/storage/p2p-storage';
 
 interface CommunityInsightsProps {
-  userScore: number;
+  userScore: number | null;
   userGrade: string;
+  userConfidence: EvidenceCoverageConfidence;
 }
 
 export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
   userScore,
   userGrade,
+  userConfidence,
 }) => {
   const [network] = useState(() => P2PPrivacyNetwork.getInstance());
   const [communityStats, setCommunityStats] = useState<CommunityStats | null>(
@@ -47,7 +53,7 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
   }, [network, updateNetworkStatus]);
 
   useEffect(() => {
-    loadP2PSettings();
+    void loadP2PSettings();
 
     const interval = setInterval(updateNetworkStatus, 10000);
     return () => clearInterval(interval);
@@ -58,7 +64,9 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
     try {
       const settings: P2PSettings = {
         joinPrivacyNetwork: true,
-        shareAnonymousData: true,
+        // An N/A local result is never advertised as zero. The user can still
+        // join the transport without publishing a score sample.
+        shareAnonymousData: userScore !== null,
         shareRegionalData: false,
         maxConnections: 10,
         autoReconnect: true,
@@ -114,8 +122,8 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
 
         <p className="text-[var(--text-secondary)] text-sm mb-4">
           Join an experimental peer-to-peer transport for exchanging aggregate
-          privacy samples. This is not a verified reputation service or a
-          representative community benchmark.
+          evidence-index samples. This is not a verified reputation service or
+          a representative community benchmark.
         </p>
 
         <div className="bg-[var(--bg-secondary)] border border-[var(--warning)]/30 rounded p-3 mb-4">
@@ -125,8 +133,12 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
           <ul className="text-[var(--text-secondary)] text-xs space-y-1">
             <li>• Peer identity and submitted data are not authenticated.</li>
             <li>
-              • Shared fields can include score, grade, counts, categories, and
-              optional broad region.
+              • Only an estimated local result may be shared; N/A is never
+              converted to zero.
+            </li>
+            <li>
+              • Shared fields can include score, band, coverage confidence,
+              counts, categories, and optional broad region.
             </li>
             <li>• Connected peers must be treated as untrusted.</li>
             <li>
@@ -134,6 +146,14 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
             </li>
           </ul>
         </div>
+
+        {userScore === null && (
+          <div className="p-2 mb-3 rounded border border-gray-600/40 bg-gray-700/10 text-xs text-[var(--text-secondary)]">
+            Your current local result is N/A. Joining will not enable score-data
+            sharing until an estimated result exists and sharing is explicitly
+            enabled in settings.
+          </div>
+        )}
 
         <button
           onClick={enableP2PNetwork}
@@ -178,10 +198,15 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
       <div className="grid grid-cols-2 gap-2 mb-3">
         <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-3">
           <div className="text-[10px] text-[var(--text-secondary)] mb-1">
-            Local heuristic score
+            Local evidence index
           </div>
           <div className="text-[var(--accent-primary)] font-medium">
-            {userGrade} ({userScore})
+            {userScore === null ? 'N/A' : `${userGrade} (${userScore})`}
+          </div>
+          <div className="text-[9px] text-[var(--text-tertiary)] mt-1">
+            {userScore === null
+              ? 'insufficient evidence'
+              : `${userConfidence} coverage confidence`}
           </div>
         </div>
 
@@ -199,7 +224,7 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
         <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-3 mb-4">
           <div className="flex justify-between items-center mb-2">
             <span className="text-[var(--text-secondary)] text-sm">
-              Contributing samples
+              Contributing estimated samples
             </span>
             <span className="text-[var(--text-primary)]">{sampleCount}</span>
           </div>
@@ -214,7 +239,7 @@ export const CommunityInsights: React.FC<CommunityInsightsProps> = ({
         </div>
       ) : (
         <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded p-3 mb-4 text-xs text-[var(--text-secondary)]">
-          No valid peer samples have been received in this session.
+          No valid estimated peer samples have been received in this session.
         </div>
       )}
 

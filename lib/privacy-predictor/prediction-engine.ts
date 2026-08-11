@@ -5,25 +5,28 @@ import type {
   LinkAnalysis,
   PageContext,
 } from './types';
-import type { TrackingEvent } from '../types';
+import type {
+  EvidenceCoverageConfidence,
+  TrackingEvent,
+} from '../types';
 import { EventsStorage } from '../storage/events-storage';
 import { calculatePrivacyScore } from '../privacy-score';
 import {
   eventMatchesPageDomain,
   getEventOccurrenceCount,
-  getPageUrl,
 } from '../event-attribution.mts';
 
 export class PredictionEngine {
   /**
-   * Return recent detector events explicitly attributed to a destination page.
-   *
-   * This remains historical heuristic context, not a verified destination audit.
+   * Return recent numeric evidence history explicitly attributed to a
+   * destination page. N/A history is not converted into a prediction.
    */
   private static async getHistoricalData(
     domain: string
   ): Promise<{
     score: number;
+    confidence: EvidenceCoverageConfidence;
+    evidenceUnits: number;
     events: TrackingEvent[];
     occurrenceCount: number;
     lastVisit: number;
@@ -32,7 +35,6 @@ export class PredictionEngine {
       const allEvents = await EventsStorage.getTrackingEvents();
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       const normalizedDomain = domain.toLowerCase();
-
       const domainEvents = allEvents.filter(
         event =>
           eventMatchesPageDomain(event, normalizedDomain) &&
@@ -40,26 +42,33 @@ export class PredictionEngine {
       );
       if (domainEvents.length === 0) return null;
 
-      const isHttps = domainEvents.some(event =>
-        getPageUrl(event).startsWith('https://')
-      );
-      const heuristicScore = calculatePrivacyScore(domainEvents, isHttps);
-      const occurrenceCount = domainEvents.reduce(
-        (total, event) => total + getEventOccurrenceCount(event),
-        0
-      );
+      const evidenceScore = calculatePrivacyScore(domainEvents, true, {
+        scope: 'page',
+        pageDomain: normalizedDomain,
+      });
+      if (
+        evidenceScore.status !== 'estimated' ||
+        evidenceScore.score === null
+      ) {
+        return null;
+      }
 
       return {
-        score: heuristicScore.score,
+        score: evidenceScore.score,
+        confidence: evidenceScore.confidence,
+        evidenceUnits: evidenceScore.breakdown.evidenceUnits,
         events: domainEvents,
-        occurrenceCount,
+        occurrenceCount: domainEvents.reduce(
+          (total, event) => total + getEventOccurrenceCount(event),
+          0
+        ),
         lastVisit: Math.max(
           ...domainEvents.map(event => event.lastSeenAt || event.timestamp)
         ),
       };
     } catch (error) {
       console.error(
-        '[Privacy Predictor] Failed to get attributed heuristic history:',
+        '[Privacy Predictor] Failed to get attributed evidence history:',
         error
       );
       return null;
@@ -76,26 +85,28 @@ export class PredictionEngine {
         const daysSinceVisit = Math.floor(
           (Date.now() - historical.lastVisit) / (24 * 60 * 60 * 1000)
         );
+        const modelConfidence = this.toNumericConfidence(historical.confidence);
 
         return {
           url,
           predictedScore: historical.score,
           predictedGrade: this.scoreToGrade(historical.score),
-          confidence: 0.6,
+          confidence: modelConfidence,
           riskFactors: [
             {
               type: 'historical-data',
               impact: 0,
-              description: `Based on ${historical.events.length} attributed rows and ${historical.occurrenceCount} occurrences ${
+              description: `Based on ${historical.evidenceUnits} score-qualified evidence units, ${historical.events.length} stored rows, and ${historical.occurrenceCount} occurrences ${
                 daysSinceVisit === 0 ? 'today' : `${daysSinceVisit} days ago`
-              }`,
-              confidence: 0.6,
+              }. Coverage confidence: ${historical.confidence}.`,
+              confidence: modelConfidence,
             },
           ],
           expectedTrackers: [],
           recommendations: this.generateHistoricalRecommendations(
             historical.score,
-            historical.occurrenceCount
+            historical.occurrenceCount,
+            historical.confidence
           ),
           comparisonToAverage: 0,
           timestamp: Date.now(),
@@ -117,7 +128,6 @@ export class PredictionEngine {
 
       const { score, confidence } =
         RiskAnalysis.calculateWeightedPrediction(factors);
-
       const prediction: PrivacyPrediction = {
         url,
         predictedScore: score,
@@ -159,26 +169,24 @@ export class PredictionEngine {
 
   private static generateHistoricalRecommendations(
     score: number,
-    occurrenceCount: number
+    occurrenceCount: number,
+    confidence: EvidenceCoverageConfidence
   ): string[] {
-    if (score < 40) {
-      return [
-        'Prior visits produced many high-severity heuristic signals',
-        'Review the attributed page and resource evidence before deciding how to proceed',
-      ];
-    }
-
-    if (score < 70) {
-      return [
-        `${occurrenceCount} detector occurrences were attributed to prior visits`,
-        'Page attribution and detector rules can still contain errors',
-      ];
-    }
-
-    return [
-      'Prior visits produced fewer heuristic penalties',
-      'This does not establish that the destination is privacy-friendly',
+    const recommendations = [
+      `Historical evidence coverage confidence is ${confidence}; this is not detector-accuracy confidence.`,
+      `${occurrenceCount} attributed occurrences were summarized with bounded recurrence rather than linear row penalties.`,
     ];
+
+    if (score < 65) {
+      recommendations.push(
+        'Review the attributed page/resource contributions before deciding how to proceed.'
+      );
+    } else {
+      recommendations.push(
+        'A higher historical index does not establish that the destination is privacy-friendly or safe.'
+      );
+    }
+    return recommendations;
   }
 
   private static generateRecommendations(
@@ -222,19 +230,34 @@ export class PredictionEngine {
       );
       const timeText = daysSince === 0 ? 'today' : `${daysSince}d ago`;
 
-      return `Attributed history (${timeText}): ${historicalData.trackerCount} detector occurrences; model label ${predictedGrade} (${predictedScore}/100). This remains an experimental heuristic.`;
+      return `Attributed estimated history (${timeText}): ${historicalData.trackerCount} detector occurrences; model band ${predictedGrade} (${predictedScore}/100). Unknown history is omitted, and this is not a destination audit.`;
     }
 
-    return `Experimental ${context.isExternal ? 'external ' : ''}link estimate: model label ${predictedGrade} (${predictedScore}/100), based only on URL and domain patterns.`;
+    return `Experimental ${context.isExternal ? 'external ' : ''}link estimate: model label ${predictedGrade} (${predictedScore}/100), based only on URL and domain patterns—not the P2 evidence index.`;
   }
 
   private static scoreToGrade(score: number): string {
-    if (score >= 90) return 'A+';
-    if (score >= 80) return 'A';
-    if (score >= 70) return 'B';
-    if (score >= 60) return 'C';
+    if (score >= 90) return 'A';
+    if (score >= 80) return 'B';
+    if (score >= 65) return 'C';
     if (score >= 50) return 'D';
     return 'F';
+  }
+
+  private static toNumericConfidence(
+    confidence: EvidenceCoverageConfidence
+  ): number {
+    switch (confidence) {
+      case 'high':
+        return 0.7;
+      case 'medium':
+        return 0.55;
+      case 'low':
+        return 0.35;
+      case 'none':
+      default:
+        return 0;
+    }
   }
 
   private static async getCachedPrediction(): Promise<PrivacyPrediction | null> {
@@ -260,7 +283,9 @@ export class PredictionEngine {
       confidence: 0,
       riskFactors: [],
       expectedTrackers: [],
-      recommendations: ['Heuristic unavailable; no conclusion can be drawn'],
+      recommendations: [
+        'URL-pattern estimate unavailable; this fallback is not evidence and no conclusion can be drawn',
+      ],
       comparisonToAverage: 0,
       timestamp: Date.now(),
       isHistorical: false,

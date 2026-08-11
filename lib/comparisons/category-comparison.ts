@@ -3,169 +3,112 @@ import {
   type WebsiteCategory,
 } from '../website-categorization';
 import { calculatePrivacyScore } from '../privacy-score';
-import type { TrackingEvent } from '../types';
+import type {
+  EvidenceCoverageConfidence,
+  EvidenceScoreStatus,
+  TrackingEvent,
+} from '../types';
 import { EventsStorage } from '../storage/events-storage';
+import {
+  eventMatchesPageDomain,
+  getEventOccurrenceCount,
+  normalizeDomain,
+} from '../event-attribution.mts';
 
-/**
- * Category comparison data structure
- */
 export interface CategoryComparison {
+  status: 'unavailable';
   currentSite: {
     domain: string;
-    privacyScore: number;
-    trackerCount: number;
+    privacyScore: number | null;
+    scoreStatus: EvidenceScoreStatus;
+    scoreConfidence: EvidenceCoverageConfidence;
+    evidenceUnits: number;
+    occurrenceCount: number;
     category: string;
   };
   categoryAverage: {
-    privacyScore: number;
-    trackerCount: number;
+    privacyScore: null;
+    trackerCount: null;
     category: string;
   };
-  percentile: number;
+  percentile: null;
   insight: string;
-  betterThanAverage: boolean;
+  betterThanAverage: null;
   improvementSuggestions: string[];
 }
 
 /**
- * Service for comparing sites to their category averages
+ * Category benchmark comparison is deliberately unavailable.
+ *
+ * The legacy benchmark table and distributions are synthetic prototype values,
+ * not a documented observational dataset. P2 preserves the current site's
+ * evidence result but never compares it to those values or emits a percentile.
  */
 export class CategoryComparisonService {
-  /**
-   * Compare site to its category average
-   */
   static async compare(domain: string): Promise<CategoryComparison> {
     try {
-      // Get site's tracking events
-      const events = await this.getSiteEvents(domain);
-      const privacyScore =
-        events.length > 0 ? calculatePrivacyScore(events, true).score : 100;
-
-      // Categorize the website
-      const category = WebsiteCategorization.categorizeWebsite(domain);
-      const benchmark = WebsiteCategorization.getCategoryBenchmark(category.id);
-
-      // Calculate percentile
-      const percentile = this.calculatePercentile(
-        privacyScore,
-        benchmark.distribution
-      );
-
-      // Generate insight
-      const insight = this.generateInsight(percentile, category.name);
-
-      // Generate improvement suggestions
-      const improvementSuggestions = this.generateImprovementSuggestions(
-        privacyScore,
-        benchmark.averageScore,
-        category
+      const normalizedDomain = normalizeDomain(domain);
+      const events = await this.getSiteEvents(normalizedDomain);
+      const score = calculatePrivacyScore(events, true, {
+        scope: 'page',
+        pageDomain: normalizedDomain,
+      });
+      const category = WebsiteCategorization.categorizeWebsite(normalizedDomain);
+      const occurrenceCount = events.reduce(
+        (total, event) => total + getEventOccurrenceCount(event),
+        0
       );
 
       return {
+        status: 'unavailable',
         currentSite: {
-          domain,
-          privacyScore,
-          trackerCount: events.length,
+          domain: normalizedDomain,
+          privacyScore: score.score,
+          scoreStatus: score.status,
+          scoreConfidence: score.confidence,
+          evidenceUnits: score.breakdown.evidenceUnits,
+          occurrenceCount,
           category: category.name,
         },
         categoryAverage: {
-          privacyScore: benchmark.averageScore,
-          trackerCount: benchmark.averageTrackers,
+          privacyScore: null,
+          trackerCount: null,
           category: category.name,
         },
-        percentile,
-        insight,
-        betterThanAverage: privacyScore > benchmark.averageScore,
-        improvementSuggestions,
+        percentile: null,
+        insight:
+          'Category percentile comparison is unavailable because the bundled category averages and distributions are synthetic prototype data, not a documented benchmark.',
+        betterThanAverage: null,
+        improvementSuggestions: this.generateReviewSuggestions(score.status, category),
       };
     } catch (error) {
-      console.error('Failed to compare to category:', error);
+      console.error('Failed to prepare category comparison disclosure:', error);
       throw error;
     }
   }
 
-  /**
-   * Get tracking events for a specific site
-   */
   private static async getSiteEvents(domain: string): Promise<TrackingEvent[]> {
     const allEvents = await EventsStorage.getRecentEvents(500);
-    return allEvents.filter(event => event.domain === domain);
+    return allEvents.filter(event => eventMatchesPageDomain(event, domain));
   }
 
-  /**
-   * Calculate percentile ranking
-   */
-  private static calculatePercentile(
-    score: number,
-    distribution: number[]
-  ): number {
-    if (distribution.length === 0) return 50;
-
-    let count = 0;
-    for (let i = 0; i < score && i < distribution.length; i++) {
-      count += distribution[i];
-    }
-
-    const totalArea = distribution.reduce((sum, val) => sum + val, 0);
-    return Math.round((count / totalArea) * 100);
-  }
-
-  /**
-   * Generate category comparison insight
-   */
-  private static generateInsight(
-    percentile: number,
-    categoryName: string
-  ): string {
-    if (percentile >= 80) {
-      return `Excellent privacy - better than ${percentile}% of ${categoryName.toLowerCase()} sites`;
-    } else if (percentile >= 60) {
-      return `Good privacy - above average for ${categoryName.toLowerCase()} sites`;
-    } else if (percentile >= 40) {
-      return `Average privacy for ${categoryName.toLowerCase()} sites`;
-    } else if (percentile >= 20) {
-      return `Below average privacy - worse than ${100 - percentile}% of ${categoryName.toLowerCase()} sites`;
-    } else {
-      return `Poor privacy - among the worst ${100 - percentile}% of ${categoryName.toLowerCase()} sites`;
-    }
-  }
-
-  /**
-   * Generate improvement suggestions
-   */
-  private static generateImprovementSuggestions(
-    siteScore: number,
-    avgScore: number,
+  private static generateReviewSuggestions(
+    status: EvidenceScoreStatus,
     category: WebsiteCategory
   ): string[] {
-    const suggestions: string[] = [];
+    const suggestions = [
+      'Review the attributed routes, detector evidence, confidence, and exclusions instead of comparing this page with synthetic category values.',
+    ];
 
-    if (siteScore < avgScore - 10) {
+    if (status === 'insufficient-evidence') {
       suggestions.push(
-        `This ${category.name.toLowerCase()} site has more tracking than typical`
-      );
-      suggestions.push(
-        'Consider using an ad blocker or privacy-focused browser'
-      );
-    }
-
-    if (
-      category.riskProfile === 'critical' ||
-      category.riskProfile === 'high'
-    ) {
-      suggestions.push(`${category.name} sites often have extensive tracking`);
-      suggestions.push(
-        'Review privacy settings and limit personal information sharing'
+        'No numeric result is available for this page. This does not establish that the page is private or safe.'
       );
     }
 
-    if (siteScore < 60) {
-      suggestions.push('Consider alternatives with better privacy practices');
-      suggestions.push(
-        'Use incognito/private browsing mode for sensitive activities'
-      );
-    }
-
+    suggestions.push(
+      `${category.name} is a heuristic content-category label and does not determine privacy behavior.`
+    );
     return suggestions;
   }
 }

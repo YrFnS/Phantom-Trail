@@ -1,6 +1,5 @@
 import type { TrackingEvent } from '../types';
 import { calculatePrivacyScore } from '../privacy-score';
-
 import { EventsStorage } from '../storage/events-storage';
 
 export class AnalysisHelpers {
@@ -10,34 +9,47 @@ export class AnalysisHelpers {
     const cutoff = Date.now() - timeframe;
     const allEvents = await EventsStorage.getRecentEvents(1000);
     return allEvents.filter(
-      (event: TrackingEvent) => event.timestamp >= cutoff
+      event => (event.lastSeenAt || event.timestamp) >= cutoff
     );
   }
 
-  static async getHistoricalScores(days: number): Promise<number[]> {
-    const scores: number[] = [];
-    for (let i = 0; i < days; i++) {
-      const dayStart = Date.now() - (i + 1) * 24 * 60 * 60 * 1000;
-      const dayEnd = Date.now() - i * 24 * 60 * 60 * 1000;
-      const dayEvents = await this.getEventsInTimeframe(dayEnd - dayStart);
-      const dayScore = calculatePrivacyScore(
-        dayEvents.filter(e => e.timestamp >= dayStart && e.timestamp < dayEnd),
-        true
-      );
-      scores.unshift(dayScore.score);
+  static async getHistoricalScores(days: number): Promise<Array<number | null>> {
+    const allEvents = await EventsStorage.getRecentEvents(1000);
+    const scores: Array<number | null> = [];
+
+    for (let index = 0; index < days; index += 1) {
+      const dayStart = Date.now() - (index + 1) * 24 * 60 * 60 * 1000;
+      const dayEnd = Date.now() - index * 24 * 60 * 60 * 1000;
+      const dayEvents = allEvents.filter(event => {
+        const timestamp = event.lastSeenAt || event.timestamp;
+        return timestamp >= dayStart && timestamp < dayEnd;
+      });
+      scores.unshift(calculatePrivacyScore(dayEvents, true).score);
     }
+
     return scores;
   }
 
-  static calculateTrend(scores: number[]): string {
-    if (scores.length < 2) return 'stable';
-    const recent = scores.slice(-3).reduce((a, b) => a + b, 0) / 3;
-    const older = scores.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
-    const diff = recent - older;
+  static calculateTrend(scores: Array<number | null>): string {
+    const numeric = scores.filter((score): score is number => score !== null);
+    if (numeric.length < 2) return 'Insufficient evidence';
 
-    if (diff > 5) return '⬆️ Improving';
-    if (diff < -5) return '⬇️ Declining';
-    return '➡️ Stable';
+    const splitPoint = Math.max(1, Math.floor(numeric.length / 2));
+    const olderValues = numeric.slice(0, splitPoint);
+    const recentValues = numeric.slice(splitPoint);
+    if (recentValues.length === 0) return 'Insufficient evidence';
+
+    const older =
+      olderValues.reduce((first, second) => first + second, 0) /
+      olderValues.length;
+    const recent =
+      recentValues.reduce((first, second) => first + second, 0) /
+      recentValues.length;
+    const difference = recent - older;
+
+    if (difference > 5) return '⬆️ Estimated index increased';
+    if (difference < -5) return '⬇️ Estimated index decreased';
+    return '➡️ Estimated index stable';
   }
 
   static getTrackerName(domain: string): string {
