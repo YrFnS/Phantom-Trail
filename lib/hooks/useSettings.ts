@@ -1,36 +1,39 @@
 import { useState, useEffect } from 'react';
 import { SettingsStorage } from '../storage/settings-storage';
+import { DataProtectionStorage } from '../storage/data-protection-storage';
+import { OpenRouterCredentialStorage } from '../storage/openrouter-credential-storage';
 import type { ExtensionSettings } from '../types';
 
 /**
- * Custom hook for managing extension settings
+ * Custom hook for non-secret settings and the separately stored OpenRouter key.
  */
 export function useSettings() {
   const [settings, setSettings] = useState<ExtensionSettings>({
-    enableAI: true,
-    enableNotifications: true,
+    enableAI: false,
+    enableNotifications: false,
     riskThreshold: 'medium',
+    enablePrivacyPredictions: false,
   });
   const [apiKey, setApiKey] = useState('');
+  const [rememberApiKey, setRememberApiKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
-    loadSettings();
+    void loadSettings();
   }, []);
 
   const loadSettings = async () => {
     try {
-      const currentSettings = await SettingsStorage.getSettings();
-      console.log('[Settings] Loaded settings:', {
-        ...currentSettings,
-        openRouterApiKey: currentSettings.openRouterApiKey
-          ? '***' + currentSettings.openRouterApiKey.slice(-4)
-          : 'none',
-      });
+      const [currentSettings, credential, protection] = await Promise.all([
+        SettingsStorage.getSettings(),
+        OpenRouterCredentialStorage.getCredential(),
+        DataProtectionStorage.getSettings(),
+      ]);
       setSettings(currentSettings);
-      setApiKey(currentSettings.openRouterApiKey || '');
+      setApiKey(credential);
+      setRememberApiKey(protection.rememberOpenRouterKey);
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -43,56 +46,27 @@ export function useSettings() {
 
     try {
       const trimmedKey = apiKey.trim();
+      const currentProtection = await DataProtectionStorage.getSettings();
 
-      // Enhanced debugging
-      console.log('[Settings] === SAVE OPERATION START ===');
-      console.log('[Settings] API Key length:', trimmedKey.length);
-      console.log(
-        '[Settings] API Key prefix:',
-        trimmedKey ? trimmedKey.slice(0, 15) + '...' : 'empty'
+      await SettingsStorage.saveSettings(settings);
+      await DataProtectionStorage.saveSettings({
+        ...currentProtection,
+        rememberOpenRouterKey: rememberApiKey,
+      });
+      await OpenRouterCredentialStorage.setCredential(
+        trimmedKey,
+        rememberApiKey
       );
-      console.log('[Settings] Current settings state:', {
-        ...settings,
-        openRouterApiKey: settings.openRouterApiKey ? '***hidden***' : 'none',
-      });
 
-      const newSettings = {
-        ...settings,
-        openRouterApiKey: trimmedKey || undefined,
-      };
-
-      console.log('[Settings] New settings to save:', {
-        ...newSettings,
-        openRouterApiKey: newSettings.openRouterApiKey
-          ? '***' + newSettings.openRouterApiKey.slice(-4)
-          : 'none',
-      });
-
-      await SettingsStorage.saveSettings(newSettings);
-      console.log('[Settings] SettingsStorage.saveSettings() completed');
-
-      // Verify save by reading back directly from storage
-      const verified = await SettingsStorage.getSettings();
-      console.log('[Settings] Verified saved settings:', {
-        ...verified,
-        openRouterApiKey: verified.openRouterApiKey
-          ? '***' + verified.openRouterApiKey.slice(-4)
-          : 'none',
-      });
-
-      // Check if key was actually saved when we expected it to be
-      if (trimmedKey && !verified.openRouterApiKey) {
-        console.error(
-          '[Settings] API KEY SAVE FAILED - Key was provided but not found after save!'
-        );
-        setSaveError('API key was not saved. Please try again.');
+      const credentialState = await OpenRouterCredentialStorage.getState();
+      if (trimmedKey && !credentialState.configured) {
+        setSaveError('The OpenRouter key could not be stored. Please try again.');
         return;
       }
 
-      console.log('[Settings] === SAVE OPERATION SUCCESS ===');
       setSaveSuccess(true);
     } catch (error) {
-      console.error('[Settings] === SAVE OPERATION FAILED ===', error);
+      console.error('Failed to save settings:', error);
       setSaveError('Failed to save settings. Please try again.');
     } finally {
       setSaving(false);
@@ -104,6 +78,8 @@ export function useSettings() {
     setSettings,
     apiKey,
     setApiKey,
+    rememberApiKey,
+    setRememberApiKey,
     saving,
     saveError,
     saveSuccess,
