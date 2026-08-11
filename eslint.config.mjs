@@ -92,6 +92,28 @@ export default [
     },
   },
   {
+    files: ['scripts/**/*.{js,mjs,ts,mts}'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        WebSocket: 'readonly',
+        fetch: 'readonly',
+        AbortController: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        structuredClone: 'readonly',
+      },
+    },
+  },
+  {
     files: [
       'lib/sync-manager.ts',
       'lib/conflict-resolver.ts',
@@ -164,7 +186,6 @@ export default [
       '*.config.ts',
       '.wxt/**',
       'types/**/*.d.ts',
-      'scripts/**/*.js',
     ],
   },
 ];
