@@ -115,7 +115,13 @@ jobs:
         run: pnpm evidence:dependencies
 
       - name: Chromium lifecycle and accessibility contract
-        run: xvfb-run -a pnpm evidence:browser
+        run: |
+          cat > "$RUNNER_TEMP/chrome-p5" <<'SH'
+          #!/usr/bin/env bash
+          exec /usr/bin/google-chrome --disable-component-extensions-with-background-pages "$@"
+          SH
+          chmod +x "$RUNNER_TEMP/chrome-p5"
+          CHROME_BIN="$RUNNER_TEMP/chrome-p5" xvfb-run -a pnpm evidence:browser
 
       - name: Generate commit-bound release evidence
         env:
