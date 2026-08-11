@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "corpusVersion": "2026-08-11.1",
+  "purpose": "Curated regression examples for Phantom Trail URL matching and network-storage policy.",
+  "limitations": [
+    "These cases are reviewed software fixtures, not a representative sample of the web.",
+    "Passing results do not establish real-world precision, recall, tracker coverage, company identity, data collection, privacy impact, or legal compliance.",
+    "Catalog exact-domain and subdomain cases are generated from the current source catalog so removal or category-count drift is visible."
+  ],
+  "catalogExpectations": {
+    "totalDomains": 56,
+    "categoryCounts": {
+      "Analytics": 22,
+      "Advertising": 14,
+      "Social Media": 10,
+      "Fingerprinting": 6,
+      "Cryptomining": 4
+    }
+  },
+  "explicitCases": [
+    {
+      "id": "path-collect-positive",
+      "family": "path-pattern",
+      "url": "https://cdn.example.test/collect/event",
+      "expected": {
+        "matched": true,
+        "matchType": "path-pattern",
+        "rule": "collect-segment",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "path-pixel-positive",
+      "family": "path-pattern",
+      "url": "https://cdn.example.test/pixel/image.gif",
+      "expected": {
+        "matched": true,
+        "matchType": "path-pattern",
+        "rule": "pixel-segment",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "path-beacon-positive",
+      "family": "path-pattern",
+      "url": "https://cdn.example.test/beacon",
+      "expected": {
+        "matched": true,
+        "matchType": "path-pattern",
+        "rule": "beacon-segment",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "path-track-positive",
+      "family": "path-pattern",
+      "url": "https://cdn.example.test/track/v1",
+      "expected": {
+        "matched": true,
+        "matchType": "path-pattern",
+        "rule": "track-segment",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "path-analytics-positive",
+      "family": "path-pattern",
+      "url": "https://cdn.example.test/analytics/script.js",
+      "expected": {
+        "matched": true,
+        "matchType": "path-pattern",
+        "rule": "analytics-segment",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "path-gtag-positive",
+      "family": "path-pattern",
+      "url": "https://cdn.example.test/gtag/js",
+      "expected": {
+        "matched": true,
+        "matchType": "path-pattern",
+        "rule": "gtag-segment",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "hostname-analytics-positive",
+      "family": "hostname-token",
+      "url": "https://analytics.example.test/app.js",
+      "expected": {
+        "matched": true,
+        "matchType": "url-heuristic",
+        "rule": "analytics",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "hostname-telemetry-positive",
+      "family": "hostname-token",
+      "url": "https://edge-telemetry.example.test/app.js",
+      "expected": {
+        "matched": true,
+        "matchType": "url-heuristic",
+        "rule": "telemetry",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "hostname-metrics-positive",
+      "family": "hostname-token",
+      "url": "https://metrics.api.example.test/app.js",
+      "expected": {
+        "matched": true,
+        "matchType": "url-heuristic",
+        "rule": "metrics",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "hostname-tracking-positive",
+      "family": "hostname-token",
+      "url": "https://tracking.service.example.test/app.js",
+      "expected": {
+        "matched": true,
+        "matchType": "url-heuristic",
+        "rule": "tracking",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "hostname-pixel-positive",
+      "family": "hostname-token",
+      "url": "https://pixel.cdn.example.test/app.js",
+      "expected": {
+        "matched": true,
+        "matchType": "url-heuristic",
+        "rule": "pixel",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "hostname-beacon-positive",
+      "family": "hostname-token",
+      "url": "https://beacon.edge.example.test/app.js",
+      "expected": {
+        "matched": true,
+        "matchType": "url-heuristic",
+        "rule": "beacon",
+        "confidence": "low"
+      }
+    },
+    {
+      "id": "negative-collection-substring",
+      "family": "negative-boundary",
+      "url": "https://example.test/collection/items",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-pixelated-substring",
+      "family": "negative-boundary",
+      "url": "https://example.test/pixelated/image.png",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-beaconing-substring",
+      "family": "negative-boundary",
+      "url": "https://example.test/beaconing/status",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-analytics-suffix",
+      "family": "negative-boundary",
+      "url": "https://example.test/analytics-v2/app.js",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-trackers-plural",
+      "family": "negative-boundary",
+      "url": "https://example.test/trackers/list",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-hostname-token-embedded",
+      "family": "negative-boundary",
+      "url": "https://myanalytics.example.test/app.js",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-hostname-statistics",
+      "family": "negative-boundary",
+      "url": "https://statistics.example.test/app.js",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-query-utm-only",
+      "family": "negative-query",
+      "url": "https://example.test/article?utm_source=newsletter",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-query-click-id-only",
+      "family": "negative-query",
+      "url": "https://example.test/article?gclid=abc123&fbclid=def456",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-non-http-data",
+      "family": "negative-protocol",
+      "url": "data:text/javascript,console.log(1)",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-extension-protocol",
+      "family": "negative-protocol",
+      "url": "chrome-extension://abcdefghijklmnop/background.js",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "negative-malformed-url",
+      "family": "negative-input",
+      "url": "not a URL",
+      "expected": { "matched": false }
+    },
+    {
+      "id": "store-catalog-third-party",
+      "family": "storage-policy",
+      "url": "https://google-analytics.com/collect",
+      "context": {
+        "party": "third-party",
+        "resourceDomain": "google-analytics.com"
+      },
+      "expected": {
+        "matched": true,
+        "matchType": "catalog-exact-domain",
+        "rule": "google-analytics.com",
+        "confidence": "high",
+        "stored": true
+      }
+    },
+    {
+      "id": "drop-catalog-first-party",
+      "family": "storage-policy",
+      "url": "https://google-analytics.com/collect",
+      "context": {
+        "party": "first-party",
+        "resourceDomain": "google-analytics.com"
+      },
+      "expected": {
+        "matched": true,
+        "matchType": "catalog-exact-domain",
+        "rule": "google-analytics.com",
+        "confidence": "high",
+        "stored": false
+      }
+    },
+    {
+      "id": "drop-low-confidence-unattributed",
+      "family": "storage-policy",
+      "url": "https://cdn.example.test/collect/event",
+      "context": {
+        "party": "unknown",
+        "resourceDomain": "cdn.example.test"
+      },
+      "expected": {
+        "matched": true,
+        "matchType": "path-pattern",
+        "rule": "collect-segment",
+        "confidence": "low",
+        "stored": false
+      }
+    },
+    {
+      "id": "store-low-confidence-attributed-third-party",
+      "family": "storage-policy",
+      "url": "https://cdn.example.test/collect/event",
+      "context": {
+        "party": "third-party",
+        "resourceDomain": "cdn.example.test"
+      },
+      "expected": {
+        "matched": true,
+        "matchType": "path-pattern",
+        "rule": "collect-segment",
+        "confidence": "low",
+        "stored": true
+      }
+    },
+    {
+      "id": "drop-match-without-resource-domain",
+      "family": "storage-policy",
+      "url": "https://google-analytics.com/collect",
+      "context": {
+        "party": "third-party",
+        "resourceDomain": ""
+      },
+      "expected": {
+        "matched": true,
+        "matchType": "catalog-exact-domain",
+        "rule": "google-analytics.com",
+        "confidence": "high",
+        "stored": false
+      }
+    }
+  ]
+}
