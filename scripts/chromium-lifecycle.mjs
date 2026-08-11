@@ -27,6 +27,7 @@ const HARD_TIMEOUT_MS = 150_000;
 const assertions = [];
 const runtimeErrors = [];
 const consoleErrors = [];
+const consoleWarnings = [];
 const measurements = {};
 const activeChromeProcesses = new Set();
 const activeServers = new Set();
@@ -81,6 +82,7 @@ function writeFatalReport(error, reason = 'fatal-error') {
         assertions,
         runtimeErrors,
         consoleErrors,
+        consoleWarnings,
         measurements,
       },
       null,
@@ -424,10 +426,8 @@ async function attach(cdp, targetId, label) {
     });
   });
   cdp.on('Runtime.consoleAPICalled', event => {
-    if (event.sessionId !== sessionId || !['error', 'assert'].includes(event.params.type)) {
-      return;
-    }
-    consoleErrors.push({
+    if (event.sessionId !== sessionId) return;
+    const entry = {
       target: label,
       type: event.params.type,
       values: (event.params.args || []).map(argument =>
@@ -435,7 +435,13 @@ async function attach(cdp, targetId, label) {
           ? argument.description || argument.type
           : argument.value
       ),
-    });
+    };
+
+    if (['error', 'assert'].includes(event.params.type)) {
+      consoleErrors.push(entry);
+    } else if (event.params.type === 'warning') {
+      consoleWarnings.push(entry);
+    }
   });
   return sessionId;
 }
@@ -740,6 +746,124 @@ async function firstRun(chromeExecutable, fixture) {
     accessibility.domAudit.focusFailures
   );
 
+  phase('verifying current-report refresh from popup views');
+  await evaluate(
+    instance.cdp,
+    workerSession,
+    `(() => {
+      const now = new Date();
+      const pad = value => String(value).padStart(2, '0');
+      const date = [now.getFullYear(), pad(now.getMonth() + 1), pad(now.getDate())].join('-');
+      const monday = new Date(now);
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const weekStart = [monday.getFullYear(), pad(monday.getMonth() + 1), pad(monday.getDate())].join('-');
+      return chrome.storage.local.set({
+        phantom_trail_daily_snapshots: [{
+          topDomains: [],
+          eventCounts: {
+            byType: {unknown:0, cryptomining:0, fingerprinting:0, social:0, analytics:0, advertising:0},
+            byRisk: {critical:0, high:0, medium:0, low:0},
+            total: 0
+          },
+          scoreConfidence: 'none',
+          scoreStatus: 'insufficient-evidence',
+          privacyScore: null,
+          date
+        }],
+        phantom_trail_weekly_reports: [{
+          riskySites: [],
+          improvedSites: [],
+          newTrackers: [],
+          scoreChange: null,
+          averageScore: null,
+          weekStart
+        }]
+      });
+    })()`
+  );
+
+  const statsClicked = await evaluate(
+    instance.cdp,
+    popupSession,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('nav button'))
+        .find(item => (item.textContent || '').trim().includes('Stats'));
+      button?.click();
+      return Boolean(button);
+    })()`
+  );
+  record('stats-view-available', statsClicked, 'Stats navigation button clicked.');
+
+  const expectedOccurrences = storedEvents.reduce(
+    (total, event) => total + (event.occurrenceCount || 1),
+    0
+  );
+  const refreshedFromStats = await waitFor(
+    () =>
+      evaluate(
+        instance.cdp,
+        workerSession,
+        `chrome.storage.local.get([
+          'phantom_trail_daily_snapshots',
+          'phantom_trail_weekly_reports',
+          'phantom_trail_report_lifecycle'
+        ]).then(result => {
+          const daily = (result.phantom_trail_daily_snapshots || [])[0] || null;
+          const weekly = (result.phantom_trail_weekly_reports || [])[0] || null;
+          const lifecycle = result.phantom_trail_report_lifecycle || {};
+          return daily?.eventCounts?.total > 0 &&
+            weekly?.averageScore !== null &&
+            lifecycle.lastDailyRun?.source === 'view' &&
+            lifecycle.lastWeeklyRun?.source === 'view'
+            ? {daily, weekly, lifecycle}
+            : null;
+        })`
+      ),
+    { timeout: 20_000 }
+  );
+  record(
+    'stats-refreshes-current-reports',
+    refreshedFromStats.daily.eventCounts.total >= expectedOccurrences,
+    `daily occurrences=${refreshedFromStats.daily.eventCounts.total}; expected at least ${expectedOccurrences}`,
+    refreshedFromStats
+  );
+
+  const reportsClicked = await evaluate(
+    instance.cdp,
+    popupSession,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('nav button'))
+        .find(item => (item.textContent || '').trim().includes('Reports'));
+      button?.click();
+      return Boolean(button);
+    })()`
+  );
+  const reportsText = await waitFor(
+    async () => {
+      const text = await evaluate(instance.cdp, popupSession, 'document.body.innerText');
+      return text.includes('Local Evidence Reports') && text.includes('Occurrences')
+        ? text
+        : null;
+    },
+    { timeout: 20_000 }
+  );
+  record(
+    'reports-view-renders-refreshed-evidence',
+    reportsClicked && reportsText.includes(String(refreshedFromStats.daily.eventCounts.total)),
+    `Reports view contains refreshed occurrence count ${refreshedFromStats.daily.eventCounts.total}.`
+  );
+  const falseRepairWarnings = consoleWarnings.filter(entry =>
+    entry.values.some(value =>
+      String(value).includes('Migrated or removed 0 invalid')
+    )
+  );
+  record(
+    'zero-item-repair-warnings-absent',
+    falseRepairWarnings.length === 0,
+    `${falseRepairWarnings.length} false storage-repair warning(s)`,
+    falseRepairWarnings
+  );
+
   phase('seeding restart probes');
   await evaluate(
     instance.cdp,
@@ -911,6 +1035,7 @@ async function main() {
     failures,
     runtimeErrors,
     consoleErrors,
+    consoleWarnings,
   };
 
   phase('writing Chromium evidence report');

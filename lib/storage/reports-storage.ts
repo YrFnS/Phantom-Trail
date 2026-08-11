@@ -1,3 +1,4 @@
+import { repairReportCollection } from '../report-policy.mts';
 import type {
   DailySnapshot,
   EvidenceCoverageConfidence,
@@ -52,7 +53,9 @@ export class ReportsStorage {
   static async storeWeeklyReport(report: WeeklyReport): Promise<void> {
     try {
       const reports = await this.readWeeklyReports();
-      const filtered = reports.filter(item => item.weekStart !== report.weekStart);
+      const filtered = reports.filter(
+        item => item.weekStart !== report.weekStart
+      );
       filtered.push(this.normalizeWeeklyReport(report));
       filtered.sort(
         (first, second) =>
@@ -111,26 +114,18 @@ export class ReportsStorage {
       return [];
     }
 
-    const normalized = raw.flatMap(item => {
-      const snapshot = this.tryNormalizeDailySnapshot(item);
-      return snapshot ? [snapshot] : [];
-    });
+    const repair = repairReportCollection(raw, item =>
+      this.tryNormalizeDailySnapshot(item)
+    );
 
-    if (
-      normalized.length !== raw.length ||
-      raw.some((item, index) =>
-        JSON.stringify(item) !== JSON.stringify(normalized[index])
-      )
-    ) {
-      console.warn(
-        `[Phantom Trail] Migrated or removed ${raw.length - normalized.length} invalid daily evidence snapshot item(s)`
-      );
+    if (repair.changed) {
+      this.logRepair('daily evidence snapshot', repair.migrated, repair.removed);
       await chrome.storage.local.set({
-        [this.DAILY_SNAPSHOTS_KEY]: normalized.slice(-90),
+        [this.DAILY_SNAPSHOTS_KEY]: repair.items.slice(-90),
       });
     }
 
-    return normalized;
+    return repair.items;
   }
 
   private static async readWeeklyReports(): Promise<WeeklyReport[]> {
@@ -143,26 +138,18 @@ export class ReportsStorage {
       return [];
     }
 
-    const normalized = raw.flatMap(item => {
-      const report = this.tryNormalizeWeeklyReport(item);
-      return report ? [report] : [];
-    });
+    const repair = repairReportCollection(raw, item =>
+      this.tryNormalizeWeeklyReport(item)
+    );
 
-    if (
-      normalized.length !== raw.length ||
-      raw.some((item, index) =>
-        JSON.stringify(item) !== JSON.stringify(normalized[index])
-      )
-    ) {
-      console.warn(
-        `[Phantom Trail] Migrated or removed ${raw.length - normalized.length} invalid weekly evidence report item(s)`
-      );
+    if (repair.changed) {
+      this.logRepair('weekly evidence report', repair.migrated, repair.removed);
       await chrome.storage.local.set({
-        [this.WEEKLY_REPORTS_KEY]: normalized.slice(-52),
+        [this.WEEKLY_REPORTS_KEY]: repair.items.slice(-52),
       });
     }
 
-    return normalized;
+    return repair.items;
   }
 
   private static tryNormalizeDailySnapshot(
@@ -242,7 +229,9 @@ export class ReportsStorage {
     };
   }
 
-  private static normalizeEventCounts(value: unknown): DailySnapshot['eventCounts'] {
+  private static normalizeEventCounts(
+    value: unknown
+  ): DailySnapshot['eventCounts'] {
     if (!value || typeof value !== 'object') return this.emptyEventCounts();
     const counts = value as Record<string, unknown>;
     const byRisk =
@@ -347,5 +336,26 @@ export class ReportsStorage {
     return Array.isArray(value)
       ? value.filter((item): item is string => typeof item === 'string')
       : [];
+  }
+
+  private static logRepair(
+    label: string,
+    migrated: number,
+    removed: number
+  ): void {
+    if (removed > 0) {
+      console.warn(
+        `[Phantom Trail] Removed ${removed} invalid ${label} item(s)${
+          migrated > 0 ? ` and normalized ${migrated} legacy item(s)` : ''
+        }`
+      );
+      return;
+    }
+
+    if (migrated > 0) {
+      console.info(
+        `[Phantom Trail] Normalized ${migrated} legacy ${label} item(s)`
+      );
+    }
   }
 }
