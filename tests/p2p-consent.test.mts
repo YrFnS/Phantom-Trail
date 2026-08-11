@@ -8,6 +8,8 @@ import {
   normalizeP2PSettings,
   P2P_CONSENT_VERSION,
   P2P_PAYLOAD_VERSION,
+  P2P_ROOM_ID,
+  P2P_STATS_ACTION,
 } from '../lib/p2p-consent.mts';
 
 test('legacy or unacknowledged P2P settings are forced off', () => {
@@ -55,6 +57,11 @@ test('revoking consent disables connection and sharing', () => {
   assert.equal(revoked.joinPrivacyNetwork, false);
   assert.equal(revoked.shareAnonymousData, false);
   assert.equal(revoked.shareRegionalData, false);
+});
+
+test('Trystero transport identifiers stay within provider byte limits', () => {
+  assert.ok(Buffer.byteLength(P2P_ROOM_ID, 'utf8') <= 20);
+  assert.ok(Buffer.byteLength(P2P_STATS_ACTION, 'utf8') <= 12);
 });
 
 test('canonical preview exposes aggregate fields and excludes browsing labels', () => {
