@@ -2,17 +2,22 @@ import { useState, useEffect } from 'react';
 import { SettingsStorage } from '../storage/settings-storage';
 import { DataProtectionStorage } from '../storage/data-protection-storage';
 import { OpenRouterCredentialStorage } from '../storage/openrouter-credential-storage';
+import { DATA_CLEARED_EVENT } from '../data-deletion';
 import type { ExtensionSettings } from '../types';
+
+const DEFAULT_UI_SETTINGS: ExtensionSettings = {
+  enableAI: false,
+  enableNotifications: false,
+  riskThreshold: 'medium',
+  enablePrivacyPredictions: false,
+};
 
 /**
  * Custom hook for non-secret settings and the separately stored OpenRouter key.
  */
 export function useSettings() {
   const [settings, setSettings] = useState<ExtensionSettings>({
-    enableAI: false,
-    enableNotifications: false,
-    riskThreshold: 'medium',
-    enablePrivacyPredictions: false,
+    ...DEFAULT_UI_SETTINGS,
   });
   const [apiKey, setApiKey] = useState('');
   const [rememberApiKey, setRememberApiKey] = useState(false);
@@ -22,6 +27,17 @@ export function useSettings() {
 
   useEffect(() => {
     void loadSettings();
+
+    const handleDataCleared = () => {
+      setSettings({ ...DEFAULT_UI_SETTINGS });
+      setApiKey('');
+      setRememberApiKey(false);
+      setSaveError(null);
+      setSaveSuccess(false);
+    };
+    window.addEventListener(DATA_CLEARED_EVENT, handleDataCleared);
+    return () =>
+      window.removeEventListener(DATA_CLEARED_EVENT, handleDataCleared);
   }, []);
 
   const loadSettings = async () => {
