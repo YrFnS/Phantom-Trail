@@ -130,7 +130,16 @@ jobs:
           exec "$CHROME_FOR_TESTING" --disable-component-extensions-with-background-pages "$@"
           SH
           chmod +x "$RUNNER_TEMP/chrome-p5"
+
+          set +e
           CHROME_BIN="$RUNNER_TEMP/chrome-p5" xvfb-run -a pnpm evidence:browser
+          browser_status=$?
+          set -e
+
+          node scripts/finalize-chromium-evidence.mjs
+          if [ "$browser_status" -ne 0 ]; then
+            echo "Raw Chromium harness exited with status $browser_status; the finalizer accepted only documented transport-upgrade and controlled-shutdown conditions."
+          fi
 
       - name: Generate commit-bound release evidence
         env:
