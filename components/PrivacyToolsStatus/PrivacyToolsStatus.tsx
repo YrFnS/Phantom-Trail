@@ -18,37 +18,84 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
   const [status, setStatus] = useState<ToolsStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const analyzeTools = async () => {
-      try {
-        setLoading(true);
-        const tools = await PrivacyToolDetector.detectInstalledTools();
-        const toolStatus = await PrivacyToolDetector.analyzeEffectiveness(
-          tools,
-          events
-        );
-        setStatus(toolStatus);
-      } catch (error) {
-        console.error('Failed to inspect privacy tools:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadStatus = async () => {
+    try {
+      setLoading(true);
+      const tools = await PrivacyToolDetector.detectInstalledTools();
+      setStatus(await PrivacyToolDetector.analyzeEffectiveness(tools, events));
+    } catch (error) {
+      console.error('Failed to inspect optional privacy-tool state:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    analyzeTools();
+  useEffect(() => {
+    void loadStatus();
   }, [events]);
+
+  const requestPermission = async () => {
+    setLoading(true);
+    try {
+      await PrivacyToolDetector.requestDiscoveryPermission();
+      await loadStatus();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const revokePermission = async () => {
+    setLoading(true);
+    try {
+      await PrivacyToolDetector.revokeDiscoveryPermission();
+      await loadStatus();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className={`${className} animate-pulse`}>
-        <div className="h-4 bg-[var(--bg-secondary)] rounded mb-2"></div>
-        <div className="h-3 bg-[var(--bg-secondary)] rounded w-2/3"></div>
+        <div className="h-4 bg-[var(--bg-secondary)] rounded mb-2" />
+        <div className="h-3 bg-[var(--bg-secondary)] rounded w-2/3" />
       </div>
     );
   }
 
-  if (!status) {
-    return null;
+  if (!status) return null;
+
+  if (!status.permissionGranted) {
+    return (
+      <div
+        className={`${className} bg-[var(--bg-secondary)] rounded-lg p-3 border border-[var(--border-primary)]`}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h3 className="text-sm font-medium text-[var(--text-primary)]">
+              Privacy-tool discovery
+            </h3>
+            <p className="text-[10px] text-[var(--text-secondary)]">
+              Optional permission is off
+            </p>
+          </div>
+          <span className="text-[10px] uppercase tracking-wide text-[var(--success)]">
+            Minimized
+          </span>
+        </div>
+        <p className="text-xs text-[var(--text-secondary)] leading-relaxed mb-3">
+          Phantom Trail has not inspected installed extension names. Grant the
+          optional management permission only when you want a one-time view of
+          supported tools and enabled state.
+        </p>
+        <button
+          onClick={() => void requestPermission()}
+          className="w-full text-xs px-3 py-2 bg-[var(--accent-primary)] text-white rounded hover:opacity-90"
+        >
+          Allow extension discovery
+        </button>
+      </div>
+    );
   }
 
   const enabledToolCount =
@@ -69,9 +116,12 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
             Installation state only
           </p>
         </div>
-        <span className="text-[10px] uppercase tracking-wide text-[var(--warning)]">
-          Experimental
-        </span>
+        <button
+          onClick={() => void revokePermission()}
+          className="text-[10px] text-[var(--warning)] hover:underline"
+        >
+          Revoke access
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
@@ -94,14 +144,12 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
       </div>
 
       <div className="p-2 mb-3 text-[10px] rounded border border-[var(--warning)]/30 bg-[var(--warning)]/10 text-[var(--text-secondary)]">
-        Phantom Trail cannot observe another extension’s filtering decisions.
-        It does not measure effectiveness, blocked requests, or missed trackers.
+        The permission exposes installed extension names and enabled state.
+        Phantom Trail cannot observe filtering decisions, effectiveness, blocked
+        requests, or missed trackers.
       </div>
 
       <div className="space-y-2 mb-3">
-        <h4 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">
-          Supported tool discovery
-        </h4>
         {status.tools.slice(0, 5).map(tool => (
           <div
             key={tool.name}
@@ -139,9 +187,6 @@ export const PrivacyToolsStatus: React.FC<PrivacyToolsStatusProps> = ({
 
       {status.recommendations.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">
-            Notes
-          </h4>
           {status.recommendations.slice(0, 3).map(recommendation => (
             <div
               key={recommendation}
