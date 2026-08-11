@@ -146,14 +146,6 @@ export class AIEngine {
     return `Optional OpenRouter aggregate summary\n\n${analysis.narrative}${suggestions}\n\nModel confidence field: ${analysis.confidence}. This is generated text, not a verified privacy conclusion.`;
   }
 
-  /**
-   * Compatibility method retained for old callers. Arbitrary text never causes
-   * a network request in P4.
-   */
-  async chatQuery(_query: string, _events?: TrackingEvent[]): Promise<string> {
-    return 'Free-form AI Q&A is not a Phantom Trail feature. Use a supported local Evidence Explorer query, or select the separate optional aggregate-summary action.';
-  }
-
   async isAvailable(): Promise<boolean> {
     try {
       const [settings, credentialState] = await Promise.all([
@@ -197,8 +189,6 @@ export const AIEngineStatic = {
     aiEngine.generateNarrative(events),
   generateAggregateSummary: (events: TrackingEvent[]) =>
     aiEngine.generateAggregateSummary(events),
-  chatQuery: (query: string, events?: TrackingEvent[]) =>
-    aiEngine.chatQuery(query, events),
   isAvailable: () => aiEngine.isAvailable(),
   getRateLimitStatus: () => aiEngine.getRateLimitStatus(),
   waitForRateLimit: (onProgress?: (timeRemaining: number) => void) =>
