@@ -62,7 +62,7 @@ jobs:
   evidence:
     name: Test, evidence, browser, and package
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
 
     steps:
       - name: Check out exact source head
@@ -78,6 +78,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+
+      - name: Install stable Chrome for Testing
+        id: chrome
+        uses: browser-actions/setup-chrome@v2.1.2
+        with:
+          chrome-version: stable
+          install-dependencies: true
 
       - name: Install dependencies from committed lockfile
         run: pnpm install --frozen-lockfile
@@ -115,13 +122,9 @@ jobs:
         run: pnpm evidence:dependencies
 
       - name: Chromium lifecycle and accessibility contract
-        run: |
-          cat > "$RUNNER_TEMP/chrome-p5" <<'SH'
-          #!/usr/bin/env bash
-          exec /usr/bin/google-chrome --disable-component-extensions-with-background-pages "$@"
-          SH
-          chmod +x "$RUNNER_TEMP/chrome-p5"
-          CHROME_BIN="$RUNNER_TEMP/chrome-p5" xvfb-run -a pnpm evidence:browser
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: xvfb-run -a pnpm evidence:browser
 
       - name: Generate commit-bound release evidence
         env:
