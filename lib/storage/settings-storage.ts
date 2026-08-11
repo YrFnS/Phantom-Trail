@@ -78,10 +78,8 @@ export class SettingsStorage {
   private static sanitizeSettings(
     settings: ExtensionSettings
   ): ExtensionSettings {
-    const {
-      openRouterApiKey: _legacyCredential,
-      ...nonSecretSettings
-    } = settings;
+    const nonSecretSettings = { ...settings };
+    delete nonSecretSettings.openRouterApiKey;
 
     return {
       enableAI: nonSecretSettings.enableAI === true,
