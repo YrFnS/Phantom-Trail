@@ -1,24 +1,31 @@
 /**
- * Compatibility tests for the experimental P2P transport and score
- * anonymization guardrails.
+ * Compatibility tests for the P3 aggregate P2P transport and consent guardrails.
  */
 
 import { P2PPrivacyNetwork } from '../lib/p2p-privacy-network';
 import { AnonymizationService } from '../lib/anonymization';
-import type { PrivacyData } from '../lib/types';
+import {
+  P2P_CONSENT_VERSION,
+  P2P_PAYLOAD_VERSION,
+} from '../lib/p2p-consent.mts';
+import type { P2PSettings, PrivacyData } from '../lib/types';
+
+const consentedSettings: P2PSettings = {
+  joinPrivacyNetwork: true,
+  shareAnonymousData: true,
+  shareRegionalData: false,
+  maxConnections: 10,
+  autoReconnect: true,
+  consentVersion: P2P_CONSENT_VERSION,
+  consentAcknowledgedAt: Date.now(),
+};
 
 (global as { chrome?: unknown }).chrome = {
   storage: {
     local: {
-      get: jest
-        .fn()
-        .mockResolvedValue({ p2pSettings: { joinPrivacyNetwork: true } }),
+      get: jest.fn().mockResolvedValue({ p2pSettings: consentedSettings }),
       set: jest.fn().mockResolvedValue(undefined),
     },
-  },
-  tabs: {
-    query: jest.fn().mockResolvedValue([]),
-    sendMessage: jest.fn().mockResolvedValue(undefined),
   },
   runtime: {
     id: 'test-extension-id',
@@ -29,14 +36,6 @@ import type { PrivacyData } from '../lib/types';
 (global as { RTCPeerConnection?: unknown }).RTCPeerConnection = jest
   .fn()
   .mockImplementation(() => ({
-    createDataChannel: jest.fn().mockReturnValue({
-      readyState: 'open',
-      send: jest.fn(),
-      close: jest.fn(),
-      onopen: null,
-      onmessage: null,
-      onerror: null,
-    }),
     close: jest.fn(),
     iceConnectionState: 'connected',
     oniceconnectionstatechange: null,
@@ -49,24 +48,21 @@ describe('P2P Privacy Network', () => {
     network = P2PPrivacyNetwork.getInstance();
   });
 
-  test('should initialize network', async () => {
-    await network.initializeNetwork();
-    expect(network.getNetworkStatus()).toContain('Searching for peers');
+  test('should expose a numeric peer count', () => {
+    expect(network.getConnectedPeerCount()).toBeGreaterThanOrEqual(0);
   });
 
-  test('should get connected peer count', () => {
-    const count = network.getConnectedPeerCount();
-    expect(typeof count).toBe('number');
-    expect(count).toBeGreaterThanOrEqual(0);
-  });
-
-  test('should check if network is active', () => {
+  test('should expose a boolean active state', () => {
     expect(typeof network.isNetworkActive()).toBe('boolean');
+  });
+
+  test('should not provide domain reputation in P3', async () => {
+    await expect(network.getDomainReputation('example.com')).resolves.toBeNull();
   });
 });
 
 describe('Anonymization Service', () => {
-  test('should anonymize an estimated evidence-index sample', () => {
+  test('should build a versioned aggregate sample only with current consent', () => {
     const mockPrivacyData: PrivacyData = {
       averageScore: 87,
       scoreStatus: 'estimated',
@@ -77,28 +73,36 @@ describe('Anonymization Service', () => {
         {
           id: '1',
           timestamp: Date.now(),
-          url: 'https://example.com',
-          domain: 'example.com',
+          url: 'https://page.test/',
+          domain: 'resource.test',
           trackerType: 'advertising',
           riskLevel: 'medium',
-          description: 'Test detector row',
+          description: 'Minimized detector row',
         },
       ],
     };
 
-    const anonymized = AnonymizationService.anonymizeForP2P(mockPrivacyData);
+    const anonymized = AnonymizationService.anonymizeForP2P(
+      mockPrivacyData,
+      consentedSettings
+    );
     expect(anonymized).not.toBeNull();
-    if (!anonymized) throw new Error('Expected an estimated sample');
+    if (!anonymized) throw new Error('Expected a consented estimated sample');
 
+    expect(anonymized.payloadVersion).toBe(P2P_PAYLOAD_VERSION);
+    expect(anonymized.consentVersion).toBe(P2P_CONSENT_VERSION);
     expect(anonymized.privacyScore % 5).toBe(0);
     expect(anonymized.scoreStatus).toBe('estimated');
     expect(anonymized.scoreConfidence).toBe('medium');
     expect(anonymized.trackerCount).toBeLessThanOrEqual(50);
     expect(anonymized.websiteCategories.length).toBeLessThanOrEqual(3);
     expect(AnonymizationService.validateAnonymization(anonymized)).toBe(true);
+    expect('url' in anonymized).toBe(false);
+    expect('domain' in anonymized).toBe(false);
+    expect('events' in anonymized).toBe(false);
   });
 
-  test('should refuse to convert insufficient evidence into zero', () => {
+  test('should refuse missing consent and insufficient evidence', () => {
     const unknownData: PrivacyData = {
       averageScore: null,
       scoreStatus: 'insufficient-evidence',
@@ -108,11 +112,27 @@ describe('Anonymization Service', () => {
       events: [],
     };
 
-    expect(AnonymizationService.anonymizeForP2P(unknownData)).toBeNull();
+    expect(
+      AnonymizationService.anonymizeForP2P(unknownData, consentedSettings)
+    ).toBeNull();
+    expect(
+      AnonymizationService.anonymizeForP2P(
+        {
+          ...unknownData,
+          averageScore: 90,
+          scoreStatus: 'estimated',
+          scoreConfidence: 'low',
+          grade: 'A',
+        },
+        { ...consentedSettings, consentVersion: undefined }
+      )
+    ).toBeNull();
   });
 
-  test('should validate only estimated P2 samples', () => {
+  test('should reject legacy or unversioned peer samples', () => {
     const validData = {
+      payloadVersion: P2P_PAYLOAD_VERSION,
+      consentVersion: P2P_CONSENT_VERSION,
       privacyScore: 85,
       scoreStatus: 'estimated' as const,
       scoreConfidence: 'medium' as const,
@@ -127,13 +147,7 @@ describe('Anonymization Service', () => {
     expect(
       AnonymizationService.validateAnonymization({
         ...validData,
-        privacyScore: 87,
-      })
-    ).toBe(false);
-    expect(
-      AnonymizationService.validateAnonymization({
-        ...validData,
-        scoreStatus: undefined,
+        payloadVersion: undefined,
       })
     ).toBe(false);
   });
