@@ -1,6 +1,4 @@
-/**
- * Component-specific interfaces for ChatInterface
- */
+/** Component-specific interfaces for the Evidence Explorer. */
 
 export interface ChatInterfaceProps {
   className?: string;
@@ -27,6 +25,7 @@ export interface ChatHookReturn {
   inputValue: string;
   setInputValue: (value: string) => void;
   sendMessage: (message: string) => Promise<void>;
+  generateAggregateSummary: () => Promise<void>;
   clearChat: () => void;
 }
 
