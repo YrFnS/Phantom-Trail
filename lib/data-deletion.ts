@@ -2,8 +2,10 @@ import {
   DataProtectionStorage,
   type StorageInventory,
 } from './storage/data-protection-storage';
+import { OpenRouterCredentialStorage } from './storage/openrouter-credential-storage';
 
 export const CLEAR_ALL_CONFIRMATION_PHRASE = 'DELETE PHANTOM TRAIL DATA';
+export const DATA_CLEARED_EVENT = 'phantom-trail-data-cleared';
 
 export interface StorageAreaDeletionResult {
   area: 'local' | 'session' | 'sync';
@@ -20,6 +22,7 @@ export interface DataDeletionReport {
   storage: StorageAreaDeletionResult[];
   alarmsCleared: number;
   badgeCleared: boolean;
+  credentialCleared: boolean;
   peerSessionDisconnected: boolean;
   optionalManagementPermissionRevoked: boolean;
   limitations: string[];
@@ -44,6 +47,7 @@ export class DataDeletionService {
     const inventory = await this.getInventory();
     let peerSessionDisconnected = false;
     let badgeCleared = false;
+    let credentialCleared = false;
     let alarmsCleared = 0;
     let optionalManagementPermissionRevoked = false;
 
@@ -53,6 +57,13 @@ export class DataDeletionService {
       peerSessionDisconnected = true;
     } catch (error) {
       console.warn('Failed to disconnect the peer session during deletion:', error);
+    }
+
+    try {
+      await OpenRouterCredentialStorage.clearCredential();
+      credentialCleared = true;
+    } catch (error) {
+      console.warn('Failed to clear the OpenRouter credential:', error);
     }
 
     try {
@@ -87,7 +98,17 @@ export class DataDeletionService {
     const storage = await Promise.all(
       inventory.areas.map(area => this.clearArea(area.area, area))
     );
-    const success = storage.every(area => area.cleared);
+    const success =
+      storage.every(area => area.cleared) &&
+      credentialCleared &&
+      badgeCleared &&
+      peerSessionDisconnected;
+
+    try {
+      window.dispatchEvent(new CustomEvent(DATA_CLEARED_EVENT));
+    } catch {
+      // The deletion service can also run in a background context without DOM.
+    }
 
     return {
       startedAt,
@@ -96,6 +117,7 @@ export class DataDeletionService {
       storage,
       alarmsCleared,
       badgeCleared,
+      credentialCleared,
       peerSessionDisconnected,
       optionalManagementPermissionRevoked,
       limitations: [
