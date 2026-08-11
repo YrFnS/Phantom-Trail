@@ -77,8 +77,18 @@ export class MessageHandler {
         await import('../../lib/storage/events-storage');
       const appended = await EventsStorage.addEvent(event);
 
-      if (appended && sender.tab?.id !== undefined) {
-        await this.updateBadgeForTab(sender.tab.id, event);
+      if (appended) {
+        const operations: Promise<unknown>[] = [];
+        if (sender.tab?.id !== undefined) {
+          operations.push(this.updateBadgeForTab(sender.tab.id));
+        }
+        operations.push(
+          import('../../lib/notification-manager').then(
+            ({ NotificationManager }) =>
+              NotificationManager.showEvidenceAlert(event)
+          )
+        );
+        await Promise.allSettled(operations);
       }
 
       sendResponse({ success: true, appended });
@@ -118,10 +128,7 @@ export class MessageHandler {
     };
   }
 
-  private static async updateBadgeForTab(
-    tabId: number,
-    event: TrackingEvent
-  ): Promise<void> {
+  private static async updateBadgeForTab(tabId: number): Promise<void> {
     try {
       const tab = await chrome.tabs.get(tabId);
       const pageDomain = getDomainFromUrl(tab.url);
@@ -135,18 +142,17 @@ export class MessageHandler {
       );
 
       const { calculatePrivacyScore } = await import('../../lib/privacy-score');
-      const score = calculatePrivacyScore(
-        pageEvents,
-        tab.url.startsWith('https://')
-      );
+      const score = calculatePrivacyScore(pageEvents, true, {
+        scope: 'page',
+        pageDomain,
+      });
 
       const { BadgeManager } = await import('../../lib/badge-manager');
       await BadgeManager.updateBadge(tabId, score);
     } catch (error) {
       console.error(
         '[Message Handler] Failed to update experimental badge:',
-        error,
-        event.id
+        error
       );
     }
   }
@@ -191,38 +197,29 @@ export class MessageHandler {
       const { PrivacyScoreClass } = await import('../../lib/privacy-score');
       const { EventsStorage } =
         await import('../../lib/storage/events-storage');
-
       const score = await PrivacyScoreClass.calculateDomainScore(domain);
       const events = await EventsStorage.getTrackingEvents();
       const pageEvents = events.filter(event =>
         eventMatchesPageDomain(event, domain)
       );
 
-      const analysisData = {
-        domain,
-        score,
-        eventCount: pageEvents.length,
-        occurrenceCount: pageEvents.reduce(
-          (total, event) => total + Math.max(1, event.occurrences || 1),
-          0
-        ),
-        disclaimer:
-          'Experimental local heuristic based on explicitly attributed detector signals; not a website audit.',
-      };
-
-      await chrome.tabs
-        .sendMessage(sender.tab.id, {
-          type: 'SHOW_QUICK_ANALYSIS',
-          data: analysisData,
-        })
-        .catch(() => {
-          // The page may not have a content script ready; the response remains useful.
-        });
-
-      sendResponse({ success: true, data: analysisData });
+      sendResponse({
+        success: true,
+        data: {
+          domain,
+          score,
+          eventCount: pageEvents.length,
+          occurrenceCount: pageEvents.reduce(
+            (total, event) => total + Math.max(1, event.occurrences || 1),
+            0
+          ),
+          disclaimer:
+            'Experimental local evidence summary; not a website audit.',
+        },
+      });
     } catch (error) {
-      console.error('[Message Handler] Quick heuristic failed:', error);
-      sendResponse({ error: 'Quick heuristic failed' });
+      console.error('[Message Handler] Quick evidence summary failed:', error);
+      sendResponse({ error: 'Quick evidence summary failed' });
     }
   }
 }
