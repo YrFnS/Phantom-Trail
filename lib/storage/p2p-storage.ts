@@ -1,32 +1,30 @@
 import { BaseStorage } from './base-storage';
 import type { P2PSettings } from '../types';
+import {
+  DEFAULT_P2P_SETTINGS,
+  normalizeP2PSettings,
+} from '../p2p-consent.mts';
 
 /**
- * Storage wrapper for P2P privacy network settings
+ * Stores versioned P2P consent and transport settings.
  */
 export class P2PStorage extends BaseStorage {
-  private static readonly KEY = 'p2pSettings';
+  static readonly KEY = 'p2pSettings';
 
-  /**
-   * Get P2P settings from storage
-   */
   static async getSettings(): Promise<P2PSettings> {
     const result = await chrome.storage.local.get([this.KEY]);
-    return (
-      result[this.KEY] || {
-        joinPrivacyNetwork: false,
-        shareAnonymousData: false,
-        shareRegionalData: false,
-        maxConnections: 10,
-        autoReconnect: true,
-      }
+    const normalized = normalizeP2PSettings(
+      result[this.KEY] || DEFAULT_P2P_SETTINGS
     );
+    if (JSON.stringify(result[this.KEY]) !== JSON.stringify(normalized)) {
+      await chrome.storage.local.set({ [this.KEY]: normalized });
+    }
+    return normalized;
   }
 
-  /**
-   * Save P2P settings to storage
-   */
-  static async saveSettings(settings: P2PSettings): Promise<void> {
-    await chrome.storage.local.set({ [this.KEY]: settings });
+  static async saveSettings(settings: P2PSettings): Promise<P2PSettings> {
+    const normalized = normalizeP2PSettings(settings);
+    await chrome.storage.local.set({ [this.KEY]: normalized });
+    return normalized;
   }
 }
