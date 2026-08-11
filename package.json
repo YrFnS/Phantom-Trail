@@ -15,7 +15,14 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,mts,mtsx,js,jsx,json,md}\"",
-    "validate": "pnpm test && pnpm type-check && pnpm lint && pnpm build",
+    "evidence:detectors": "node --experimental-strip-types scripts/evaluate-detectors.mts",
+    "evidence:security": "node scripts/security-gate.mjs",
+    "evidence:performance": "node --experimental-strip-types scripts/performance-gate.mts",
+    "evidence:browser": "node scripts/chromium-lifecycle.mjs",
+    "evidence:dependencies": "node scripts/dependency-audit.mjs",
+    "evidence:release": "node scripts/release-evidence.mjs",
+    "validate": "pnpm test && pnpm evidence:detectors && pnpm type-check && pnpm lint && pnpm build && pnpm zip && pnpm evidence:security && pnpm evidence:performance",
+    "release:verify": "pnpm validate && pnpm evidence:dependencies",
     "fix-deps": "powershell.exe -ExecutionPolicy Bypass -File .\\scripts\\fix-dependencies.ps1"
   },
   "repository": {
