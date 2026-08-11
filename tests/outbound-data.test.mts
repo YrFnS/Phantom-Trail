@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { TrackingEvent } from '../lib/types.ts';
-import { calculatePrivacyScore } from '../lib/privacy-score.ts';
+import type { PrivacyScore, TrackingEvent } from '../lib/types.ts';
 import {
   buildAISummaryPayload,
   getAIOutboundPreview,
@@ -46,10 +45,54 @@ function createAttributedEvent(): TrackingEvent {
   };
 }
 
+function createScore(): PrivacyScore {
+  return {
+    status: 'estimated',
+    score: 92,
+    grade: 'A',
+    color: 'green',
+    confidence: 'low',
+    scope: { type: 'dataset' },
+    breakdown: {
+      totalTrackers: 1,
+      highRisk: 0,
+      mediumRisk: 1,
+      lowRisk: 0,
+      criticalRisk: 0,
+      httpsBonus: false,
+      excessiveTrackingPenalty: false,
+      observedRows: 1,
+      observedOccurrences: 3,
+      qualifyingRows: 1,
+      qualifyingOccurrences: 3,
+      excludedRows: 0,
+      excludedByReason: {
+        'legacy-event': 0,
+        'missing-page-attribution': 0,
+        'page-scope-mismatch': 0,
+        'unsupported-source': 0,
+        'first-party-resource': 0,
+        'unknown-party': 0,
+        'missing-resource-domain': 0,
+        'low-detector-confidence': 0,
+        'low-attribution-confidence': 0,
+        'low-party-confidence': 0,
+      },
+      uniqueThirdPartyParties: 1,
+      pageApiUnits: 0,
+      evidenceUnits: 1,
+      highQualityUnits: 1,
+      rawPenalty: 8,
+      appliedPenalty: 8,
+      contributions: [],
+    },
+    recommendations: [],
+  };
+}
+
 test('counts-only OpenRouter payload contains aggregates and no browsing labels', () => {
   const event = createAttributedEvent();
-  const score = calculatePrivacyScore([event]);
-  const payload = buildAISummaryPayload([event], score, 'counts-only');
+  const payload = buildAISummaryPayload([event], createScore(), 'counts-only');
   const serialized = JSON.stringify(payload);
 
   assert.equal(payload.mode, 'counts-only');
@@ -68,10 +111,9 @@ test('counts-only OpenRouter payload contains aggregates and no browsing labels'
 
 test('domain-label mode includes only bounded third-party resource labels', () => {
   const event = createAttributedEvent();
-  const score = calculatePrivacyScore([event]);
   const payload = buildAISummaryPayload(
     [event],
-    score,
+    createScore(),
     'include-domain-labels'
   );
   const serialized = JSON.stringify(payload);
