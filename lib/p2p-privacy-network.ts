@@ -163,12 +163,14 @@ export class P2PPrivacyNetwork {
   }
 
   /** Compatibility API: domain reputation exchange was removed in P3. */
-  async askReputation(_domain: string): Promise<number | null> {
+  async askReputation(domain: string): Promise<number | null> {
+    void domain;
     return null;
   }
 
   /** Compatibility API: domain reputation exchange was removed in P3. */
-  async getDomainReputation(_domain: string): Promise<number | null> {
+  async getDomainReputation(domain: string): Promise<number | null> {
+    void domain;
     return null;
   }
 
