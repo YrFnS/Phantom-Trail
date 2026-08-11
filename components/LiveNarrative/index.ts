@@ -4,7 +4,6 @@ export type {
   EventDisplayProps,
   NarrativeState,
   EventAnalysis,
-  WebsiteContext,
   TrackingPattern,
   PatternAlert,
 } from './LiveNarrative.types';
