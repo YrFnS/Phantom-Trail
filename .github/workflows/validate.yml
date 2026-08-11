@@ -105,40 +105,35 @@ jobs:
             throw new Error(`Unexpected manifest version: ${manifest.version}`);
           }
 
-          const required = new Set(manifest.permissions || []);
-          const expectedRequired = ['webRequest', 'storage', 'tabs', 'alarms'];
-          for (const permission of expectedRequired) {
-            if (!required.has(permission)) {
-              throw new Error(`Missing required P3 permission: ${permission}`);
-            }
+          const required = [...(manifest.permissions || [])].sort();
+          const expectedRequired = ['alarms', 'storage', 'tabs', 'webRequest'];
+          if (JSON.stringify(required) !== JSON.stringify(expectedRequired)) {
+            throw new Error(
+              `Unexpected required permissions: ${required.join(',')}`
+            );
           }
 
-          const prohibitedRequired = [
-            'activeTab',
-            'downloads',
-            'notifications',
-            'management',
-          ];
-          for (const permission of prohibitedRequired) {
-            if (required.has(permission)) {
-              throw new Error(
-                `Permission must not be required after P3: ${permission}`
-              );
-            }
+          const optional = [...(manifest.optional_permissions || [])].sort();
+          const expectedOptional = ['management', 'notifications'];
+          if (JSON.stringify(optional) !== JSON.stringify(expectedOptional)) {
+            throw new Error(
+              `Unexpected optional permissions: ${optional.join(',')}`
+            );
           }
 
-          const optional = new Set(manifest.optional_permissions || []);
-          if (!optional.has('management')) {
-            throw new Error('management must remain an optional permission');
+          const hosts = [...(manifest.host_permissions || [])].sort();
+          const expectedHosts = ['http://*/*', 'https://*/*'];
+          if (JSON.stringify(hosts) !== JSON.stringify(expectedHosts)) {
+            throw new Error(
+              `Unexpected host permissions: ${hosts.join(',')}`
+            );
           }
-          if (!(manifest.host_permissions || []).includes('<all_urls>')) {
-            throw new Error('Current detector architecture still requires <all_urls> host access');
+          if (hosts.includes('<all_urls>')) {
+            throw new Error('<all_urls> must remain absent after P4 narrowing');
           }
 
           console.log(
-            `Validated ${manifest.name} ${manifest.version}; required=${[
-              ...required,
-            ].join(',')}; optional=${[...optional].join(',')}`
+            `Validated ${manifest.name} ${manifest.version}; required=${required.join(',')}; optional=${optional.join(',')}; hosts=${hosts.join(',')}`
           );
           NODE
 
