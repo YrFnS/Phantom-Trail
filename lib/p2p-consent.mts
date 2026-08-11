@@ -93,9 +93,9 @@ export interface P2POutboundPreview {
 }
 
 export function getP2POutboundPreview(): P2POutboundPreview {
-  const emptyDistribution: Record<RiskLevel, number> = {
-    low: 0,
-    medium: 0,
+  const sampleDistribution: Record<RiskLevel, number> = {
+    low: 50,
+    medium: 50,
     high: 0,
     critical: 0,
   };
@@ -125,13 +125,13 @@ export function getP2POutboundPreview(): P2POutboundPreview {
     sample: {
       payloadVersion: P2P_PAYLOAD_VERSION,
       consentVersion: P2P_CONSENT_VERSION,
-      privacyScore: 0,
+      privacyScore: 95,
       scoreStatus: 'estimated',
       scoreConfidence: 'low',
-      grade: 'N/A',
-      trackerCount: 0,
-      riskDistribution: emptyDistribution,
-      websiteCategories: [],
+      grade: 'A',
+      trackerCount: 2,
+      riskDistribution: sampleDistribution,
+      websiteCategories: ['analytics'],
       timestamp: 0,
     },
     connectionMetadataWarning:
