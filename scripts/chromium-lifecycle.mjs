@@ -22,21 +22,84 @@ const budgetPath = join(
   'performance-budgets.v1.json'
 );
 const profilePath = mkdtempSync(join(tmpdir(), 'phantom-trail-p5-'));
+const HARD_TIMEOUT_MS = 150_000;
 
 const assertions = [];
 const runtimeErrors = [];
 const consoleErrors = [];
 const measurements = {};
+const activeChromeProcesses = new Set();
+const activeServers = new Set();
+let currentPhase = 'initializing';
 
-function record(name, passed, detail, actual) {
+function phase(name) {
+  currentPhase = name;
+  console.log(`[P5 Chromium] ${name}`);
+}
+
+function record(name, passed, detail, actual = null) {
   assertions.push({ name, passed, detail, actual });
-  if (!passed) console.error(`FAIL ${name}: ${detail}`);
-  else console.log(`PASS ${name}: ${detail}`);
+  console.log(`${passed ? 'PASS' : 'FAIL'} ${name}: ${detail}`);
 }
 
 function sleep(milliseconds) {
   return new Promise(resolvePromise => setTimeout(resolvePromise, milliseconds));
 }
+
+function cleanupSynchronously() {
+  for (const chromeProcess of activeChromeProcesses) {
+    try {
+      if (chromeProcess.exitCode === null) chromeProcess.kill('SIGKILL');
+    } catch {
+      // Best effort during fatal teardown.
+    }
+  }
+  for (const server of activeServers) {
+    try {
+      server.closeIdleConnections?.();
+      server.closeAllConnections?.();
+      server.close();
+    } catch {
+      // Best effort during fatal teardown.
+    }
+  }
+}
+
+function writeFatalReport(error, reason = 'fatal-error') {
+  mkdirSync(dirname(outputPath), { recursive: true });
+  writeFileSync(
+    outputPath,
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        generatedAt: new Date().toISOString(),
+        status: 'failed',
+        reason,
+        phase: currentPhase,
+        fatalError:
+          error instanceof Error ? error.stack || error.message : String(error),
+        assertions,
+        runtimeErrors,
+        consoleErrors,
+        measurements,
+      },
+      null,
+      2
+    )}\n`,
+    'utf8'
+  );
+}
+
+const watchdog = setTimeout(() => {
+  const error = new Error(
+    `Chromium lifecycle exceeded ${HARD_TIMEOUT_MS}ms during ${currentPhase}`
+  );
+  writeFatalReport(error, 'hard-timeout');
+  cleanupSynchronously();
+  rmSync(profilePath, { recursive: true, force: true });
+  console.error(error.message);
+  process.exit(1);
+}, HARD_TIMEOUT_MS);
 
 async function waitFor(operation, options = {}) {
   const timeout = options.timeout ?? 15_000;
@@ -54,8 +117,11 @@ async function waitFor(operation, options = {}) {
     await sleep(interval);
   }
 
-  const suffix = lastError ? ` Last error: ${lastError.message}` : '';
-  throw new Error(`Timed out after ${timeout}ms.${suffix}`);
+  throw new Error(
+    `Timed out after ${timeout}ms during ${currentPhase}.${
+      lastError instanceof Error ? ` Last error: ${lastError.message}` : ''
+    }`
+  );
 }
 
 function findChrome() {
@@ -67,13 +133,11 @@ function findChrome() {
     '/usr/bin/chromium-browser',
     '/opt/google/chrome/chrome',
   ].filter(Boolean);
-  const found = candidates.find(candidate => existsSync(candidate));
-  if (!found) {
-    throw new Error(
-      `No Chrome/Chromium executable found. Checked: ${candidates.join(', ')}`
-    );
+  const executable = candidates.find(candidate => existsSync(candidate));
+  if (!executable) {
+    throw new Error(`No Chrome/Chromium executable found: ${candidates.join(', ')}`);
   }
-  return found;
+  return executable;
 }
 
 class CdpConnection {
@@ -87,7 +151,7 @@ class CdpConnection {
 
   async connect() {
     if (typeof WebSocket !== 'function') {
-      throw new Error('Node.js global WebSocket is unavailable. Node 22 is required.');
+      throw new Error('Node 22 WebSocket support is required.');
     }
 
     this.socket = new WebSocket(this.url);
@@ -102,9 +166,7 @@ class CdpConnection {
       });
       this.socket.addEventListener('error', event => {
         clearTimeout(timeout);
-        rejectPromise(
-          new Error(`CDP WebSocket connection failed: ${String(event.message || event.type)}`)
-        );
+        rejectPromise(new Error(`CDP WebSocket error: ${String(event.type)}`));
       });
     });
 
@@ -119,12 +181,8 @@ class CdpConnection {
         return;
       }
 
-      const listeners = this.listeners.get(message.method) || [];
-      for (const listener of listeners) {
-        listener({
-          params: message.params || {},
-          sessionId: message.sessionId,
-        });
+      for (const listener of this.listeners.get(message.method) || []) {
+        listener({ params: message.params || {}, sessionId: message.sessionId });
       }
     });
 
@@ -140,13 +198,6 @@ class CdpConnection {
     const listeners = this.listeners.get(method) || [];
     listeners.push(listener);
     this.listeners.set(method, listeners);
-    return () => {
-      const current = this.listeners.get(method) || [];
-      this.listeners.set(
-        method,
-        current.filter(item => item !== listener)
-      );
-    };
   }
 
   send(method, params = {}, sessionId) {
@@ -156,7 +207,12 @@ class CdpConnection {
 
     return new Promise((resolvePromise, rejectPromise) => {
       this.pending.set(id, { resolve: resolvePromise, reject: rejectPromise });
-      this.socket.send(JSON.stringify(payload));
+      try {
+        this.socket.send(JSON.stringify(payload));
+      } catch (error) {
+        this.pending.delete(id);
+        rejectPromise(error);
+      }
     });
   }
 
@@ -170,7 +226,8 @@ class CdpConnection {
 }
 
 async function listen(server) {
-  return await new Promise((resolvePromise, rejectPromise) => {
+  activeServers.add(server);
+  return new Promise((resolvePromise, rejectPromise) => {
     server.once('error', rejectPromise);
     server.listen(0, '127.0.0.1', () => {
       const address = server.address();
@@ -179,13 +236,43 @@ async function listen(server) {
   });
 }
 
+async function closeServer(server, label) {
+  phase(`closing ${label} fixture server`);
+  try {
+    server.closeIdleConnections?.();
+    server.closeAllConnections?.();
+  } catch {
+    // Older Node versions may not expose explicit connection cleanup.
+  }
+
+  await Promise.race([
+    new Promise(resolvePromise => {
+      try {
+        server.close(resolvePromise);
+      } catch {
+        resolvePromise();
+      }
+    }),
+    sleep(2_000),
+  ]);
+
+  try {
+    server.closeAllConnections?.();
+  } catch {
+    // Final best effort.
+  }
+  activeServers.delete(server);
+}
+
 async function createFixtureServers() {
+  phase('starting local HTTP fixture servers');
   const resourceServer = createServer((request, response) => {
     response.setHeader('Cache-Control', 'no-store');
+    response.setHeader('Connection', 'close');
     if (request.url?.startsWith('/collect.js')) {
       response.writeHead(200, { 'Content-Type': 'application/javascript' });
       response.end(
-        'window.__phantomTrailP5ResourceLoaded = true; console.info("P5 resource fixture loaded");'
+        'window.__phantomTrailP5ResourceLoaded = true; console.info("P5 resource loaded");'
       );
       return;
     }
@@ -194,8 +281,9 @@ async function createFixtureServers() {
   });
   const resourcePort = await listen(resourceServer);
 
-  const pageServer = createServer((request, response) => {
+  const pageServer = createServer((_request, response) => {
     response.setHeader('Cache-Control', 'no-store');
+    response.setHeader('Connection', 'close');
     response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     response.end(`<!doctype html>
 <html lang="en">
@@ -204,41 +292,38 @@ async function createFixtureServers() {
   <title>Phantom Trail P5 fixture</title>
   <script src="http://google-analytics.com:${resourcePort}/collect.js"></script>
 </head>
-<body>
-  <main>
-    <h1>P5 lifecycle fixture</h1>
-    <button type="button">Fixture button</button>
-  </main>
-</body>
+<body><main><h1>P5 lifecycle fixture</h1><button>Fixture button</button></main></body>
 </html>`);
   });
   const pagePort = await listen(pageServer);
 
   return {
     pageUrl: `http://page.test:${pagePort}/fixture`,
-    close: async () => {
-      await Promise.all([
-        new Promise(resolvePromise => resourceServer.close(resolvePromise)),
-        new Promise(resolvePromise => pageServer.close(resolvePromise)),
-      ]);
-    },
+    close: async () =>
+      Promise.all([
+        closeServer(resourceServer, 'resource'),
+        closeServer(pageServer, 'page'),
+      ]),
   };
 }
 
-async function readDevToolsPort() {
+async function readDevToolsPort(chromeProcess, stderr) {
   const path = join(profilePath, 'DevToolsActivePort');
-  return await waitFor(() => {
+  return waitFor(() => {
+    if (chromeProcess.exitCode !== null) {
+      throw new Error(
+        `Chromium exited before CDP became ready: ${stderr().slice(-2000)}`
+      );
+    }
     if (!existsSync(path)) return null;
     const [port, browserPath] = readFileSync(path, 'utf8').trim().split(/\r?\n/u);
     if (!port || !browserPath) return null;
-    return {
-      port: Number(port),
-      webSocketUrl: `ws://127.0.0.1:${port}${browserPath}`,
-    };
-  });
+    return { webSocketUrl: `ws://127.0.0.1:${port}${browserPath}` };
+  }, { timeout: 20_000 });
 }
 
-async function launchChrome(chromeExecutable) {
+async function launchChrome(chromeExecutable, label) {
+  phase(`launching Chromium (${label})`);
   rmSync(join(profilePath, 'DevToolsActivePort'), { force: true });
   const argumentsList = [
     `--user-data-dir=${profilePath}`,
@@ -259,53 +344,58 @@ async function launchChrome(chromeExecutable) {
     '--host-resolver-rules=MAP page.test 127.0.0.1, MAP google-analytics.com 127.0.0.1',
     '--window-size=1280,900',
     '--no-sandbox',
+    'about:blank',
   ];
-  if (process.env.PHANTOM_HEADLESS === '1') argumentsList.push('--headless=new');
-  argumentsList.push('about:blank');
 
   const chromeProcess = spawn(chromeExecutable, argumentsList, {
     env: process.env,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  let stderr = '';
+  activeChromeProcesses.add(chromeProcess);
+  let stderrText = '';
+  chromeProcess.stdout.on('data', () => undefined);
   chromeProcess.stderr.on('data', chunk => {
-    stderr += String(chunk);
+    stderrText += String(chunk);
   });
 
-  const devTools = await readDevToolsPort();
+  const devTools = await readDevToolsPort(chromeProcess, () => stderrText);
   const cdp = new CdpConnection(devTools.webSocketUrl);
   await cdp.connect();
   await cdp.send('Target.setDiscoverTargets', { discover: true });
-
-  return {
-    process: chromeProcess,
-    cdp,
-    stderr: () => stderr,
-  };
+  return { process: chromeProcess, cdp, stderr: () => stderrText };
 }
 
-async function closeChrome(instance) {
-  try {
-    await instance.cdp.send('Browser.close');
-  } catch {
-    // The process may already be exiting.
-  }
+async function closeChrome(instance, label) {
+  phase(`closing Chromium (${label})`);
   await Promise.race([
-    new Promise(resolvePromise => instance.process.once('exit', resolvePromise)),
-    sleep(5000).then(() => {
-      if (!instance.process.killed) instance.process.kill('SIGKILL');
-    }),
+    instance.cdp.send('Browser.close').catch(() => undefined),
+    sleep(1_000),
   ]);
+
+  if (instance.process.exitCode === null) {
+    await Promise.race([
+      new Promise(resolvePromise => instance.process.once('exit', resolvePromise)),
+      sleep(4_000),
+    ]);
+  }
+  if (instance.process.exitCode === null) instance.process.kill('SIGKILL');
+  if (instance.process.exitCode === null) {
+    await Promise.race([
+      new Promise(resolvePromise => instance.process.once('exit', resolvePromise)),
+      sleep(2_000),
+    ]);
+  }
+
   instance.cdp.close();
+  activeChromeProcesses.delete(instance.process);
 }
 
 async function getTargets(cdp) {
-  const result = await cdp.send('Target.getTargets');
-  return result.targetInfos || [];
+  return (await cdp.send('Target.getTargets')).targetInfos || [];
 }
 
 async function waitForExtensionTarget(cdp) {
-  return await waitFor(async () => {
+  return waitFor(async () => {
     const targets = await getTargets(cdp);
     return targets.find(
       target =>
@@ -330,13 +420,13 @@ async function attach(cdp, targetId, label) {
     runtimeErrors.push({
       target: label,
       text: event.params.exceptionDetails?.text || 'Runtime exception',
-      description:
-        event.params.exceptionDetails?.exception?.description || null,
+      description: event.params.exceptionDetails?.exception?.description || null,
     });
   });
   cdp.on('Runtime.consoleAPICalled', event => {
-    if (event.sessionId !== sessionId) return;
-    if (!['error', 'assert'].includes(event.params.type)) return;
+    if (event.sessionId !== sessionId || !['error', 'assert'].includes(event.params.type)) {
+      return;
+    }
     consoleErrors.push({
       target: label,
       type: event.params.type,
@@ -347,19 +437,13 @@ async function attach(cdp, targetId, label) {
       ),
     });
   });
-
   return sessionId;
 }
 
 async function evaluate(cdp, sessionId, expression) {
   const response = await cdp.send(
     'Runtime.evaluate',
-    {
-      expression,
-      awaitPromise: true,
-      returnByValue: true,
-      userGesture: true,
-    },
+    { expression, awaitPromise: true, returnByValue: true, userGesture: true },
     sessionId
   );
   if (response.exceptionDetails) {
@@ -373,7 +457,7 @@ async function evaluate(cdp, sessionId, expression) {
 }
 
 async function waitForDocumentReady(cdp, sessionId) {
-  await waitFor(
+  return waitFor(
     async () =>
       (await evaluate(cdp, sessionId, 'document.readyState')) === 'complete',
     { timeout: 20_000 }
@@ -387,14 +471,10 @@ async function auditPopupAccessibility(cdp, sessionId) {
     `(() => {
       const text = element => (element.textContent || '').replace(/\\s+/g, ' ').trim();
       const referenced = value => (value || '').split(/\\s+/).filter(Boolean)
-        .map(id => document.getElementById(id))
-        .filter(Boolean)
-        .map(text)
-        .filter(Boolean)
-        .join(' ');
+        .map(id => document.getElementById(id)).filter(Boolean).map(text).filter(Boolean).join(' ');
       const name = element => {
         const aria = element.getAttribute('aria-label');
-        if (aria && aria.trim()) return aria.trim();
+        if (aria?.trim()) return aria.trim();
         const labelled = referenced(element.getAttribute('aria-labelledby'));
         if (labelled) return labelled;
         if ('labels' in element && element.labels?.length) {
@@ -402,48 +482,38 @@ async function auditPopupAccessibility(cdp, sessionId) {
           if (labelText) return labelText;
         }
         const alt = element.getAttribute('alt');
-        if (alt && alt.trim()) return alt.trim();
+        if (alt?.trim()) return alt.trim();
         const title = element.getAttribute('title');
-        if (title && title.trim()) return title.trim();
+        if (title?.trim()) return title.trim();
         return text(element);
       };
       const selector = [
-        'button', 'a[href]', 'input:not([type="hidden"])', 'select', 'textarea',
-        '[role="button"]', '[role="tab"]', '[role="checkbox"]', '[tabindex]'
+        'button','a[href]','input:not([type="hidden"])','select','textarea',
+        '[role="button"]','[role="tab"]','[role="checkbox"]','[tabindex]'
       ].join(',');
       const interactive = Array.from(document.querySelectorAll(selector))
         .filter(element => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
       const unnamed = interactive.filter(element => !name(element)).map(element => ({
-        tag: element.tagName,
-        role: element.getAttribute('role'),
-        type: element.getAttribute('type'),
-        html: element.outerHTML.slice(0, 240)
+        tag: element.tagName, role: element.getAttribute('role'), html: element.outerHTML.slice(0, 240)
       }));
-      const controls = Array.from(document.querySelectorAll('input:not([type="hidden"]), select, textarea'));
+      const controls = Array.from(document.querySelectorAll('input:not([type="hidden"]),select,textarea'));
       const unlabeledControls = controls.filter(element => !name(element)).map(element => ({
-        tag: element.tagName,
-        type: element.getAttribute('type'),
-        html: element.outerHTML.slice(0, 240)
+        tag: element.tagName, type: element.getAttribute('type'), html: element.outerHTML.slice(0, 240)
       }));
       const idCounts = Array.from(document.querySelectorAll('[id]')).reduce((map, element) => {
-        map[element.id] = (map[element.id] || 0) + 1;
-        return map;
+        map[element.id] = (map[element.id] || 0) + 1; return map;
       }, {});
       const duplicateIds = Object.entries(idCounts).filter(([, count]) => count > 1);
       const focusable = interactive.filter(element => {
         const style = getComputedStyle(element);
         return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
       });
-      const focusFailures = focusable.slice(0, 40).flatMap(element => {
+      const focusFailures = focusable.slice(0, 50).flatMap(element => {
         element.focus();
-        return document.activeElement === element ? [] : [{
-          name: name(element),
-          html: element.outerHTML.slice(0, 240)
-        }];
+        return document.activeElement === element ? [] : [{ name: name(element), html: element.outerHTML.slice(0, 240) }];
       });
       return {
         lang: document.documentElement.lang,
-        title: document.title,
         interactiveCount: interactive.length,
         unnamed,
         unlabeledControls,
@@ -452,11 +522,10 @@ async function auditPopupAccessibility(cdp, sessionId) {
         focusFailures,
         landmarks: {
           header: document.querySelectorAll('header').length,
-          navigation: document.querySelectorAll('nav, [role="navigation"]').length,
-          main: document.querySelectorAll('main, [role="main"]').length
+          navigation: document.querySelectorAll('nav,[role="navigation"]').length,
+          main: document.querySelectorAll('main,[role="main"]').length
         },
-        navLabels: Array.from(document.querySelectorAll('nav button')).map(name),
-        bodyText: text(document.body).slice(0, 10000)
+        navLabels: Array.from(document.querySelectorAll('nav button')).map(name)
       };
     })()`
   );
@@ -477,17 +546,13 @@ async function auditPopupAccessibility(cdp, sessionId) {
   const unnamedAxNodes = (axResult.nodes || [])
     .filter(node => !node.ignored && interactiveRoles.has(node.role?.value))
     .filter(node => !String(node.name?.value || '').trim())
-    .map(node => ({
-      role: node.role?.value,
-      backendDOMNodeId: node.backendDOMNodeId || null,
-    }));
-
+    .map(node => ({ role: node.role?.value, backendDOMNodeId: node.backendDOMNodeId || null }));
   return { domAudit, unnamedAxNodes };
 }
 
 async function firstRun(chromeExecutable, fixture) {
-  const launchedAt = Date.now();
-  const instance = await launchChrome(chromeExecutable);
+  const instance = await launchChrome(chromeExecutable, 'first run');
+  phase('attaching to first-run extension worker');
   const workerTarget = await waitForExtensionTarget(instance.cdp);
   const extensionId = new URL(workerTarget.url).hostname;
   const workerSession = await attach(
@@ -504,7 +569,7 @@ async function firstRun(chromeExecutable, fixture) {
   record(
     'manifest-version',
     manifest.manifest_version === 3 && manifest.version === '0.1.0',
-    `Manifest ${manifest.manifest_version}, product ${manifest.version}`,
+    `Manifest ${manifest.manifest_version}; product ${manifest.version}`,
     manifest
   );
 
@@ -523,58 +588,44 @@ async function firstRun(chromeExecutable, fixture) {
     permissions
   );
 
-  const alarms = await waitFor(
-    () =>
-      evaluate(
-        instance.cdp,
-        workerSession,
-        'chrome.alarms.getAll().then(items => items.map(item => item.name).sort())'
-      ).then(items =>
-        items.includes('cleanup-old-events') &&
-        items.includes('daily-evidence-snapshot') &&
-        items.includes('weekly-evidence-report')
-          ? items
-          : null
-      ),
-    { timeout: 10_000 }
+  const alarms = await waitFor(() =>
+    evaluate(
+      instance.cdp,
+      workerSession,
+      'chrome.alarms.getAll().then(items => items.map(item => item.name).sort())'
+    ).then(items =>
+      items.includes('cleanup-old-events') &&
+      items.includes('daily-evidence-snapshot') &&
+      items.includes('weekly-evidence-report')
+        ? items
+        : null
+    )
   );
-  record(
-    'report-alarms-registered',
-    true,
-    alarms.join(', '),
-    alarms
-  );
+  record('report-alarms-registered', true, alarms.join(', '), alarms);
 
+  phase('loading attributed HTTP fixture');
   const eventStartedAt = Date.now();
-  const { targetId: pageTargetId } = await instance.cdp.send(
-    'Target.createTarget',
-    { url: fixture.pageUrl }
-  );
-  const pageSession = await attach(
-    instance.cdp,
-    pageTargetId,
-    'fixture-page:first-run'
-  );
+  const { targetId: pageTargetId } = await instance.cdp.send('Target.createTarget', {
+    url: fixture.pageUrl,
+  });
+  const pageSession = await attach(instance.cdp, pageTargetId, 'fixture-page');
   await instance.cdp.send('Page.enable', {}, pageSession);
   await waitForDocumentReady(instance.cdp, pageSession);
 
-  const storedEvents = await waitFor(
-    async () => {
-      const events = await evaluate(
-        instance.cdp,
-        workerSession,
-        `chrome.storage.local.get('phantom_trail_events').then(result => result.phantom_trail_events || [])`
-      );
-      return events.some(
-        event =>
-          event.context?.pageDomain === 'page.test' &&
-          event.context?.resourceDomain === 'google-analytics.com'
-      )
-        ? events
-        : null;
-    },
-    { timeout: 15_000 }
-  );
+  const storedEvents = await waitFor(async () => {
+    const events = await evaluate(
+      instance.cdp,
+      workerSession,
+      `chrome.storage.local.get('phantom_trail_events').then(result => result.phantom_trail_events || [])`
+    );
+    return events.some(
+      event =>
+        event.context?.pageDomain === 'page.test' &&
+        event.context?.resourceDomain === 'google-analytics.com'
+    )
+      ? events
+      : null;
+  });
   measurements.firstDetectorEventMilliseconds = Date.now() - eventStartedAt;
   const attributed = storedEvents.find(
     event =>
@@ -587,13 +638,14 @@ async function firstRun(chromeExecutable, fixture) {
     attributed
       ? `${attributed.context.pageDomain} -> ${attributed.context.resourceDomain}`
       : 'No attributed event found',
-    attributed || null
+    attributed
   );
   record(
     'stored-event-origin-only',
     Boolean(
       attributed &&
-        attributed.context.pageUrl === `http://page.test:${new URL(fixture.pageUrl).port}/` &&
+        attributed.context.pageUrl ===
+          `http://page.test:${new URL(fixture.pageUrl).port}/` &&
         attributed.context.resourceUrl?.startsWith('http://google-analytics.com:') &&
         !attributed.context.resourceUrl.includes('/collect.js')
     ),
@@ -604,49 +656,35 @@ async function firstRun(chromeExecutable, fixture) {
     }
   );
 
+  phase('loading packaged popup and accessibility tree');
   const popupStartedAt = Date.now();
-  const popupUrl = `chrome-extension://${extensionId}/popup.html`;
-  const { targetId: popupTargetId } = await instance.cdp.send(
-    'Target.createTarget',
-    { url: popupUrl }
-  );
-  const popupSession = await attach(
-    instance.cdp,
-    popupTargetId,
-    'popup:first-run'
-  );
+  const { targetId: popupTargetId } = await instance.cdp.send('Target.createTarget', {
+    url: `chrome-extension://${extensionId}/popup.html`,
+  });
+  const popupSession = await attach(instance.cdp, popupTargetId, 'popup');
   await instance.cdp.send('Page.enable', {}, popupSession);
   await waitForDocumentReady(instance.cdp, popupSession);
-  await waitFor(
-    async () => {
-      const text = await evaluate(instance.cdp, popupSession, 'document.body.innerText');
-      return text.includes('Phantom Trail') ? text : null;
-    },
-    { timeout: 20_000 }
-  );
+  await waitFor(async () => {
+    const text = await evaluate(instance.cdp, popupSession, 'document.body.innerText');
+    return text.includes('Phantom Trail') ? text : null;
+  }, { timeout: 20_000 });
 
-  const navigationTiming = await evaluate(
+  measurements.popupTargetReadyMilliseconds = Date.now() - popupStartedAt;
+  measurements.popupNavigation = await evaluate(
     instance.cdp,
     popupSession,
     `(() => {
       const navigation = performance.getEntriesByType('navigation')[0];
-      const paints = performance.getEntriesByType('paint').map(item => ({name:item.name,startTime:item.startTime}));
       return navigation ? {
         domContentLoaded: navigation.domContentLoadedEventEnd,
         load: navigation.loadEventEnd,
         duration: navigation.duration,
-        responseEnd: navigation.responseEnd,
-        paints
+        responseEnd: navigation.responseEnd
       } : null;
     })()`
   );
-  measurements.popupTargetReadyMilliseconds = Date.now() - popupStartedAt;
-  measurements.popupNavigation = navigationTiming;
 
-  const accessibility = await auditPopupAccessibility(
-    instance.cdp,
-    popupSession
-  );
+  const accessibility = await auditPopupAccessibility(instance.cdp, popupSession);
   const expectedNav = ['Feed', 'Map', 'Stats', 'Explore', 'Reports', 'Peers'];
   record(
     'popup-navigation-contract',
@@ -658,7 +696,7 @@ async function firstRun(chromeExecutable, fixture) {
     'retired-navigation-absent',
     !accessibility.domAudit.navLabels.includes('AI') &&
       !accessibility.domAudit.navLabels.includes('Coach'),
-    'AI and Coach navigation labels are absent.',
+    'AI and Coach labels are absent.',
     accessibility.domAudit.navLabels
   );
   record(
@@ -672,15 +710,12 @@ async function firstRun(chromeExecutable, fixture) {
     accessibility.domAudit.unnamed.length === 0 &&
       accessibility.unnamedAxNodes.length === 0,
     `DOM unnamed=${accessibility.domAudit.unnamed.length}; AX unnamed=${accessibility.unnamedAxNodes.length}`,
-    {
-      dom: accessibility.domAudit.unnamed,
-      ax: accessibility.unnamedAxNodes,
-    }
+    { dom: accessibility.domAudit.unnamed, ax: accessibility.unnamedAxNodes }
   );
   record(
     'labeled-form-controls',
     accessibility.domAudit.unlabeledControls.length === 0,
-    `Unlabeled controls=${accessibility.domAudit.unlabeledControls.length}`,
+    `Unlabeled=${accessibility.domAudit.unlabeledControls.length}`,
     accessibility.domAudit.unlabeledControls
   );
   record(
@@ -705,6 +740,7 @@ async function firstRun(chromeExecutable, fixture) {
     accessibility.domAudit.focusFailures
   );
 
+  phase('seeding restart probes');
   await evaluate(
     instance.cdp,
     workerSession,
@@ -713,33 +749,17 @@ async function firstRun(chromeExecutable, fixture) {
       chrome.storage.session.set({p5_session_restart_probe:'discard'})
     ])`
   );
-
-  return {
-    instance,
-    extensionId,
-    manifest,
-    accessibility,
-    storedEvents,
-    launchedAt,
-  };
+  return { instance, extensionId };
 }
 
 async function secondRun(chromeExecutable, expectedExtensionId) {
-  const instance = await launchChrome(chromeExecutable);
-  let workerTarget = await waitForExtensionTarget(instance.cdp).catch(
-    () => null
-  );
-
+  const instance = await launchChrome(chromeExecutable, 'restart');
+  phase('attaching to restarted extension worker');
+  let workerTarget = await waitForExtensionTarget(instance.cdp).catch(() => null);
   if (!workerTarget) {
-    const targets = await getTargets(instance.cdp);
-    const existing = targets.find(target =>
-      target.url.startsWith(`chrome-extension://${expectedExtensionId}/`)
-    );
-    if (!existing) {
-      await instance.cdp.send('Target.createTarget', {
-        url: `chrome-extension://${expectedExtensionId}/popup.html`,
-      });
-    }
+    await instance.cdp.send('Target.createTarget', {
+      url: `chrome-extension://${expectedExtensionId}/popup.html`,
+    });
     workerTarget = await waitForExtensionTarget(instance.cdp);
   }
 
@@ -753,7 +773,7 @@ async function secondRun(chromeExecutable, expectedExtensionId) {
   const workerSession = await attach(
     instance.cdp,
     workerTarget.targetId,
-    'background-worker:second-run'
+    'background-worker:restart'
   );
   const probe = await evaluate(
     instance.cdp,
@@ -778,7 +798,6 @@ async function secondRun(chromeExecutable, expectedExtensionId) {
     `session=${String(probe.session)}`,
     probe
   );
-
   await evaluate(
     instance.cdp,
     workerSession,
@@ -787,45 +806,57 @@ async function secondRun(chromeExecutable, expectedExtensionId) {
       chrome.storage.session.remove('p5_session_restart_probe')
     ])`
   );
-
   return instance;
+}
+
+async function chromeVersion(chromeExecutable) {
+  return new Promise(resolvePromise => {
+    const child = spawn(chromeExecutable, ['--version']);
+    let output = '';
+    child.stdout.on('data', chunk => {
+      output += String(chunk);
+    });
+    child.on('exit', () => resolvePromise(output.trim()));
+  });
 }
 
 async function main() {
   if (!existsSync(extensionPath)) {
-    throw new Error('Build output is missing. Run pnpm build before browser evidence.');
+    throw new Error('Build output is missing. Run pnpm build first.');
   }
 
   const chromeExecutable = findChrome();
+  const budgets = JSON.parse(readFileSync(budgetPath, 'utf8'));
   const fixture = await createFixtureServers();
-  const budget = JSON.parse(readFileSync(budgetPath, 'utf8'));
   let first;
   let second;
 
   try {
     first = await firstRun(chromeExecutable, fixture);
-    await closeChrome(first.instance);
+    await closeChrome(first.instance, 'first run');
     first.instance = null;
+    await sleep(500);
 
     second = await secondRun(chromeExecutable, first.extensionId);
-    await closeChrome(second);
+    await closeChrome(second, 'restart');
     second = null;
 
-    const browserBudgets = budget.browserMilliseconds;
-    const popupDomContentLoaded = measurements.popupNavigation?.domContentLoaded;
-    const popupLoad = measurements.popupNavigation?.load;
+    phase('evaluating browser budgets and runtime errors');
+    const browserBudgets = budgets.browserMilliseconds;
+    const domLoaded = measurements.popupNavigation?.domContentLoaded;
+    const load = measurements.popupNavigation?.load;
     record(
       'popup-dom-content-loaded-budget',
-      typeof popupDomContentLoaded === 'number' &&
-        popupDomContentLoaded <= browserBudgets.popupDomContentLoadedMaximum,
-      `${String(popupDomContentLoaded)}ms <= ${browserBudgets.popupDomContentLoadedMaximum}ms`,
-      popupDomContentLoaded
+      typeof domLoaded === 'number' &&
+        domLoaded <= browserBudgets.popupDomContentLoadedMaximum,
+      `${String(domLoaded)}ms <= ${browserBudgets.popupDomContentLoadedMaximum}ms`,
+      domLoaded
     );
     record(
       'popup-load-budget',
-      typeof popupLoad === 'number' && popupLoad <= browserBudgets.popupLoadMaximum,
-      `${String(popupLoad)}ms <= ${browserBudgets.popupLoadMaximum}ms`,
-      popupLoad
+      typeof load === 'number' && load <= browserBudgets.popupLoadMaximum,
+      `${String(load)}ms <= ${browserBudgets.popupLoadMaximum}ms`,
+      load
     );
     record(
       'first-detector-event-budget',
@@ -834,7 +865,6 @@ async function main() {
       `${measurements.firstDetectorEventMilliseconds}ms <= ${browserBudgets.firstDetectorEventMaximum}ms`,
       measurements.firstDetectorEventMilliseconds
     );
-
     record(
       'runtime-exceptions-absent',
       runtimeErrors.length === 0,
@@ -848,8 +878,10 @@ async function main() {
       consoleErrors
     );
   } finally {
-    if (first?.instance) await closeChrome(first.instance).catch(() => undefined);
-    if (second) await closeChrome(second).catch(() => undefined);
+    if (first?.instance) {
+      await closeChrome(first.instance, 'first-run cleanup').catch(() => undefined);
+    }
+    if (second) await closeChrome(second, 'restart cleanup').catch(() => undefined);
     await fixture.close();
   }
 
@@ -861,24 +893,17 @@ async function main() {
     source: {
       extensionPath,
       extensionDigest: createHash('sha256')
-        .update(
-          readFileSync(join(extensionPath, 'manifest.json'), 'utf8')
-        )
+        .update(readFileSync(join(extensionPath, 'manifest.json'), 'utf8'))
         .digest('hex'),
       chromeExecutable,
-      chromeVersion: await new Promise(resolvePromise => {
-        const child = spawn(chromeExecutable, ['--version']);
-        let output = '';
-        child.stdout.on('data', chunk => (output += String(chunk)));
-        child.on('exit', () => resolvePromise(output.trim()));
-      }),
+      chromeVersion: await chromeVersion(chromeExecutable),
       popupContext: 'extension-page-equivalent',
       profileReusedAcrossRestart: true,
     },
     limitations: [
       'The automated popup target uses the packaged popup URL rather than a physical toolbar click.',
-      'This deterministic local fixture is not a real-world detector-accuracy or performance benchmark.',
-      'The accessibility contract is not WCAG certification or a substitute for screen-reader and human keyboard review.',
+      'This deterministic fixture is not a real-world detector-accuracy or performance benchmark.',
+      'The accessibility contract is not WCAG certification or a substitute for human assistive-technology review.',
       'OS notification delivery, live OpenRouter behavior, and real P2P exchange are outside this harness.',
     ],
     measurements,
@@ -888,6 +913,7 @@ async function main() {
     consoleErrors,
   };
 
+  phase('writing Chromium evidence report');
   mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   console.log(
@@ -895,24 +921,16 @@ async function main() {
   );
   console.log(`Report: ${outputPath}`);
 
+  clearTimeout(watchdog);
   rmSync(profilePath, { recursive: true, force: true });
   if (failures.length > 0) process.exitCode = 1;
 }
 
 main().catch(error => {
-  mkdirSync(dirname(outputPath), { recursive: true });
-  const report = {
-    schemaVersion: 1,
-    generatedAt: new Date().toISOString(),
-    status: 'failed',
-    fatalError: error instanceof Error ? error.stack || error.message : String(error),
-    assertions,
-    runtimeErrors,
-    consoleErrors,
-    measurements,
-  };
-  writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
-  console.error(error);
+  clearTimeout(watchdog);
+  writeFatalReport(error);
+  cleanupSynchronously();
   rmSync(profilePath, { recursive: true, force: true });
+  console.error(error);
   process.exitCode = 1;
 });
