@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { useStorage } from '../../lib/hooks/useStorage';
 import {
   getPageDomain,
@@ -11,6 +11,7 @@ import type {
   NetworkEdge,
   ProcessedTrackingData,
 } from './NetworkGraph.types';
+import { selectRecentTrackingEvents } from './network-event-window.mts';
 
 export function useTrackingEvents() {
   const [events, , eventsLoading] = useStorage<TrackingEvent[]>(
@@ -18,32 +19,13 @@ export function useTrackingEvents() {
     []
   );
 
-  const lastUpdateRef = useRef<number>(0);
-  const stableEventsRef = useRef<TrackingEvent[]>([]);
-  const lastRevisionRef = useRef('');
-
-  const stableEvents = useMemo(() => {
-    const lastEvent = events[events.length - 1];
-    const revision = `${events.length}:${lastEvent?.id || ''}:${
-      lastEvent?.lastSeenAt || lastEvent?.timestamp || 0
-    }:${lastEvent?.occurrences || 1}`;
-    const now = Date.now();
-
-    if (
-      revision !== lastRevisionRef.current &&
-      (now - lastUpdateRef.current > 1000 ||
-        Math.abs(events.length - stableEventsRef.current.length) > 5)
-    ) {
-      lastUpdateRef.current = now;
-      lastRevisionRef.current = revision;
-      stableEventsRef.current = events.slice(-50);
-    }
-
-    return stableEventsRef.current;
-  }, [events]);
+  const recentEvents = useMemo(
+    () => selectRecentTrackingEvents(events, 50),
+    [events]
+  );
 
   return {
-    events: stableEvents,
+    events: recentEvents,
     loading: eventsLoading,
   };
 }
