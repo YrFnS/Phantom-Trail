@@ -197,9 +197,6 @@ export function sanitizeTrackingEventForStorage(
       : undefined,
   };
 
-  // Redaction metadata is cumulative. Once a row records that material was
-  // removed, a later idempotent pass over the already-minimized value must not
-  // erase that fact or rewrite the row indefinitely.
   const metadataWithoutTimestamp: Omit<
     TrackingEventDataProtection,
     'sanitizedAt'
@@ -282,7 +279,9 @@ export function eventContainsForbiddenUrlMaterial(event: TrackingEvent): boolean
     /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/iu.test(
       serialized
     ) ||
-    /\b(token|secret|session|auth|key)=([^\s&#,;]+)/iu.test(serialized) ||
+    /\b(token|secret|session|auth|key)=(?!:redacted\b)([^\s&#,;]+)/iu.test(
+      serialized
+    ) ||
     Boolean(
       event.inPageTracking?.details &&
         event.inPageTracking.details !== MINIMIZED_DETAILS_NOTICE
