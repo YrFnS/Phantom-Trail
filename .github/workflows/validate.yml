@@ -123,8 +123,14 @@ jobs:
 
       - name: Chromium lifecycle and accessibility contract
         env:
-          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
-        run: xvfb-run -a pnpm evidence:browser
+          CHROME_FOR_TESTING: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          cat > "$RUNNER_TEMP/chrome-p5" <<'SH'
+          #!/usr/bin/env bash
+          exec "$CHROME_FOR_TESTING" --disable-component-extensions-with-background-pages "$@"
+          SH
+          chmod +x "$RUNNER_TEMP/chrome-p5"
+          CHROME_BIN="$RUNNER_TEMP/chrome-p5" xvfb-run -a pnpm evidence:browser
 
       - name: Generate commit-bound release evidence
         env:
