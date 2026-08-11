@@ -10,13 +10,13 @@ const EXPORT_FORMATS: ExportFormatOption[] = [
   {
     format: 'csv',
     label: 'CSV',
-    description: 'Recorded event rows for spreadsheet software',
+    description: 'Locally minimized event rows for spreadsheet software',
     icon: '▦',
   },
   {
     format: 'json',
     label: 'JSON',
-    description: 'Structured export of the recorded event objects',
+    description: 'Structured minimized evidence and policy metadata',
     icon: '{}',
   },
   {
@@ -71,7 +71,7 @@ export function ExportButton({
         EXPORT_FORMATS.find(option => option.format === format)?.label || format;
       setExportStatus({
         type: 'success',
-        message: `Exported ${events.length} recorded events as ${formatLabel} (${filename})`,
+        message: `Exported ${events.length} minimized event rows as ${formatLabel} (${filename})`,
       });
       setIsOpen(false);
     } catch (error) {
@@ -105,7 +105,7 @@ export function ExportButton({
         `}
         title={
           hasData
-            ? 'Export recorded detector data; exports can contain full stored URLs'
+            ? 'Export the active minimized event representation; downloaded files must be deleted separately'
             : 'No recorded data to export'
         }
       >
@@ -134,12 +134,14 @@ export function ExportButton({
             <div className="py-1">
               <div className="px-4 py-2 border-b border-[var(--border-primary)]">
                 <div className="text-xs text-[var(--text-secondary)]">
-                  Export {events.length} recorded event
+                  Export {events.length} minimized event row
                   {events.length === 1 ? '' : 's'}
                 </div>
                 <div className="text-[10px] text-[var(--warning)] mt-1 leading-relaxed">
-                  CSV and JSON include stored event URLs and descriptions. Review
-                  the file before sharing it.
+                  The active data policy is reapplied before export. Query
+                  strings, fragments, URL credentials, and raw detector details
+                  are removed. A downloaded file is outside Clear All Data and
+                  must be deleted separately.
                 </div>
               </div>
 
@@ -174,7 +176,7 @@ export function ExportButton({
         <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-elevated)] bg-opacity-75 rounded-md z-50">
           <div className="flex items-center space-x-2 text-sm text-[var(--text-secondary)]">
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-[var(--accent-primary)] border-t-transparent" />
-            <span>Preparing local export...</span>
+            <span>Preparing minimized local export...</span>
           </div>
         </div>
       )}
