@@ -5,7 +5,6 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
-  statSync,
   writeFileSync,
 } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
@@ -192,7 +191,7 @@ function scanSource() {
     );
   } else {
     const text = readFileSync(openRouterClient, 'utf8');
-    if (!text.includes("https://openrouter.ai/api/v1")) {
+    if (!text.includes('https://openrouter.ai/api/v1')) {
       addFailure(
         failures,
         'openrouter-destination-drift',
