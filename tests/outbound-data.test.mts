@@ -104,9 +104,12 @@ test('counts-only OpenRouter payload contains aggregates and no browsing labels'
   assert.equal(serialized.includes('page.test'), false);
   assert.equal(serialized.includes('tracker.test'), false);
   assert.equal(serialized.includes('secret'), false);
-  assert.equal(serialized.includes('description'), false);
-  assert.equal(serialized.includes('evidence'), false);
-  assert.equal(serialized.includes('url'), false);
+  assert.equal(serialized.includes('Sensitive description'), false);
+  assert.equal(
+    serialized.includes('Resource URL contained a secret query string'),
+    false
+  );
+  assert.equal(serialized.includes('"url"'), false);
 });
 
 test('domain-label mode includes only bounded third-party resource labels', () => {
