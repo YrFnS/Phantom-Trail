@@ -6,6 +6,10 @@ import type {
 
 export const P2P_CONSENT_VERSION = 1;
 export const P2P_PAYLOAD_VERSION = 1 as const;
+/** Firebase signalling room IDs used by Trystero must not exceed 20 bytes. */
+export const P2P_ROOM_ID = 'aggregate-v3';
+/** Trystero action names must not exceed 12 UTF-8 bytes. */
+export const P2P_STATS_ACTION = 'stats_v3';
 
 export const DEFAULT_P2P_SETTINGS: P2PSettings = {
   joinPrivacyNetwork: false,
