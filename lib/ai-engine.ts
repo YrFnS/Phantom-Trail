@@ -10,12 +10,14 @@ import { ErrorRecovery, type ErrorContext } from './error-recovery';
 import { CircuitBreaker } from './circuit-breaker';
 import { OfflineMode } from './offline-mode';
 import { SettingsStorage } from './storage/settings-storage';
+import { OpenRouterCredentialStorage } from './storage/openrouter-credential-storage';
 import { TIMEOUTS, LIMITS } from './constants';
 
 export interface AIEngineDeps {
   circuitBreaker?: CircuitBreaker;
   offlineMode?: OfflineMode;
   settingsStorage?: typeof SettingsStorage;
+  credentialStorage?: typeof OpenRouterCredentialStorage;
   rateLimiter?: typeof RateLimiter;
   aiClient?: typeof AIClient;
   aiCache?: typeof AICache;
@@ -23,16 +25,12 @@ export interface AIEngineDeps {
   errorRecovery?: typeof ErrorRecovery;
 }
 
-/**
- * Coordinates optional OpenRouter event summaries.
- *
- * External requests are permitted only when the user has explicitly enabled AI
- * analysis and stored an API key. A stored key alone is not consent.
- */
+/** Coordinates the explicit optional OpenRouter aggregate-summary action. */
 export class AIEngine {
   private circuitBreaker: CircuitBreaker;
   private offlineMode: OfflineMode;
   private settingsStorage: typeof SettingsStorage;
+  private credentialStorage: typeof OpenRouterCredentialStorage;
   private rateLimiter: typeof RateLimiter;
   private aiClient: typeof AIClient;
   private aiCache: typeof AICache;
@@ -49,6 +47,8 @@ export class AIEngine {
       });
     this.offlineMode = deps.offlineMode ?? OfflineMode.getInstance();
     this.settingsStorage = deps.settingsStorage ?? SettingsStorage;
+    this.credentialStorage =
+      deps.credentialStorage ?? OpenRouterCredentialStorage;
     this.rateLimiter = deps.rateLimiter ?? RateLimiter;
     this.aiClient = deps.aiClient ?? AIClient;
     this.aiCache = deps.aiCache ?? AICache;
@@ -57,10 +57,7 @@ export class AIEngine {
   }
 
   async analyzeEvents(events: TrackingEvent[]): Promise<AIAnalysis | null> {
-    if (!(await this.isAvailable())) {
-      return null;
-    }
-
+    if (!(await this.isAvailable())) return null;
     return this.analyzeEventsAttempt(events, 0);
   }
 
@@ -69,7 +66,7 @@ export class AIEngine {
     retryCount: number
   ): Promise<AIAnalysis | null> {
     const context: ErrorContext = {
-      operation: 'analyzeEvents',
+      operation: 'aggregateEvidenceSummary',
       timestamp: Date.now(),
       systemState: { eventsCount: events.length },
       retryCount,
@@ -78,7 +75,6 @@ export class AIEngine {
     try {
       const rateLimitStatus = await this.rateLimiter.getStatus();
       if (!rateLimitStatus.canMakeRequest) {
-        console.warn('OpenRouter summary is locally rate limited');
         return await this.offlineMode.handleAPIFailure(events);
       }
 
@@ -86,16 +82,15 @@ export class AIEngine {
       const cached = await this.aiCache.getCached(sanitizedEvents);
       if (cached) return cached;
 
-      const analysis = await this.circuitBreaker.execute(async () => {
-        return await this.aiClient.makeRequest(sanitizedEvents);
-      });
+      const analysis = await this.circuitBreaker.execute(async () =>
+        this.aiClient.makeRequest(sanitizedEvents)
+      );
 
       await this.aiCache.store(sanitizedEvents, analysis);
       await this.offlineMode.cacheAnalysis(sanitizedEvents, analysis);
       return analysis;
     } catch (error) {
       const apiError = error as APIError;
-
       if (apiError.isRateLimit) {
         await this.rateLimiter.recordRateLimit();
         return await this.offlineMode.handleAPIFailure(events);
@@ -106,7 +101,6 @@ export class AIEngine {
         context
       );
       const nextRetryCount = retryCount + 1;
-
       if (
         recoveryResult.success &&
         nextRetryCount < LIMITS.MAX_RETRIES &&
@@ -115,7 +109,6 @@ export class AIEngine {
         return this.analyzeEventsAttempt(events, nextRetryCount);
       }
 
-      console.warn('OpenRouter summary failed; using local fallback:', error);
       return await this.offlineMode.handleAPIFailure(events);
     }
   }
@@ -134,52 +127,42 @@ export class AIEngine {
     return this.analyzeEvents(events);
   }
 
-  /**
-   * The 0.1.0 client summarizes recorded event data. It does not send the
-   * wording of the user's question to the model or provide general Q&A.
-   */
-  async chatQuery(query: string, events?: TrackingEvent[]): Promise<string> {
-    const requestedTopic = query.trim();
-
+  async generateAggregateSummary(events: TrackingEvent[]): Promise<string> {
     if (!(await this.isAvailable())) {
-      return 'OpenRouter event summaries are disabled or no API key is configured. The prototype can still answer supported local signal-analysis patterns.';
+      return 'Optional OpenRouter aggregate summaries are disabled or no credential is configured. Enable the feature explicitly in Settings to use this separate action.';
+    }
+    if (events.length === 0) {
+      return 'No retained detector events are available for an aggregate summary. No request was sent.';
     }
 
-    try {
-      const rateLimitStatus = await this.rateLimiter.getStatus();
-      if (!rateLimitStatus.canMakeRequest) {
-        const waitTime =
-          rateLimitStatus.retryAfter || rateLimitStatus.resetTime - Date.now();
-        const waitSeconds = Math.max(1, Math.ceil(waitTime / 1000));
-        return `The optional OpenRouter summary is rate limited. Try again after approximately ${waitSeconds} seconds.`;
-      }
-
-      const analysis = await this.analyzeEvents(events || []);
-      if (!analysis) {
-        return 'No optional event summary is available.';
-      }
-
-      return `Requested topic: ${requestedTopic || 'recorded signals'}\n\nThis 0.1.0 prototype generated an event summary rather than a direct answer to the wording of the question:\n\n${analysis.narrative}\n\nGenerated suggestions: ${analysis.recommendations.join(', ')}`;
-    } catch (error) {
-      const apiError = error as APIError;
-
-      if (apiError.isRateLimit) {
-        const waitTime = apiError.retryAfter || TIMEOUTS.RATE_LIMIT_WINDOW;
-        const waitSeconds = Math.max(1, Math.ceil(waitTime / 1000));
-        return `The optional OpenRouter summary is rate limited. Try again after approximately ${waitSeconds} seconds.`;
-      }
-
-      console.error('Optional event summary failed:', error);
-      return 'The optional event summary failed. No conclusion was produced.';
+    const analysis = await this.analyzeEvents(events);
+    if (!analysis) {
+      return 'No OpenRouter aggregate summary is available. No conclusion was produced.';
     }
+
+    const suggestions = analysis.recommendations.length
+      ? `\n\nGenerated review notes:\n- ${analysis.recommendations.join('\n- ')}`
+      : '';
+    return `Optional OpenRouter aggregate summary\n\n${analysis.narrative}${suggestions}\n\nModel confidence field: ${analysis.confidence}. This is generated text, not a verified privacy conclusion.`;
+  }
+
+  /**
+   * Compatibility method retained for old callers. Arbitrary text never causes
+   * a network request in P4.
+   */
+  async chatQuery(_query: string, _events?: TrackingEvent[]): Promise<string> {
+    return 'Free-form AI Q&A is not a Phantom Trail feature. Use a supported local Evidence Explorer query, or select the separate optional aggregate-summary action.';
   }
 
   async isAvailable(): Promise<boolean> {
     try {
-      const settings = await this.settingsStorage.getSettings();
-      return settings.enableAI === true && Boolean(settings.openRouterApiKey);
+      const [settings, credentialState] = await Promise.all([
+        this.settingsStorage.getSettings(),
+        this.credentialStorage.getState(),
+      ]);
+      return settings.enableAI === true && credentialState.configured;
     } catch (error) {
-      console.error('Failed to read AI opt-in settings:', error);
+      console.error('Failed to read aggregate-summary availability:', error);
       return false;
     }
   }
@@ -212,6 +195,8 @@ export const AIEngineStatic = {
     aiEngine.generateEventAnalysis(event),
   generateNarrative: (events: TrackingEvent[]) =>
     aiEngine.generateNarrative(events),
+  generateAggregateSummary: (events: TrackingEvent[]) =>
+    aiEngine.generateAggregateSummary(events),
   chatQuery: (query: string, events?: TrackingEvent[]) =>
     aiEngine.chatQuery(query, events),
   isAvailable: () => aiEngine.isAvailable(),
