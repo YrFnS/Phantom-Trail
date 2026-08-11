@@ -35,7 +35,7 @@ const sessionValues = new Map<string, unknown>();
 };
 
 const { OpenRouterCredentialStorage } = await import(
-  '../lib/storage/openrouter-credential-storage.ts'
+  '../lib/storage/openrouter-credential-storage.mts'
 );
 
 beforeEach(async () => {
