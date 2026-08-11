@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { NotificationManager } from '../../lib/notification-manager';
+import { DEFAULT_NOTIFICATION_SETTINGS } from '../../lib/notification-policy.mts';
 import type { NotificationSettings as NotificationSettingsType } from '../../lib/types';
+import { Button } from '../ui';
 
 interface NotificationSettingsProps {
   className?: string;
@@ -10,196 +12,325 @@ export function NotificationSettings({
   className = '',
 }: NotificationSettingsProps) {
   const [settings, setSettings] = useState<NotificationSettingsType>({
-    enabled: true,
-    criticalOnly: false,
-    dailySummary: true,
-    weeklyReport: false,
-    quietHours: { start: '22:00', end: '08:00' },
+    ...DEFAULT_NOTIFICATION_SETTINGS,
   });
+  const [permissionGranted, setPermissionGranted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
+  const loadCapability = useCallback(async () => {
     try {
-      setLoading(true);
-      // Get current settings from NotificationManager
-      const enabled = await NotificationManager.isEnabled();
-      setSettings(prev => ({ ...prev, enabled }));
-    } catch (error) {
-      console.error('Failed to load notification settings:', error);
+      const capability = await NotificationManager.getCapability();
+      setSettings(capability.settings);
+      setPermissionGranted(capability.permissionGranted);
+    } catch (loadError) {
+      console.error('Failed to load evidence alert settings:', loadError);
+      setError('Evidence alert settings could not be loaded.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleSettingChange = async <K extends keyof NotificationSettingsType>(
-    key: K,
-    value: NotificationSettingsType[K]
-  ) => {
+  useEffect(() => {
+    void loadCapability();
+  }, [loadCapability]);
+
+  const persist = async (next: NotificationSettingsType) => {
+    setSaving(true);
+    setError(null);
+    setStatus(null);
     try {
-      setSaving(true);
-      const newSettings = { ...settings, [key]: value };
-      setSettings(newSettings);
-      await NotificationManager.updateSettings(newSettings);
-    } catch (error) {
-      console.error('Failed to update notification settings:', error);
-      // Revert on error
-      setSettings(settings);
+      const saved = await NotificationManager.updateSettings(next);
+      setSettings(saved);
+      setStatus('Evidence alert settings saved.');
+    } catch (saveError) {
+      console.error('Failed to save evidence alert settings:', saveError);
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Evidence alert settings could not be saved.'
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleQuietHoursChange = async (
-    type: 'start' | 'end',
-    value: string
-  ) => {
-    const newQuietHours = { ...settings.quietHours, [type]: value };
-    await handleSettingChange('quietHours', newQuietHours);
+  const enableAlerts = async () => {
+    setSaving(true);
+    setError(null);
+    setStatus(null);
+    try {
+      let granted = permissionGranted;
+      if (!granted) granted = await NotificationManager.requestPermission();
+      setPermissionGranted(granted);
+      if (!granted) {
+        setError('Browser notification permission was not granted.');
+        return;
+      }
+      const saved = await NotificationManager.updateSettings({
+        ...settings,
+        enabled: true,
+      });
+      setSettings(saved);
+      setStatus('Evidence alerts enabled.');
+    } catch (enableError) {
+      console.error('Failed to enable evidence alerts:', enableError);
+      setError('Evidence alerts could not be enabled.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const disableAlerts = async () => {
+    await persist({ ...settings, enabled: false, dailySummary: false });
+  };
+
+  const revokePermission = async () => {
+    setSaving(true);
+    setError(null);
+    setStatus(null);
+    try {
+      await NotificationManager.revokePermission();
+      setPermissionGranted(false);
+      setSettings({ ...DEFAULT_NOTIFICATION_SETTINGS });
+      setStatus('Notification permission revoked and alerts disabled.');
+    } catch (revokeError) {
+      console.error('Failed to revoke notification permission:', revokeError);
+      setError('Notification permission could not be revoked.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const testNotification = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const shown = await NotificationManager.showTestNotification();
+      setStatus(
+        shown
+          ? 'A test evidence notification was created.'
+          : 'The test notification could not be created.'
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className={`space-y-4 ${className}`}>
-        <div className="animate-pulse">
-          <div className="h-4 bg-[var(--bg-tertiary)] rounded w-1/3 mb-2"></div>
-          <div className="h-8 bg-[var(--bg-tertiary)] rounded"></div>
-        </div>
+      <div className={`animate-pulse space-y-3 ${className}`}>
+        <div className="h-5 rounded bg-[var(--bg-tertiary)]" />
+        <div className="h-20 rounded bg-[var(--bg-tertiary)]" />
       </div>
     );
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      <div>
-        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-          Notification Settings
+    <div className={`space-y-5 ${className}`}>
+      <div className="rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/10 p-3">
+        <h3 className="text-sm font-medium text-[var(--text-primary)]">
+          Optional evidence alerts
         </h3>
+        <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
+          Off by default. Alerts can describe newly stored, score-qualified
+          high/critical detector evidence and an optional completed daily local
+          snapshot. They are not security incidents or proof of collection.
+        </p>
+      </div>
 
-        {/* Enable/Disable Notifications */}
-        <div className="flex items-center justify-between py-3">
+      <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <label className="text-sm font-medium text-[var(--text-primary)]">
-              Enable Notifications
-            </label>
-            <p className="text-xs text-[var(--text-secondary)]">
-              Show browser notifications for privacy alerts
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              Browser permission
+            </p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">
+              {permissionGranted
+                ? 'Granted for Phantom Trail.'
+                : 'Not granted. No browser notifications can be created.'}
             </p>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.enabled}
-              onChange={e => handleSettingChange('enabled', e.target.checked)}
-              disabled={saving}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-[var(--bg-tertiary)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--accent-primary)]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-primary)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
-          </label>
+          <span
+            className={`text-[10px] uppercase tracking-wide ${
+              permissionGranted
+                ? 'text-[var(--success)]'
+                : 'text-[var(--text-tertiary)]'
+            }`}
+          >
+            {permissionGranted ? 'Granted' : 'Off'}
+          </span>
         </div>
-
-        {settings.enabled && (
-          <>
-            {/* Critical Only */}
-            <div className="flex items-center justify-between py-3 border-t border-[var(--border-primary)]">
-              <div>
-                <label className="text-sm font-medium text-[var(--text-primary)]">
-                  Critical Alerts Only
-                </label>
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Only show notifications for critical privacy threats
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.criticalOnly}
-                  onChange={e =>
-                    handleSettingChange('criticalOnly', e.target.checked)
-                  }
-                  disabled={saving}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-[var(--bg-tertiary)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--accent-primary)]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-primary)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
-              </label>
-            </div>
-
-            {/* Daily Summary */}
-            <div className="flex items-center justify-between py-3 border-t border-[var(--border-primary)]">
-              <div>
-                <label className="text-sm font-medium text-[var(--text-primary)]">
-                  Daily Summary
-                </label>
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Daily privacy score and tracking summary
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.dailySummary}
-                  onChange={e =>
-                    handleSettingChange('dailySummary', e.target.checked)
-                  }
-                  disabled={saving}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-[var(--bg-tertiary)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--accent-primary)]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border-primary)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
-              </label>
-            </div>
-
-            {/* Quiet Hours */}
-            <div className="py-3 border-t border-[var(--border-primary)]">
-              <label className="text-sm font-medium text-[var(--text-primary)] block mb-2">
-                Quiet Hours
-              </label>
-              <p className="text-xs text-[var(--text-secondary)] mb-3">
-                No notifications during these hours
-              </p>
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <label className="text-xs text-[var(--text-secondary)]">
-                    From:
-                  </label>
-                  <input
-                    type="time"
-                    value={settings.quietHours.start}
-                    onChange={e =>
-                      handleQuietHoursChange('start', e.target.value)
-                    }
-                    disabled={saving}
-                    className="px-2 py-1 text-xs border border-[var(--border-primary)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <label className="text-xs text-[var(--text-secondary)]">
-                    To:
-                  </label>
-                  <input
-                    type="time"
-                    value={settings.quietHours.end}
-                    onChange={e =>
-                      handleQuietHoursChange('end', e.target.value)
-                    }
-                    disabled={saving}
-                    className="px-2 py-1 text-xs border border-[var(--border-primary)] bg-[var(--bg-primary)] text-[var(--text-primary)] rounded focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                  />
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {saving && (
-          <div className="text-xs text-[var(--accent-primary)] mt-2">
-            Saving settings...
-          </div>
-        )}
+        <div className="mt-3 flex gap-2">
+          {!permissionGranted ? (
+            <Button
+              size="sm"
+              disabled={saving}
+              onClick={() => void enableAlerts()}
+            >
+              Allow and enable
+            </Button>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={saving}
+                onClick={() => void testNotification()}
+              >
+                Send test
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={saving}
+                onClick={() => void revokePermission()}
+              >
+                Revoke permission
+              </Button>
+            </>
+          )}
+        </div>
       </div>
+
+      {permissionGranted && (
+        <div className="space-y-4">
+          <ToggleRow
+            label="Evidence alerts"
+            description="Notify only for newly appended score-qualified evidence carrying a high or critical prototype label."
+            checked={settings.enabled}
+            disabled={saving}
+            onChange={checked =>
+              checked ? void enableAlerts() : void disableAlerts()
+            }
+          />
+
+          <ToggleRow
+            label="Critical label only"
+            description="When enabled, high-label evidence remains in the popup but does not create an alert."
+            checked={settings.criticalOnly}
+            disabled={saving || !settings.enabled}
+            onChange={checked =>
+              void persist({ ...settings, criticalOnly: checked })
+            }
+          />
+
+          <ToggleRow
+            label="Daily local snapshot summary"
+            description="Create one notification after the real daily report alarm stores its snapshot. N/A is preserved."
+            checked={settings.dailySummary}
+            disabled={saving || !settings.enabled}
+            onChange={checked =>
+              void persist({ ...settings, dailySummary: checked })
+            }
+          />
+
+          <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              Quiet hours
+            </p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">
+              Alerts are suppressed during this local-time interval.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <TimeField
+                label="Start"
+                value={settings.quietHours.start}
+                disabled={saving || !settings.enabled}
+                onChange={value =>
+                  void persist({
+                    ...settings,
+                    quietHours: { ...settings.quietHours, start: value },
+                  })
+                }
+              />
+              <TimeField
+                label="End"
+                value={settings.quietHours.end}
+                disabled={saving || !settings.enabled}
+                onChange={value =>
+                  void persist({
+                    ...settings,
+                    quietHours: { ...settings.quietHours, end: value },
+                  })
+                }
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {status && (
+        <div className="rounded border border-[var(--success)]/30 bg-[var(--success)]/10 p-3 text-xs text-[var(--success)]">
+          {status}
+        </div>
+      )}
+      {error && (
+        <div className="rounded border border-[var(--error)]/30 bg-[var(--error)]/10 p-3 text-xs text-[var(--error)]">
+          {error}
+        </div>
+      )}
     </div>
+  );
+}
+
+function ToggleRow({
+  label,
+  description,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex items-start justify-between gap-4 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3">
+      <span>
+        <span className="block text-sm font-medium text-[var(--text-primary)]">
+          {label}
+        </span>
+        <span className="mt-1 block text-xs leading-relaxed text-[var(--text-secondary)]">
+          {description}
+        </span>
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={event => onChange(event.target.checked)}
+        className="mt-1 rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
+      />
+    </label>
+  );
+}
+
+function TimeField({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-xs text-[var(--text-secondary)]">
+      {label}
+      <input
+        type="time"
+        value={value}
+        disabled={disabled}
+        onChange={event => onChange(event.target.value)}
+        className="mt-1 w-full rounded border border-[var(--border-primary)] bg-[var(--bg-primary)] px-2 py-1.5 text-xs text-[var(--text-primary)]"
+      />
+    </label>
   );
 }

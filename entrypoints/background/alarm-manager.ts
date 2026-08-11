@@ -1,38 +1,87 @@
-export class AlarmManager {
-  static readonly CLEANUP_ALARM = 'cleanup-old-events';
+import {
+  getNextDailyRun,
+  getNextWeeklyRun,
+  isRetiredFeatureAlarm,
+  REPORT_ALARMS,
+} from '../../lib/report-schedule.mts';
 
+export class AlarmManager {
   static initialize(): void {
     chrome.alarms.onAlarm.addListener(this.handleAlarm.bind(this));
     void this.setupAlarms();
-    console.log('[Phantom Trail] Retention alarm manager initialized');
+    console.log('[Phantom Trail] Retention and local-report alarms initialized');
   }
 
-  private static async setupAlarms(): Promise<void> {
-    // P3 keeps only the source-backed retention alarm. Daily summaries and
-    // snapshots remain P4 work and no longer create placeholder alarms.
-    await chrome.alarms.create(this.CLEANUP_ALARM, {
-      delayInMinutes: 1,
-      periodInMinutes: 24 * 60,
-    });
-    await Promise.allSettled([
-      chrome.alarms.clear('daily-privacy-summary'),
-      chrome.alarms.clear('daily-snapshot'),
+  static async setupAlarms(): Promise<void> {
+    await Promise.all([
+      chrome.alarms.create(REPORT_ALARMS.cleanup, {
+        delayInMinutes: 1,
+        periodInMinutes: 24 * 60,
+      }),
+      chrome.alarms.create(REPORT_ALARMS.daily, {
+        when: getNextDailyRun(),
+        periodInMinutes: 24 * 60,
+      }),
+      chrome.alarms.create(REPORT_ALARMS.weekly, {
+        when: getNextWeeklyRun(),
+        periodInMinutes: 7 * 24 * 60,
+      }),
     ]);
+
+    const alarms = await chrome.alarms.getAll();
+    await Promise.allSettled(
+      alarms
+        .filter(alarm => isRetiredFeatureAlarm(alarm.name))
+        .map(alarm => chrome.alarms.clear(alarm.name))
+    );
   }
 
-  private static async handleAlarm(alarm: chrome.alarms.Alarm): Promise<void> {
-    if (alarm.name !== this.CLEANUP_ALARM) return;
-
+  static async handleAlarm(alarm: chrome.alarms.Alarm): Promise<void> {
     try {
-      const { EventsStorage } = await import(
-        '../../lib/storage/events-storage'
-      );
-      const result = await EventsStorage.reapplyProtectionPolicy();
-      console.log(
-        `[Phantom Trail] Retention cleanup removed ${result.removedByRetention} rows; ${result.remainingRows} remain under the ${result.retentionDays}-day policy`
-      );
+      switch (alarm.name) {
+        case REPORT_ALARMS.cleanup:
+          await this.cleanupEvents();
+          return;
+        case REPORT_ALARMS.daily:
+          await this.captureDailyReport();
+          return;
+        case REPORT_ALARMS.weekly:
+          await this.captureWeeklyReport();
+          return;
+        default:
+          if (isRetiredFeatureAlarm(alarm.name)) {
+            await chrome.alarms.clear(alarm.name);
+          }
+      }
     } catch (error) {
-      console.error('[Phantom Trail] Retention cleanup failed:', error);
+      console.error(
+        `[Phantom Trail] Alarm ${alarm.name} failed:`,
+        error
+      );
     }
+  }
+
+  private static async cleanupEvents(): Promise<void> {
+    const { EventsStorage } = await import(
+      '../../lib/storage/events-storage'
+    );
+    const result = await EventsStorage.reapplyProtectionPolicy();
+    console.log(
+      `[Phantom Trail] Retention cleanup removed ${result.removedByRetention} rows; ${result.remainingRows} remain under the ${result.retentionDays}-day policy`
+    );
+  }
+
+  private static async captureDailyReport(): Promise<void> {
+    const [{ ReportService }, { NotificationManager }] = await Promise.all([
+      import('../../lib/report-service'),
+      import('../../lib/notification-manager'),
+    ]);
+    const snapshot = await ReportService.captureDaily(new Date(), 'alarm');
+    await NotificationManager.showDailySummary(snapshot);
+  }
+
+  private static async captureWeeklyReport(): Promise<void> {
+    const { ReportService } = await import('../../lib/report-service');
+    await ReportService.captureWeekly(new Date(), 'alarm');
   }
 }

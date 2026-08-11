@@ -2,82 +2,83 @@ import { useState, useCallback } from 'react';
 import { AIAnalysisPrompts } from '../../lib/ai-analysis-prompts';
 import type { ChatMessage, ChatHookReturn } from './ChatInterface.types';
 
-/**
- * Hook for managing chat state and API integration with rate limit awareness
- */
 export function useChat(): ChatHookReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
 
+  const appendAssistant = useCallback((content: string) => {
+    setMessages(previous => [
+      ...previous,
+      {
+        id: `assistant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        type: 'assistant',
+        content,
+        timestamp: Date.now(),
+      },
+    ]);
+  }, []);
+
   const sendMessage = useCallback(
     async (messageContent: string) => {
-      if (!messageContent.trim() || loading) return;
+      const normalized = messageContent.trim();
+      if (!normalized || loading) return;
 
-      const userMessage: ChatMessage = {
-        id: `user-${Date.now()}`,
-        type: 'user',
-        content: messageContent.trim(),
-        timestamp: Date.now(),
-      };
-
-      // Add user message immediately
-      setMessages(prev => [...prev, userMessage]);
+      setMessages(previous => [
+        ...previous,
+        {
+          id: `user-${Date.now()}`,
+          type: 'user',
+          content: normalized,
+          timestamp: Date.now(),
+        },
+      ]);
       setInputValue('');
       setLoading(true);
       setError(null);
 
       try {
-        const response = await AIAnalysisPrompts.processQuery(
-          messageContent.trim()
+        appendAssistant(await AIAnalysisPrompts.processQuery(normalized));
+      } catch (queryError) {
+        console.error('Evidence Explorer query failed:', queryError);
+        setError(
+          'The local Evidence Explorer could not process this query. No external request was made.'
         );
-
-        if (response) {
-          const assistantMessage: ChatMessage = {
-            id: `assistant-${Date.now()}`,
-            type: 'assistant',
-            content: response,
-            timestamp: Date.now(),
-          };
-
-          setMessages(prev => [...prev, assistantMessage]);
-        } else {
-          setError(
-            'Unable to process your request. This might be due to rate limiting or API issues. Please try asking about tracking patterns, privacy risks, or specific trackers.'
-          );
-        }
-      } catch (err) {
-        console.error('Chat message failed:', err);
-
-        // Check if it's a rate limit error
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error';
-        if (
-          errorMessage.includes('rate limit') ||
-          errorMessage.includes('Rate limit')
-        ) {
-          const rateLimitMessage: ChatMessage = {
-            id: `assistant-${Date.now()}`,
-            type: 'assistant',
-            content: errorMessage.includes('wait')
-              ? errorMessage
-              : "I'm currently rate limited by the AI service. Please wait a moment before asking again.",
-            timestamp: Date.now(),
-          };
-
-          setMessages(prev => [...prev, rateLimitMessage]);
-        } else {
-          setError(
-            'Failed to process your request. Please try again or check your API key for AI features.'
-          );
-        }
       } finally {
         setLoading(false);
       }
     },
-    [loading]
+    [appendAssistant, loading]
   );
+
+  const generateAggregateSummary = useCallback(async () => {
+    if (loading) return;
+    setLoading(true);
+    setError(null);
+    setMessages(previous => [
+      ...previous,
+      {
+        id: `user-summary-${Date.now()}`,
+        type: 'user',
+        content: 'Generate optional OpenRouter aggregate summary',
+        timestamp: Date.now(),
+      },
+    ]);
+
+    try {
+      appendAssistant(
+        await AIAnalysisPrompts.generateOptionalAggregateSummary()
+      );
+    } catch (summaryError) {
+      console.error('Optional aggregate summary failed:', summaryError);
+      setError(
+        'The optional aggregate summary failed. No privacy conclusion was produced.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [appendAssistant, loading]);
 
   const clearChat = useCallback(() => {
     setMessages([]);
@@ -92,6 +93,7 @@ export function useChat(): ChatHookReturn {
     inputValue,
     setInputValue,
     sendMessage,
+    generateAggregateSummary,
     clearChat,
   };
 }

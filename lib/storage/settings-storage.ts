@@ -1,4 +1,8 @@
 import type { ExtensionSettings } from '../types';
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  normalizeNotificationSettings,
+} from '../notification-policy.mts';
 import { BaseStorage } from './base-storage';
 import { DataProtectionStorage } from './data-protection-storage';
 import { OpenRouterCredentialStorage } from './openrouter-credential-storage';
@@ -6,9 +10,8 @@ import { OpenRouterCredentialStorage } from './openrouter-credential-storage';
 /**
  * Manages non-secret extension settings.
  *
- * P3 stores OpenRouter credentials separately. A legacy credential embedded in
- * this object is migrated to session-only credential storage and removed from
- * the persisted settings document.
+ * OpenRouter credentials live in dedicated session/local credential storage.
+ * Retired P4 fields are omitted whenever the settings document is read or saved.
  */
 export class SettingsStorage {
   private static readonly SETTINGS_KEY = 'phantom_trail_settings';
@@ -17,7 +20,7 @@ export class SettingsStorage {
     enableAI: false,
     enableNotifications: false,
     riskThreshold: 'medium',
-    enablePrivacyPredictions: false,
+    notifications: { ...DEFAULT_NOTIFICATION_SETTINGS },
   };
 
   static async getSettings(): Promise<ExtensionSettings> {
@@ -78,22 +81,22 @@ export class SettingsStorage {
   private static sanitizeSettings(
     settings: ExtensionSettings
   ): ExtensionSettings {
-    const nonSecretSettings = { ...settings };
-    delete nonSecretSettings.openRouterApiKey;
+    const candidate = settings as ExtensionSettings & {
+      enablePrivacyPredictions?: boolean;
+    };
+    const notifications = normalizeNotificationSettings(candidate.notifications);
 
     return {
-      enableAI: nonSecretSettings.enableAI === true,
-      enableNotifications: nonSecretSettings.enableNotifications === true,
+      enableAI: candidate.enableAI === true,
+      enableNotifications: notifications.enabled,
       riskThreshold:
-        nonSecretSettings.riskThreshold === 'low' ||
-        nonSecretSettings.riskThreshold === 'high' ||
-        nonSecretSettings.riskThreshold === 'critical'
-          ? nonSecretSettings.riskThreshold
+        candidate.riskThreshold === 'low' ||
+        candidate.riskThreshold === 'high' ||
+        candidate.riskThreshold === 'critical'
+          ? candidate.riskThreshold
           : 'medium',
-      aiModel: nonSecretSettings.aiModel,
-      notifications: nonSecretSettings.notifications,
-      enablePrivacyPredictions:
-        nonSecretSettings.enablePrivacyPredictions === true,
+      aiModel: candidate.aiModel,
+      notifications,
     };
   }
 

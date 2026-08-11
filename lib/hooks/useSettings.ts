@@ -9,7 +9,6 @@ const DEFAULT_UI_SETTINGS: ExtensionSettings = {
   enableAI: false,
   enableNotifications: false,
   riskThreshold: 'medium',
-  enablePrivacyPredictions: false,
 };
 
 /**

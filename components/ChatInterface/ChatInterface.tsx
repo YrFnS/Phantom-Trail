@@ -51,33 +51,27 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
     inputValue,
     setInputValue,
     sendMessage,
+    generateAggregateSummary,
     clearChat,
   } = useChat();
 
   const examplePrompts = [
-    'Summarize my recorded signals',
-    'Which recorded signals are classified as high risk?',
-    'Show the recorded-signal timeline',
-    'Summarize signals associated with the current website',
+    'Analyze signal patterns this week',
+    'Show the evidence index',
+    'Show the signal timeline',
+    'Show signals for example.com',
+    'Show the domain profile for google-analytics.com',
   ];
 
-  const handleExampleClick = (prompt: string) => {
-    if (!loading) {
-      sendMessage(prompt);
-    }
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    if (inputValue.trim() && !loading) void sendMessage(inputValue);
   };
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (inputValue.trim() && !loading) {
-      sendMessage(inputValue);
-    }
-  };
-
-  const handleKeyPress = (e: KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
+  const handleKeyPress = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSubmit(event);
     }
   };
 
@@ -85,7 +79,7 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
     <div className={`flex flex-col h-full ${className}`}>
       <div className="flex items-center justify-between px-1 mb-2">
         <h2 className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
-          Experimental Signal Q&amp;A
+          Local Evidence Explorer
         </h2>
         {messages.length > 0 && (
           <button
@@ -97,40 +91,43 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
         )}
       </div>
 
-      <div className="mb-2 p-2 rounded border-l-2 border-[var(--warning)] bg-[var(--warning)]/5 text-[10px] leading-relaxed text-[var(--text-secondary)]">
-        The current prototype recognizes a limited set of English query
-        patterns and summarizes recorded events. It is not a general-purpose
-        assistant or a verified website privacy audit.
+      <div className="mb-2 p-2 rounded border-l-2 border-[var(--success)] bg-[var(--success)]/5 text-[10px] leading-relaxed text-[var(--text-secondary)]">
+        Supported queries run locally against retained detector evidence.
+        Unsupported text never triggers OpenRouter and receives a list of valid
+        query forms instead.
       </div>
 
-      <div className="flex-1 overflow-y-auto mb-2 space-y-3 min-h-[300px]">
-        {messages.length === 0 ? (
-          <div className="text-center text-[var(--text-tertiary)] mt-8">
-            <svg
-              className="w-12 h-12 mx-auto mb-3 text-[var(--text-muted)] opacity-30"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            <p className="text-xs mb-3 font-medium">
-              Ask about recorded signals
-            </p>
+      <div className="mb-2 rounded border border-[var(--warning)]/30 bg-[var(--warning)]/10 p-2">
+        <button
+          type="button"
+          onClick={() => void generateAggregateSummary()}
+          disabled={loading}
+          className="w-full rounded border border-[var(--warning)]/40 bg-[var(--bg-secondary)] px-2 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:border-[var(--warning)] disabled:opacity-50"
+        >
+          Generate optional OpenRouter aggregate summary
+        </button>
+        <p className="mt-1 text-[9px] leading-relaxed text-[var(--text-secondary)]">
+          Separate explicit network action. It works only when enabled with a
+          credential and sends the aggregate field set disclosed in Settings.
+          It does not answer a free-form question.
+        </p>
+      </div>
 
-            <div className="space-y-2">
-              <p className="text-[10px] text-[var(--text-muted)] mb-2">
-                Supported examples:
-              </p>
-              {examplePrompts.map((prompt, index) => (
+      <div className="flex-1 overflow-y-auto mb-2 space-y-3 min-h-[255px]">
+        {messages.length === 0 ? (
+          <div className="text-center text-[var(--text-tertiary)] mt-5">
+            <p className="text-xs mb-3 font-medium">
+              Explore stored evidence locally
+            </p>
+            <div className="space-y-1.5">
+              {examplePrompts.map(prompt => (
                 <button
-                  key={index}
-                  onClick={() => handleExampleClick(prompt)}
+                  key={prompt}
+                  onClick={() => !loading && void sendMessage(prompt)}
                   className="block w-full text-[10px] text-left px-2 py-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-primary)] hover:border-[var(--border-secondary)] rounded text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
                   disabled={loading}
                 >
-                  &ldquo;{prompt}&rdquo;
+                  “{prompt}”
                 </button>
               ))}
             </div>
@@ -145,7 +142,7 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] px-2 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
                   <LoadingSpinner size="sm" />
                   <span className="text-[var(--text-tertiary)]">
-                    Processing recorded data...
+                    Processing…
                   </span>
                 </div>
               </div>
@@ -164,20 +161,20 @@ export function ChatInterface({ className = '' }: ChatInterfaceProps) {
         <input
           type="text"
           value={inputValue}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            setInputValue(e.target.value)
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            setInputValue(event.target.value)
           }
           onKeyDown={handleKeyPress}
-          placeholder="Ask about recorded signals or supported analyses..."
+          placeholder="Enter a supported local query…"
           className="flex-1 px-2 py-1.5 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-md text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)]"
           disabled={loading}
         />
         <button
           type="submit"
           disabled={!inputValue.trim() || loading}
-          className="px-3 py-1.5 bg-[var(--bg-tertiary)] border border-[var(--accent-primary)]/30 hover:border-[var(--accent-primary)] hover:shadow-[0_0_10px_rgba(188,19,254,0.4)] disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-xs font-medium text-[var(--text-primary)] transition-all"
+          className="px-3 py-1.5 bg-[var(--bg-tertiary)] border border-[var(--accent-primary)]/30 hover:border-[var(--accent-primary)] disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-xs font-medium text-[var(--text-primary)] transition-all"
         >
-          Send
+          Run
         </button>
       </form>
     </div>

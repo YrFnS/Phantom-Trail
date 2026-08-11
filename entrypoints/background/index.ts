@@ -9,6 +9,9 @@ export default defineBackground(() => {
   NetworkMonitor.initialize();
   MessageHandler.initialize();
   AlarmManager.initialize();
+  void import('../../lib/notification-manager').then(
+    ({ NotificationManager }) => NotificationManager.initialize()
+  );
 
   chrome.tabs.onActivated.addListener(async activeInfo => {
     await updateBadgeForTab(activeInfo.tabId);
@@ -31,36 +34,37 @@ export default defineBackground(() => {
   });
 
   chrome.runtime.onInstalled.addListener(async () => {
-    try {
-      const { SettingsStorage } =
-        await import('../../lib/storage/settings-storage');
-      await SettingsStorage.initializeDefaults();
-      const { DataMigration } = await import('../../lib/data-migration');
-      await DataMigration.runMigrations();
-    } catch (error) {
-      console.error('[Phantom Trail] Failed to initialize:', error);
-    }
+    await initializePersistentState('startup');
   });
 
   chrome.runtime.onStartup.addListener(async () => {
-    try {
-      const { DataMigration } = await import('../../lib/data-migration');
-      await DataMigration.runMigrations();
-    } catch (error) {
-      console.error('[Phantom Trail] Failed to run startup migration:', error);
-    }
+    await initializePersistentState('startup');
   });
 
-  // Extension reloads do not always produce onInstalled/onStartup in the test
-  // lifecycle, so apply non-destructive migration once per worker start too.
-  void import('../../lib/data-migration')
-    .then(({ DataMigration }) => DataMigration.runMigrations())
-    .catch(error => {
-      console.error('[Phantom Trail] Worker-start migration failed:', error);
-    });
+  // Service-worker restarts do not always emit installation or browser-startup
+  // events, so run the idempotent migration/report checks once per worker start.
+  void initializePersistentState('startup');
 
   console.log('[Phantom Trail] Background script initialized');
 });
+
+async function initializePersistentState(
+  reportSource: 'startup'
+): Promise<void> {
+  try {
+    const [{ SettingsStorage }, { DataMigration }, { ReportService }] =
+      await Promise.all([
+        import('../../lib/storage/settings-storage'),
+        import('../../lib/data-migration'),
+        import('../../lib/report-service'),
+      ]);
+    await SettingsStorage.initializeDefaults();
+    await DataMigration.runMigrations();
+    await ReportService.ensureCurrentReports(new Date(), reportSource);
+  } catch (error) {
+    console.error('[Phantom Trail] Persistent-state initialization failed:', error);
+  }
+}
 
 async function updateBadgeForTab(tabId: number): Promise<void> {
   try {

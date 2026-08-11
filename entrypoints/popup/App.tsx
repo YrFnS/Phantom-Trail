@@ -18,6 +18,8 @@ import type {
   EvidenceScoreColor,
 } from '../../lib/types';
 
+const REQUESTED_VIEW_KEY = 'phantom_trail_requested_popup_view';
+
 const LiveNarrative = lazy(() =>
   import('../../components/LiveNarrative').then(module => ({
     default: module.LiveNarrative,
@@ -38,9 +40,9 @@ const RiskDashboard = lazy(() =>
     default: module.RiskDashboard,
   }))
 );
-const PrivacyCoachDashboard = lazy(() =>
-  import('../../components/PrivacyCoach').then(module => ({
-    default: module.PrivacyCoachDashboard,
+const ReportsDashboard = lazy(() =>
+  import('../../components/Reports').then(module => ({
+    default: module.ReportsDashboard,
   }))
 );
 const CommunityInsights = lazy(() =>
@@ -51,7 +53,7 @@ const CommunityInsights = lazy(() =>
 
 const ComponentLoader = () => (
   <div className="flex items-center justify-center h-32">
-    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-plasma"></div>
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-plasma" />
   </div>
 );
 
@@ -72,6 +74,10 @@ function getScoreColorClass(color: EvidenceScoreColor): string {
   }
 }
 
+function isViewType(value: unknown): value is ViewType {
+  return NAV_ITEMS.some(item => item.id === value);
+}
+
 function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeView, setActiveView] = useState<ViewType>('narrative');
@@ -79,13 +85,14 @@ function App() {
     useAppData();
 
   useEffect(() => {
-    const handleTabSwitch = (event: Event) => {
-      const customEvent = event as CustomEvent<string>;
-      if (customEvent.detail === 'actions') setActiveView('dashboard');
-    };
-
-    window.addEventListener('switchTab', handleTabSwitch);
-    return () => window.removeEventListener('switchTab', handleTabSwitch);
+    void chrome.storage.session
+      .get(REQUESTED_VIEW_KEY)
+      .then(result => {
+        const requested = result[REQUESTED_VIEW_KEY];
+        if (isViewType(requested)) setActiveView(requested);
+        return chrome.storage.session.remove(REQUESTED_VIEW_KEY);
+      })
+      .catch(() => undefined);
   }, []);
 
   if (showSettings) {
@@ -232,8 +239,8 @@ function App() {
                   {activeView === 'dashboard' && (
                     <RiskDashboard currentDomain={currentDomain} />
                   )}
-                  {activeView === 'chat' && <ChatInterface />}
-                  {activeView === 'coach' && <PrivacyCoachDashboard />}
+                  {activeView === 'explore' && <ChatInterface />}
+                  {activeView === 'reports' && <ReportsDashboard />}
                   {activeView === 'community' && (
                     <CommunityInsights
                       userScore={communityScore}

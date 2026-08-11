@@ -8,29 +8,22 @@ export default defineConfig({
       'Experimental Chrome extension for inspecting possible web-tracking signals',
     version: '0.1.0',
     permissions: ['webRequest', 'storage', 'tabs', 'alarms'],
-    optional_permissions: ['management'],
-    host_permissions: ['<all_urls>'],
+    optional_permissions: ['management', 'notifications'],
+    host_permissions: ['http://*/*', 'https://*/*'],
     commands: {
       'toggle-popup': {
         suggested_key: {
           default: 'Ctrl+Shift+P',
           mac: 'Command+Shift+P',
         },
-        description: 'Toggle Phantom Trail popup',
+        description: 'Open the Phantom Trail popup',
       },
       'quick-analysis': {
         suggested_key: {
           default: 'Ctrl+Shift+A',
           mac: 'Command+Shift+A',
         },
-        description: 'Quick experimental analysis of the current site',
-      },
-      'export-data': {
-        suggested_key: {
-          default: 'Ctrl+Shift+E',
-          mac: 'Command+Shift+E',
-        },
-        description: 'Export recorded Phantom Trail data',
+        description: 'Open the current-page evidence dashboard',
       },
     },
     icons: {
@@ -42,7 +35,7 @@ export default defineConfig({
     web_accessible_resources: [
       {
         resources: ['content-main-world.js'],
-        matches: ['<all_urls>'],
+        matches: ['http://*/*', 'https://*/*'],
       },
     ],
   },
