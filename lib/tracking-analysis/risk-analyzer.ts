@@ -1,5 +1,5 @@
 import type { AnalysisResult } from './types';
-import type { TrackingEvent, PrivacyScore } from '../types';
+import type { TrackingEvent } from '../types';
 import {
   calculatePrivacyScore,
   formatEvidenceScore,
@@ -95,5 +95,4 @@ export class RiskAnalyzer {
       ),
     };
   }
-
 }
