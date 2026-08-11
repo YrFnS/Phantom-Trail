@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "budgetVersion": "2026-08-11.1",
+  "limitations": [
+    "These are regression ceilings for one deterministic CI environment, not product performance claims.",
+    "Passing does not establish low CPU, memory, battery, network, or page-load impact on real websites or devices.",
+    "Browser navigation budgets are evaluated separately by the Chromium lifecycle harness."
+  ],
+  "packageBytes": {
+    "unpackedTotalMaximum": 6500000,
+    "zipMaximum": 2200000,
+    "largestJavaScriptMaximum": 1900000,
+    "backgroundJavaScriptMaximum": 900000,
+    "contentJavaScriptMaximum": 650000
+  },
+  "deterministicMilliseconds": {
+    "trackerMatches100kMaximum": 3000,
+    "evidenceQualification100kMaximum": 2500,
+    "eventSanitization25kMaximum": 2500
+  },
+  "browserMilliseconds": {
+    "popupDomContentLoadedMaximum": 3000,
+    "popupLoadMaximum": 5000,
+    "firstDetectorEventMaximum": 5000
+  }
+}
