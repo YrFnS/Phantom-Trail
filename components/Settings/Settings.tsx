@@ -8,9 +8,11 @@ import { ShortcutSettings } from './ShortcutSettings';
 import { ThemeSettings } from './ThemeSettings';
 import { BadgeSettingsComponent } from './BadgeSettings';
 import { P2PSettingsComponent } from './P2PSettings';
+import { DataProtectionSettings } from './DataProtectionSettings';
 
 type SettingsTab =
   | 'general'
+  | 'data'
   | 'appearance'
   | 'badge'
   | 'export'
@@ -71,15 +73,13 @@ export function Settings({ onClose }: SettingsProps) {
     setSettings,
     apiKey,
     setApiKey,
+    rememberApiKey,
+    setRememberApiKey,
     saving,
     saveError,
     saveSuccess,
     saveSettings,
   } = useSettings();
-
-  const handleSave = async () => {
-    await saveSettings();
-  };
 
   return (
     <div className="p-4 min-h-full">
@@ -103,6 +103,12 @@ export function Settings({ onClose }: SettingsProps) {
             <TabButton
               id="general"
               label="General"
+              activeTab={activeTab}
+              onSelect={setActiveTab}
+            />
+            <TabButton
+              id="data"
+              label="Data"
               activeTab={activeTab}
               onSelect={setActiveTab}
             />
@@ -155,8 +161,8 @@ export function Settings({ onClose }: SettingsProps) {
           {activeTab === 'general' && (
             <div className="space-y-6">
               <FeatureNotice title="Interpret results cautiously">
-                Detector events, grades, predictions, and recommendations are
-                heuristic prototype output. They can be wrong and are not a
+                Detector events, model bands, predictions, and recommendations
+                are heuristic prototype output. They can be wrong and are not a
                 security verdict, privacy certification, or legal assessment.
               </FeatureNotice>
 
@@ -180,19 +186,27 @@ export function Settings({ onClose }: SettingsProps) {
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
-                  When AI summaries are enabled, sanitized event summaries are
-                  sent directly to OpenRouter. Review the data disclosure before
-                  enabling this feature. Manage keys at{' '}
-                  <a
-                    href="https://openrouter.ai/keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[var(--accent-primary)] hover:underline"
-                  >
-                    openrouter.ai
-                  </a>
-                  .
+                <label className="mt-3 flex items-start gap-2 text-xs text-[var(--text-secondary)]">
+                  <input
+                    type="checkbox"
+                    checked={rememberApiKey}
+                    onChange={event =>
+                      setRememberApiKey(event.target.checked)
+                    }
+                    className="mt-0.5 rounded border-[var(--border-primary)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
+                  />
+                  <span>
+                    Remember this key across browser restarts. Off by default;
+                    otherwise the key is kept only in extension session storage
+                    or memory and is removed when the session ends.
+                  </span>
+                </label>
+                <p className="text-xs text-[var(--text-secondary)] mt-2 leading-relaxed">
+                  When summaries are enabled, only the aggregate payload shown in
+                  the Data tab is sent directly to OpenRouter. The key is never
+                  included in prompts, logs, exports, or peer payloads. A key
+                  stored by a browser extension is still exposed to a compromised
+                  browser profile.
                 </p>
               </div>
 
@@ -226,12 +240,12 @@ export function Settings({ onClose }: SettingsProps) {
               <div className="flex items-center justify-between gap-4 p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-primary)]">
                 <div>
                   <label className="text-sm font-medium text-[var(--text-primary)]">
-                    OpenRouter event summaries
+                    OpenRouter aggregate summaries
                   </label>
                   <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
-                    Experimental. Summarizes recorded event counts and domains;
-                    it is not a complete or independently verified privacy
-                    analysis. Off by default.
+                    Off by default. Sends only the selected aggregate field set;
+                    raw events and URLs are excluded. The model output can still
+                    be inaccurate.
                   </p>
                 </div>
                 <input
@@ -305,7 +319,7 @@ export function Settings({ onClose }: SettingsProps) {
               )}
 
               <Button
-                onClick={handleSave}
+                onClick={() => void saveSettings()}
                 disabled={saving || saveSuccess}
                 className="w-full"
                 size="md"
@@ -319,14 +333,15 @@ export function Settings({ onClose }: SettingsProps) {
             </div>
           )}
 
+          {activeTab === 'data' && <DataProtectionSettings />}
           {activeTab === 'appearance' && <ThemeSettings />}
 
           {activeTab === 'badge' && (
             <div className="space-y-4">
-              <FeatureNotice title="Experimental heuristic badge">
-                The toolbar value inherits the unvalidated scoring model and is
-                disabled by default for new installations. It must not be read
-                as a safety or privacy certification.
+              <FeatureNotice title="Experimental evidence badge">
+                The toolbar value inherits the unvalidated evidence model and is
+                disabled by default. It must not be read as a safety or privacy
+                certification.
               </FeatureNotice>
               <BadgeSettingsComponent />
             </div>
@@ -334,19 +349,18 @@ export function Settings({ onClose }: SettingsProps) {
 
           {activeTab === 'export' && (
             <FeatureNotice title="Scheduled export unavailable in 0.1.0">
-              Automatic alarm routing and date-range selection are incomplete.
               Use the manual export button in the popup header for CSV or JSON.
-              The current “PDF” path is a plain-text report and is not exposed
-              here as a finished PDF feature.
+              Exports contain the locally minimized event representation and a
+              data-protection disclosure. The current “PDF” path remains a
+              plain-text report.
             </FeatureNotice>
           )}
 
           {activeTab === 'notifications' && (
             <FeatureNotice title="Automatic alerts unavailable in 0.1.0">
-              Notification utilities exist, but detector events, daily summaries,
-              and trend snapshots are not consistently wired into the extension
-              lifecycle. Controls remain hidden until that behavior is completed
-              and tested.
+              Notification utilities are incomplete and the required permission
+              is no longer requested. Controls remain hidden until P4 completes
+              and validates the workflow.
             </FeatureNotice>
           )}
 
@@ -358,8 +372,8 @@ export function Settings({ onClose }: SettingsProps) {
               <FeatureNotice title="Unauthenticated experimental peer network">
                 Peer identity, sample authenticity, population
                 representativeness, and reputation integrity are not established.
-                Enabling this feature may expose normal WebRTC and signaling
-                metadata to peers and infrastructure providers.
+                Current versioned consent is required before connection or
+                sharing. Domain-reputation exchange was removed in P3.
               </FeatureNotice>
               <P2PSettingsComponent />
             </div>
