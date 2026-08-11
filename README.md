@@ -2,9 +2,9 @@
 
 > **Experimental prototype — version 0.1.0**
 >
-> Phantom Trail is not a tracker blocker, security scanner, privacy
-> certification, legal-compliance tool, anonymity product, or production-ready
-> release.
+> The P0–P5 remediation stack is published on `main`, but Phantom Trail is not
+> a stable or production-ready release. It is not a tracker blocker, security
+> scanner, privacy certification, anonymity product, or legal-compliance tool.
 
 Phantom Trail is a Manifest V3 Chrome extension prototype for inspecting
 **possible web-tracking signals**. It records bounded request and browser-API
@@ -14,9 +14,31 @@ local evidence, and exposes cautious local summaries.
 A detector signal can be wrong. It does **not** prove that a company collected,
 retained, shared, sold, or intentionally used personal data.
 
+## Published source status
+
+The six remediation pull requests were merged to `main` in dependency order on
+August 11, 2026:
+
+- P0 — truthful experimental baseline;
+- P1 — explicit page/resource attribution;
+- P2 — evidence-qualified scoring with a real N/A state;
+- P3 — storage minimization, retention, permissions, and deletion;
+- P4 — functionality integrity and removal of incomplete workflows; and
+- P5 — detector, browser, security, dependency, performance, accessibility,
+  provenance, and release gates.
+
+The final P5 implementation tree passed GitHub Actions Validate run **#647** on
+source head `a1dccabaf758ed15c619de08dc2e20e9322e559a`. The same implementation
+tree was then published through merge commit
+`24b833501c8dfccefd92563990b6c35e5d7bfd6f`.
+
+Source publication corrects the default branch. It does not close the human,
+independent-review, external-copy, provider, real-site, long-duration, legal, or
+final-owner release gates.
+
 ## Current product surface
 
-The current stacked P0–P5 implementation contains:
+The published implementation contains:
 
 - a WXT/React popup with **Feed, Map, Stats, Explore, Reports, and Peers** views;
 - a manually maintained catalog of **56 domains across five source categories**;
@@ -110,6 +132,10 @@ include up to five resource-domain labels. Page URLs, resource URLs, paths,
 queries, fragments, descriptions, detector-evidence strings, raw events,
 personal annotations, storage keys, and the credential are excluded.
 
+OpenRouter and any routed model provider operate under their own account,
+retention, pricing, routing, and privacy policies. Live provider behavior is
+not validated by the default automated suite.
+
 ### P2P
 
 The experimental peer network is off by default. Connection and local aggregate
@@ -173,28 +199,48 @@ pnpm evidence:performance
 Then load `.output/chrome-mv3` from `chrome://extensions/` using **Load
 unpacked**. Detailed instructions are in [INSTALL.md](INSTALL.md).
 
-## P5 evidence and release discipline
+## Automated evidence
 
-P5 adds machine-readable regression evidence for:
+The validation workflow produces machine-readable evidence for:
 
-- the curated detector corpus and catalog drift;
+- committed-lockfile equality and frozen installation;
 - unit and contract tests;
+- the versioned curated detector corpus and catalog drift;
 - exact-head build and package integrity;
 - source/package security invariants;
 - production dependency advisories and inventory;
 - deterministic package-size and throughput budgets;
-- an isolated Chrome lifecycle and popup accessibility contract; and
+- isolated Chrome lifecycle and restart behavior;
+- a bounded popup DOM/accessibility-tree contract; and
 - commit-bound artifact hashes and release evidence.
 
-These checks are bounded regression gates. They are **not** real-world detection
-accuracy, WCAG certification, penetration testing, production performance,
-privacy protection, or legal compliance.
+The final P5 run recorded:
 
-A stable release remains blocked by the human and independent gates in:
+- 51 passing unit/contract tests;
+- 141 of 141 passing curated detector cases;
+- 21 of 21 passing Chrome lifecycle/accessibility assertions;
+- zero high or critical production dependency advisories at that run;
+- passing source/package security and performance budgets; and
+- a release status of `blocked` because manual and independent gates remain.
+
+These checks are bounded regression evidence. They are **not** real-world
+detection accuracy, WCAG certification, penetration testing, production
+performance, privacy protection, or legal compliance.
+
+Detailed final evidence is in
+[P5 Runtime Evidence](docs/P5-RUNTIME-EVIDENCE.md).
+
+## Stable-release blockers
+
+A stable release remains blocked by the unresolved gates in:
 
 - [P5 Evidence and Release Discipline](docs/P5-EVIDENCE-AND-RELEASE.md)
 - [Release Checklist](docs/RELEASE-CHECKLIST.md)
 - `release/manual-gates.v1.json`
+
+The public historical `v1.0.0` GitHub release also contains retired
+production-ready and capability claims. It must be withdrawn or rewritten before
+stable publication; the tracked repository blocker is issue #7.
 
 ## Development commands
 
@@ -216,20 +262,17 @@ pnpm validate
 
 ## Phase status
 
-- **P0 — Truthfulness:** implementation complete on its draft branch; public
-  publication and human/external-copy gates remain.
-- **P1 — Detection and attribution:** implementation complete on its stacked
-  draft branch.
-- **P2 — Evidence scoring:** implementation complete on its stacked draft branch.
-- **P3 — Data protection:** implementation complete on its stacked draft branch.
-- **P4 — Functionality integrity:** implementation complete on its stacked draft
-  branch.
-- **P5 — Evidence and release discipline:** implementation and automated evidence
-  are developed on the current stacked draft branch; stable release remains
-  blocked until all required gates pass.
+- **P0 — Truthfulness:** source implementation published on `main`.
+- **P1 — Detection and attribution:** source implementation published on `main`.
+- **P2 — Evidence scoring:** source implementation published on `main`.
+- **P3 — Data protection:** source implementation published on `main`.
+- **P4 — Functionality integrity:** source implementation published on `main`.
+- **P5 — Evidence and release discipline:** source implementation and automated
+  evidence published on `main`.
 
-No phase may be treated as publicly released while the default branch and
-external distribution surfaces still contain older claims or artifacts.
+The source phases are published. Phantom Trail itself remains an experimental
+prototype until the separate human and independent stable-release gates are
+resolved.
 
 ## Security and reporting
 

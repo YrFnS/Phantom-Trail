@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "gateVersion": "2026-08-11.1",
+  "gateVersion": "2026-08-11.2",
   "gates": [
     {
       "id": "stack-published",
-      "status": "blocked",
+      "status": "resolved",
       "owner": "repository owner",
-      "requirement": "P0–P4 are reviewed, published in dependency order, and the P5 PR is retargeted to corrected main."
+      "requirement": "P0–P5 were merged to main in dependency order on August 11, 2026; source publication does not authorize a stable release."
     },
     {
       "id": "normal-chrome-review",
@@ -18,13 +18,13 @@
       "id": "assistive-technology-review",
       "status": "pending",
       "owner": "accessibility reviewer",
-      "requirement": "Keyboard, screen-reader, zoom, contrast, motion, and cognitive-usability review."
+      "requirement": "Keyboard, screen-reader, zoom, contrast, motion, focus visibility, and cognitive-usability review."
     },
     {
       "id": "long-duration-lifecycle",
       "status": "pending",
       "owner": "QA reviewer",
-      "requirement": "Multi-day service-worker, retention, alarm, report, and notification lifecycle review."
+      "requirement": "Multi-day service-worker, retention, alarm, report, notification, storage-pressure, browser-update, and restart review."
     },
     {
       "id": "real-site-accuracy",
@@ -36,25 +36,25 @@
       "id": "live-openrouter-review",
       "status": "pending",
       "owner": "privacy/security reviewer",
-      "requirement": "Review live provider behavior, account routing, cost, retention, and response handling with a dedicated test credential."
+      "requirement": "Review live provider behavior, account routing, cost, retention, payload handling, failure states, and model responses with a dedicated test credential."
     },
     {
       "id": "real-p2p-review",
       "status": "pending",
       "owner": "privacy/security reviewer",
-      "requirement": "Review real peer exchange, abuse resistance, authenticity limits, connection metadata, and provider dependencies."
+      "requirement": "Review real peer exchange, abuse resistance, authenticity limits, replay/flood behavior, connection metadata, relay/signaling dependencies, and disconnect cleanup."
     },
     {
       "id": "independent-security-privacy-review",
       "status": "pending",
       "owner": "independent reviewer",
-      "requirement": "Independent extension-security and privacy assessment; automated gates are insufficient."
+      "requirement": "Independent extension-security and privacy assessment; automated source, package, browser, and advisory gates are insufficient."
     },
     {
       "id": "authenticated-external-copy-audit",
-      "status": "pending",
+      "status": "blocked",
       "owner": "repository owner",
-      "requirement": "Audit GitHub Releases, tags, Chrome Web Store drafts/listings, demos, submissions, videos, downloads, portfolio, and social copy while authenticated."
+      "requirement": "Withdraw or rewrite the stale public v1.0.0 GitHub release and audit tags, release assets, Chrome Web Store drafts/listings, demos, submissions, videos, downloads, portfolio, and social copy. Repository issue #7 tracks the confirmed release blocker."
     },
     {
       "id": "legal-review-if-needed",
@@ -64,9 +64,9 @@
     },
     {
       "id": "final-release-approval",
-      "status": "pending",
+      "status": "blocked",
       "owner": "repository owner",
-      "requirement": "Approve final artifact hash, release notes, limitations, known issues, and rollback plan."
+      "requirement": "Approve the exact candidate artifact hash, release notes, limitations, known issues, rollback/withdrawal plan, and every preceding required gate."
     }
   ]
 }
