@@ -18,17 +18,7 @@ export interface NarrativeState {
 export interface EventAnalysis extends AIAnalysis {
   eventId: string;
   timestamp: number;
-  websiteContext?: WebsiteContext;
 }
-
-export type WebsiteContext =
-  | 'banking'
-  | 'shopping'
-  | 'social'
-  | 'news'
-  | 'search'
-  | 'streaming'
-  | 'unknown';
 
 /** Pattern detection types. */
 export interface TrackingPattern {
