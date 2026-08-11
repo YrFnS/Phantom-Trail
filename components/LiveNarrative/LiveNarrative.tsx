@@ -19,17 +19,13 @@ import { Card, CardHeader, CardContent, Badge, LoadingSpinner } from '../ui';
 import { PrivacyActions } from '../PrivacyActions';
 
 const EventDisplay = React.memo(
-  function EventDisplay({ event, analysis }: EventDisplayProps) {
+  function EventDisplay({ event }: EventDisplayProps) {
     const normalized = React.useMemo(
       () => normalizeTrackingEvent(event),
       [event]
     );
     const { analysis: eventAnalysis, loading: analysisLoading } =
       useEventAnalysis(normalized);
-    const displayAnalysis = React.useMemo(
-      () => eventAnalysis || analysis,
-      [eventAnalysis, analysis]
-    );
 
     const pageDomain = getPageDomain(normalized);
     const resourceDomain = getResourceDomain(normalized);
@@ -89,13 +85,13 @@ const EventDisplay = React.memo(
           </div>
         </div>
 
-        {displayAnalysis && !analysisLoading && (
+        {eventAnalysis && !analysisLoading && (
           <div className="mt-1.5 pt-1.5 border-t border-dark-600/50">
             <p className="text-[9px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">
-              Optional generated summary
+              Local event interpretation
             </p>
             <p className="text-[10px] text-gray-300 leading-relaxed">
-              {displayAnalysis.narrative}
+              {eventAnalysis.narrative}
             </p>
           </div>
         )}
@@ -105,8 +101,7 @@ const EventDisplay = React.memo(
   (previousProps, nextProps) =>
     previousProps.event.id === nextProps.event.id &&
     previousProps.event.lastSeenAt === nextProps.event.lastSeenAt &&
-    previousProps.event.occurrences === nextProps.event.occurrences &&
-    previousProps.analysis === nextProps.analysis
+    previousProps.event.occurrences === nextProps.event.occurrences
 );
 
 const PatternAlerts = React.memo(function PatternAlerts({
@@ -148,7 +143,7 @@ const PatternAlerts = React.memo(function PatternAlerts({
 });
 
 export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
-  const { events, analysis, loading, error } = useLiveNarrative();
+  const { events, loading } = useLiveNarrative();
   const { alerts } = usePatternDetection(events);
 
   const hasEvents = React.useMemo(() => events.length > 0, [events.length]);
@@ -196,6 +191,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
+                aria-hidden="true"
               >
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
@@ -225,6 +221,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
           <div
             className="w-1.5 h-1.5 bg-[var(--accent-primary)] rounded-full animate-pulse-dot"
             title="Local detector updates"
+            aria-hidden="true"
           />
         </div>
         <span className="text-[10px] text-gray-500">
@@ -236,29 +233,11 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
         P1 records the visited page, matched resource or API operation,
         attribution basis, party relationship, rule, and confidence separately.
         These fields can still be incomplete or wrong and do not prove data
-        collection, retention, sharing, or sale.
+        collection, retention, sharing, or sale. OpenRouter is never called by
+        this feed; its aggregate summary is a separate action in Explore.
       </div>
 
       <PatternAlerts alerts={alerts} />
-
-      {analysis && (
-        <div className="p-2 bg-[var(--bg-secondary)] rounded border-l-2 border-[var(--accent-primary)]/30">
-          <p className="text-[9px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">
-            Optional generated summary
-          </p>
-          <p className="text-xs text-gray-300 leading-relaxed">
-            {analysis.narrative}
-          </p>
-        </div>
-      )}
-
-      {error && (
-        <div className="p-2 bg-yellow-500/5 rounded border-l-2 border-yellow-500">
-          <p className="text-xs text-yellow-400">
-            Optional generated summary unavailable
-          </p>
-        </div>
-      )}
 
       <PrivacyActions
         events={events}
@@ -268,15 +247,7 @@ export function LiveNarrative({ className = '' }: LiveNarrativeProps) {
 
       <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
         {events.map(event => (
-          <EventDisplay
-            key={event.id}
-            event={event}
-            analysis={
-              event.id === events[events.length - 1]?.id
-                ? analysis || undefined
-                : undefined
-            }
-          />
+          <EventDisplay key={event.id} event={event} />
         ))}
       </div>
     </div>
