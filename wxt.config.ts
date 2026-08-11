@@ -7,16 +7,8 @@ export default defineConfig({
     description:
       'Experimental Chrome extension for inspecting possible web-tracking signals',
     version: '0.1.0',
-    permissions: [
-      'webRequest',
-      'storage',
-      'activeTab',
-      'tabs',
-      'alarms',
-      'notifications',
-      'downloads',
-      'management',
-    ],
+    permissions: ['webRequest', 'storage', 'tabs', 'alarms'],
+    optional_permissions: ['management'],
     host_permissions: ['<all_urls>'],
     commands: {
       'toggle-popup': {
