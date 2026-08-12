@@ -15,6 +15,7 @@ import {
 import { Line, Bar } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
 import { PrivacyTrends } from '../../lib/privacy-trends';
+import { ReportService } from '../../lib/report-service';
 import type { TrendData, WeeklyReport, Anomaly } from '../../lib/types';
 
 ChartJS.register(
@@ -48,6 +49,7 @@ export function PrivacyTrendsChart({
   const loadTrendData = useCallback(async () => {
     try {
       setLoading(true);
+      await ReportService.ensureCurrentReports(new Date(), 'view', true);
       const [trends, report, detectedDeviations] = await Promise.all([
         PrivacyTrends.calculateDailyTrends(days),
         PrivacyTrends.getWeeklyReport(),
@@ -170,7 +172,8 @@ export function PrivacyTrendsChart({
           No stored daily evidence snapshots are available yet.
         </p>
         <p className="text-[10px] text-gray-500 mt-1">
-          Automatic snapshot generation remains incomplete in version 0.1.0.
+          Reopen this view to retry the current snapshot, or wait for the
+          completed-period report alarm.
         </p>
       </div>
     );
@@ -260,7 +263,7 @@ export function PrivacyTrendsChart({
             </div>
             {weeklyReport.newTrackers.length > 0 && (
               <div className="col-span-2">
-                <span className="text-gray-400">New recorded domains:</span>
+                <span className="text-gray-400">Observed domain labels:</span>
                 <span className="ml-2 text-yellow-400">
                   {weeklyReport.newTrackers.slice(0, 3).join(', ')}
                 </span>

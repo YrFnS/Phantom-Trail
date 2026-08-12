@@ -6,6 +6,12 @@ import {
   getDisplayDomain,
   getEventOccurrenceCount,
 } from './event-attribution.mts';
+import {
+  calculateComparableScoreChange,
+  collectObservedDomainLabels,
+  selectWeeklyComparison,
+  sortDailySnapshotsChronologically,
+} from './report-policy.mts';
 import type {
   TrendData,
   DailySnapshot,
@@ -22,7 +28,9 @@ import type {
 export class PrivacyTrends {
   static async calculateDailyTrends(days: number = 30): Promise<TrendData[]> {
     try {
-      const snapshots = await ReportsStorage.getDailySnapshots(days);
+      const snapshots = sortDailySnapshotsChronologically(
+        await ReportsStorage.getDailySnapshots(days)
+      );
 
       return snapshots.map(snapshot => {
         const eventCounts = snapshot.eventCounts || {
@@ -72,19 +80,12 @@ export class PrivacyTrends {
       const reports = await ReportsStorage.getWeeklyReports(2);
       if (reports.length === 0) return null;
 
-      const currentWeek = reports[reports.length - 1];
-      const previousWeek =
-        reports.length > 1 ? reports[reports.length - 2] : null;
-      const scoreChange =
-        previousWeek &&
-        currentWeek.averageScore !== null &&
-        previousWeek.averageScore !== null
-          ? currentWeek.averageScore - previousWeek.averageScore
-          : null;
+      const { current, previous } = selectWeeklyComparison(reports);
+      if (!current) return null;
 
       return {
-        ...currentWeek,
-        scoreChange,
+        ...current,
+        scoreChange: calculateComparableScoreChange(current, previous),
       };
     } catch (error) {
       console.error('Failed to get weekly evidence aggregation:', error);
@@ -219,7 +220,8 @@ export class PrivacyTrends {
   }
 
   static async generateWeeklyReport(weekStart?: Date): Promise<WeeklyReport> {
-    const startDate = weekStart || startOfWeek(new Date());
+    const startDate =
+      weekStart || startOfWeek(new Date(), { weekStartsOn: 1 });
     const weekStartString = format(startDate, 'yyyy-MM-dd');
 
     try {
@@ -240,31 +242,24 @@ export class PrivacyTrends {
                 numericScores.length
             )
           : null;
-      const allDomainLabels = new Set<string>();
-      weekSnapshots.forEach(snapshot => {
-        snapshot.topDomains.forEach(({ domain }) => {
-          allDomainLabels.add(domain);
-        });
-      });
-
-      const previousReports = await ReportsStorage.getWeeklyReports(2);
-      const previousReport =
-        previousReports.length > 0
-          ? previousReports[previousReports.length - 1]
-          : null;
-      const newDomainLabels = previousReport
-        ? Array.from(allDomainLabels)
-            .filter(domain => !previousReport.newTrackers.includes(domain))
-            .slice(0, 5)
-        : Array.from(allDomainLabels).slice(0, 5);
-
-      return {
+      const observedDomainLabels = collectObservedDomainLabels(weekSnapshots);
+      const previousReports = await ReportsStorage.getWeeklyReports(3);
+      const currentReport: WeeklyReport = {
         weekStart: weekStartString,
         averageScore,
         scoreChange: null,
-        newTrackers: newDomainLabels,
+        newTrackers: observedDomainLabels,
         improvedSites: [],
         riskySites: [],
+      };
+      const { previous } = selectWeeklyComparison(
+        [currentReport, ...previousReports],
+        weekStartString
+      );
+
+      return {
+        ...currentReport,
+        scoreChange: calculateComparableScoreChange(currentReport, previous),
       };
     } catch (error) {
       console.error('Failed to generate weekly evidence aggregation:', error);

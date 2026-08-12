@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  ReportService,
-  type ReportOverview,
-} from '../../lib/report-service';
+import { ReportService, type ReportOverview } from '../../lib/report-service';
 import { DATA_CLEARED_EVENT } from '../../lib/data-deletion';
 import { Button } from '../ui';
 
@@ -24,13 +21,13 @@ export function ReportsDashboard() {
     return () => window.removeEventListener(DATA_CLEARED_EVENT, handleDataCleared);
   }, []);
 
-  const loadOverview = async (ensureCurrent: boolean) => {
+  const loadOverview = async (refreshCurrent: boolean) => {
     setBusy('initial');
     setError(null);
     try {
       setOverview(
-        ensureCurrent
-          ? await ReportService.ensureCurrentReports(new Date(), 'startup')
+        refreshCurrent
+          ? await ReportService.ensureCurrentReports(new Date(), 'view', true)
           : await ReportService.getOverview()
       );
     } catch (loadError) {
@@ -262,6 +259,10 @@ function EmptyReport() {
   );
 }
 
+function formatRunSource(source: string): string {
+  return source === 'view' ? 'Popup view refresh' : source;
+}
+
 function RunStatus({
   label,
   record,
@@ -282,7 +283,7 @@ function RunStatus({
       <span>{label}</span>
       <span className="text-right">
         {record
-          ? `${record.status} • ${record.source} • ${new Date(
+          ? `${record.status} • ${formatRunSource(record.source)} • ${new Date(
               record.completedAt
             ).toLocaleString()}`
           : 'not run'}

@@ -3,6 +3,8 @@ import { MessageHandler } from './message-handler';
 import { AlarmManager } from './alarm-manager';
 import { defineBackground } from 'wxt/utils/define-background';
 
+let persistentStateInitialization: Promise<void> | null = null;
+
 export default defineBackground(() => {
   console.log('[Phantom Trail] Background script starting...');
 
@@ -48,22 +50,32 @@ export default defineBackground(() => {
   console.log('[Phantom Trail] Background script initialized');
 });
 
-async function initializePersistentState(
-  reportSource: 'startup'
-): Promise<void> {
-  try {
-    const [{ SettingsStorage }, { DataMigration }, { ReportService }] =
-      await Promise.all([
-        import('../../lib/storage/settings-storage'),
-        import('../../lib/data-migration'),
-        import('../../lib/report-service'),
-      ]);
-    await SettingsStorage.initializeDefaults();
-    await DataMigration.runMigrations();
-    await ReportService.ensureCurrentReports(new Date(), reportSource);
-  } catch (error) {
-    console.error('[Phantom Trail] Persistent-state initialization failed:', error);
-  }
+function initializePersistentState(reportSource: 'startup'): Promise<void> {
+  if (persistentStateInitialization) return persistentStateInitialization;
+
+  persistentStateInitialization = (async () => {
+    try {
+      const [{ SettingsStorage }, { DataMigration }, { ReportService }] =
+        await Promise.all([
+          import('../../lib/storage/settings-storage'),
+          import('../../lib/data-migration'),
+          import('../../lib/report-service'),
+        ]);
+      await SettingsStorage.initializeDefaults();
+      await DataMigration.runMigrations();
+      await ReportService.ensureCurrentReports(new Date(), reportSource);
+    } catch (error) {
+      // A transient import, storage, or migration failure must not suppress every
+      // later initialization trigger for the rest of this worker's lifetime.
+      persistentStateInitialization = null;
+      console.error(
+        '[Phantom Trail] Persistent-state initialization failed:',
+        error
+      );
+    }
+  })();
+
+  return persistentStateInitialization;
 }
 
 async function updateBadgeForTab(tabId: number): Promise<void> {

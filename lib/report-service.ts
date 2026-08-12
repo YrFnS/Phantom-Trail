@@ -1,9 +1,10 @@
 import { format, startOfWeek } from 'date-fns';
 import { PrivacyTrends } from './privacy-trends';
 import { ReportsStorage } from './storage/reports-storage';
+import { shouldCaptureCurrentReport } from './report-policy.mts';
 import type { DailySnapshot, WeeklyReport } from './types';
 
-export type ReportRunSource = 'alarm' | 'manual' | 'startup';
+export type ReportRunSource = 'alarm' | 'manual' | 'startup' | 'view';
 export type ReportKind = 'daily' | 'weekly';
 
 export interface ReportRunRecord {
@@ -85,7 +86,8 @@ export class ReportService {
 
   static async ensureCurrentReports(
     date = new Date(),
-    source: ReportRunSource = 'startup'
+    source: ReportRunSource = 'startup',
+    refreshExisting = false
   ): Promise<ReportOverview> {
     const today = format(date, 'yyyy-MM-dd');
     const currentWeek = format(
@@ -97,10 +99,18 @@ export class ReportService {
       ReportsStorage.getWeeklyReports(1),
     ]);
 
-    if (daily[0]?.date !== today) {
+    if (
+      shouldCaptureCurrentReport(daily[0]?.date, today, refreshExisting)
+    ) {
       await this.captureDaily(date, source);
     }
-    if (weekly[0]?.weekStart !== currentWeek) {
+    if (
+      shouldCaptureCurrentReport(
+        weekly[0]?.weekStart,
+        currentWeek,
+        refreshExisting
+      )
+    ) {
       await this.captureWeekly(date, source);
     }
 
@@ -185,7 +195,8 @@ export class ReportService {
       candidate.kind !== kind ||
       (candidate.source !== 'alarm' &&
         candidate.source !== 'manual' &&
-        candidate.source !== 'startup') ||
+        candidate.source !== 'startup' &&
+        candidate.source !== 'view') ||
       (candidate.status !== 'success' && candidate.status !== 'error') ||
       typeof candidate.completedAt !== 'number' ||
       !Number.isFinite(candidate.completedAt) ||

@@ -4,6 +4,10 @@ import {
   isRetiredFeatureAlarm,
   REPORT_ALARMS,
 } from '../../lib/report-schedule.mts';
+import {
+  getCompletedDailyReportDate,
+  getCompletedWeeklyReportDate,
+} from '../../lib/report-policy.mts';
 
 export class AlarmManager {
   static initialize(): void {
@@ -76,12 +80,18 @@ export class AlarmManager {
       import('../../lib/report-service'),
       import('../../lib/notification-manager'),
     ]);
-    const snapshot = await ReportService.captureDaily(new Date(), 'alarm');
+    const snapshot = await ReportService.captureDaily(
+      getCompletedDailyReportDate(),
+      'alarm'
+    );
     await NotificationManager.showDailySummary(snapshot);
   }
 
   private static async captureWeeklyReport(): Promise<void> {
     const { ReportService } = await import('../../lib/report-service');
-    await ReportService.captureWeekly(new Date(), 'alarm');
+    await ReportService.captureWeekly(
+      getCompletedWeeklyReportDate(),
+      'alarm'
+    );
   }
 }
