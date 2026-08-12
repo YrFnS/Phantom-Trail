@@ -65,6 +65,9 @@ function initializePersistentState(reportSource: 'startup'): Promise<void> {
       await DataMigration.runMigrations();
       await ReportService.ensureCurrentReports(new Date(), reportSource);
     } catch (error) {
+      // A transient import, storage, or migration failure must not suppress every
+      // later initialization trigger for the rest of this worker's lifetime.
+      persistentStateInitialization = null;
       console.error(
         '[Phantom Trail] Persistent-state initialization failed:',
         error
