@@ -1,7 +1,7 @@
 # Phantom Trail Project Status
 
 **Version:** 0.1.0  
-**Assessment date:** August 11, 2026  
+**Assessment date:** August 14, 2026  
 **Source branch:** `main`  
 **Source publication:** P0–P5 complete and merged  
 **Release posture:** Experimental prototype; stable release blocked
@@ -48,8 +48,8 @@ Source publication is complete. Stable publication is not.
 | Request observation | Implemented with attribution limits | Observes HTTP(S) request metadata through `webRequest`; does not request bodies. Browser metadata can still be absent, stale, or ambiguous. |
 | Tracker catalog | Implemented source data / unvalidated coverage | 56 manually maintained domain entries across Analytics, Advertising, Social Media, Fingerprinting, and Cryptomining. A match is not proof of tracking or ownership. |
 | URL/path rules | Experimental | Exact/subdomain catalog matches are high-confidence rule matches; bounded path and standalone hostname-token rules remain low-confidence. Real-site error rates are unknown. |
-| In-page instrumentation | Experimental | Selected browser API operations are counted and thresholded. Normal API use can trigger signals. Interaction-only mouse/form storage paths were removed. |
-| Event attribution | Implemented / incomplete | Separates visited page and resource context and records attribution/party basis and confidence. Site-key logic is approximate; CNAME cloaking, iframe ambiguity, redirects, and missing initiators remain limitations. |
+| In-page instrumentation | Removed | The forgeable page-world event bridge and native API wrappers are no longer shipped. The content script retains isolated-world observation of attributed third-party script and iframe URLs only. |
+| Event attribution | Implemented / incomplete | Separates visited page and resource context and records attribution/party basis and confidence. Same-site classification is backed by the maintained Public Suffix List, including private suffixes; CNAME cloaking, ownership, iframe ambiguity, redirects, and missing initiators remain limitations. |
 | Event aggregation | Implemented | Equivalent short-window events aggregate into one row while retaining occurrences and first/last-seen timestamps. The same resource on different pages remains separate. |
 | Event storage | Implemented with minimization | Origin-only URL retention by default, optional redacted pathname mode, seven-day default retention, and a 1,000-row cap. Origins/domains/timestamps can still reveal browsing patterns. |
 | Signal feed | Implemented | Displays stored rule evidence, page→resource attribution, confidence, party classification, and occurrence counts with uncertainty language. |
@@ -70,7 +70,7 @@ Source publication is complete. Stable publication is not.
 | Cross-device feature sync | Removed | Obsolete/incomplete sync manager, UI, storage adapter, and claims were removed. |
 | Link destination prediction | Removed | URL-pattern hover score and tooltip were removed. |
 | Generated coaching goals | Removed | Coach/journey engines and generated goal UI were removed; Reports replaced that surface. |
-| P2P transport | Experimental / opt-in | Versioned consent, separate connection/sharing choices, and validated aggregate sample shape. Peer identity, authenticity, representativeness, and reputation integrity are not established. |
+| P2P transport | Experimental / opt-in | Versioned consent, separate connection/sharing choices, strict bounded/fresh sample parsing, score-band consistency, accepted-peer caps, throttling, duplicate suppression, and expiry pruning. Peer identity, authenticity, representativeness, and reputation integrity are not established. |
 | Peer domain reputation | Removed | Domain-label reputation request/response behavior was removed. |
 | Clear All Data | Implemented | Typed confirmation clears extension-controlled local/session/sync storage, alarms, badge state, active peer session, and supported optional permissions. It cannot recall exports or externally processed data. |
 | Required permissions | Implemented boundary | `webRequest`, `storage`, `tabs`, and `alarms`; HTTP(S) host access only. Broad HTTP(S) access remains a material prototype risk. |
@@ -106,9 +106,10 @@ party/attribution basis and confidence, detector evidence, storage migration,
 deduplication, false-positive controls, and attribution-aware consumers and
 exports.
 
-Known limits include approximate site-key logic, missing browser context,
-iframes, redirects, CNAME cloaking, catalog ownership, and remaining heuristic
-false positives and false negatives.
+Registrable-domain grouping now uses a pinned maintained Public Suffix List,
+including private suffixes. Missing browser context, iframes, redirects, CNAME
+cloaking, corporate/catalog ownership, list age, and remaining heuristic false
+positives and false negatives remain limitations.
 
 ### P2 — Evidence-based scoring
 
@@ -166,6 +167,20 @@ P5 added:
 
 The exact final metrics, hashes, and limitations are recorded in
 [P5 Runtime Evidence](P5-RUNTIME-EVIDENCE.md).
+
+### Post-P5 — Trust-boundary hardening
+
+The current source removes the page-world detector script, native API wrappers,
+forgeable detector-event bridge, and webpage-posted P2P discovery path. It also
+replaces the hand-written suffix table with Public Suffix List-backed
+registrable-domain grouping and adds strict canonical validation, freshness,
+peer caps, throttling, duplicate suppression, and expiry pruning to the P2P
+sample boundary.
+
+These changes close specific integrity and compatibility defects. They do not
+close the real-site accuracy, live P2P, independent security/privacy, human
+accessibility, long-duration lifecycle, legal, external-copy, or final release
+approval gates.
 
 ## Final automated P5 evidence
 

@@ -1,24 +1,24 @@
 # Phantom Trail Threat Model
 
-**Version:** P5 development model  
-**Last updated:** August 11, 2026  
+**Version:** P5 plus trust-boundary hardening  
+**Last updated:** August 14, 2026  
 **Status:** Review input, not a security certification
 
 ## 1. System overview
 
 Phantom Trail is a Manifest V3 Chrome extension that observes HTTP(S) request
-metadata and selected browser API operations, stores minimized detector events,
-shows local summaries, and optionally sends aggregate summaries to OpenRouter or
-aggregate samples to unauthenticated peers.
+metadata and attributed third-party script or iframe URLs from an isolated
+content script, stores minimized detector events, shows local summaries, and
+optionally sends aggregate summaries to OpenRouter or aggregate samples to
+unauthenticated peers.
 
 Primary components:
 
 - **Background service worker:** request observation, event persistence, badge,
   reports, alarms, optional notifications, and message routing.
-- **Isolated content script:** DOM-resource observation, page messaging, and
-  injection of the main-world detector.
-- **Main-world detector:** wraps selected page APIs and posts bounded detector
-  signals to the isolated content script.
+- **Isolated content script:** attributed DOM-resource observation and bounded
+  extension-runtime responses. It does not inject page-world code or trust
+  page-posted detector messages.
 - **Popup:** feed, relationship graph, evidence dashboard, local explorer,
   reports, peer controls, settings, exports, and deletion.
 - **Storage:** Chrome local/session/sync storage controlled by the extension.
@@ -29,17 +29,13 @@ Primary components:
 
 ## 2. Trust boundaries
 
-### Page ↔ main-world detector
+### Page DOM ↔ isolated content script
 
-The page controls JavaScript objects, arguments, prototypes, DOM state, timing,
-and events. The detector must assume every value can be malformed, adversarial,
-recursive, or designed to trigger excessive work.
-
-### Main-world detector ↔ isolated content script
-
-`window.postMessage` traffic is observable and forgeable by page scripts. The
-isolated script must validate message type, shape, source, size, and supported
-methods. A page message is evidence input—not authorization.
+The page controls DOM nodes, resource attributes, mutation timing, and navigation.
+The isolated content script treats those values as untrusted, parses only HTTP(S)
+script and iframe URLs, requires attributed third-party context, applies a narrow
+low-confidence token rule, and sends a canonical extension-owned event shape. It
+does not accept page-posted detector messages or inject native API wrappers.
 
 ### Content script ↔ background worker
 
@@ -98,16 +94,17 @@ prove packaged behavior.
 
 ## 5. Abuse cases and controls
 
-### Forged detector events
+### Forged or noisy DOM evidence
 
-**Threat:** A page emits messages that look like Phantom Trail detector output.
+**Threat:** A page creates script or iframe elements whose URLs are designed to
+trigger a low-confidence DOM token rule or excessive mutation work.
 
-**Controls:** strict message schemas, supported detector IDs, sender attribution,
-size limits, source labels, confidence labels, and no privileged action based on
-one detector message.
+**Controls:** isolated-world observation, HTTP(S)-only parsing, third-party
+attribution, a narrow rule set, deduplication, source/confidence labels, and no
+privileged action based on one detector event.
 
 **Remaining risk:** a page can still influence heuristic evidence and create
-noise or denial of service within configured limits.
+noise or resource pressure within configured limits.
 
 ### Sensitive URL or argument retention
 
@@ -143,15 +140,15 @@ user-driven requests, and release evidence.
 
 ### Remote-code or injection paths
 
-**Threat:** remotely hosted scripts/styles, unsafe HTML construction, forged
-page messages, or dynamic evaluation execute with extension privilege.
+**Threat:** remotely hosted scripts/styles, unsafe HTML construction, malformed
+runtime messages, or dynamic evaluation execute with extension privilege.
 
 **Controls:** Manifest V3 CSP, no project-owned `eval`/`new Function`, no remote
-executable assets, message validation, bounded strings, and source/package
-security gates.
+executable assets, no page-world injection, bounded message handling, and
+source/package security gates.
 
-**Remaining risk:** dependencies and the intentionally injected main-world
-script require continued review.
+**Remaining risk:** dependencies, broad host access, and content/background
+message handling require continued review.
 
 ### P2P poisoning and deanonymization
 
@@ -159,8 +156,9 @@ script require continued review.
 metadata, or flood the session.
 
 **Controls:** P2P off by default, versioned consent, aggregate payload only,
-bounded connections, strict sample validation, no domain reputation, and
-unverified labels.
+strict byte/shape/range/freshness validation, score-band consistency, accepted-
+peer caps, per-peer throttling, duplicate suppression, expiry pruning, no domain
+reputation, and unverified labels.
 
 **Remaining risk:** peer identity and authenticity are not solved; connection
 metadata can be observable.
@@ -175,11 +173,12 @@ benchmarks, visible limitations, and release-copy checks.
 
 ### Resource exhaustion
 
-**Threat:** pages generate large request volumes, DOM mutations, API calls, or
-messages that consume memory or CPU.
+**Threat:** pages generate large request volumes or DOM mutations, and peers send
+repeated payloads that consume memory or CPU.
 
-**Controls:** event deduplication, occurrence aggregation, row caps, thresholded
-API signals, storage retention, bounded arrays/strings, and performance budgets.
+**Controls:** event deduplication, occurrence aggregation, row caps, narrow DOM
+resource filtering, storage retention, bounded arrays/strings, peer throttling,
+and performance budgets.
 
 **Remaining risk:** real-site CPU, memory, battery, and service-worker behavior
 remain incompletely measured.
@@ -198,7 +197,7 @@ version consistency, and no hand-rebuilt stable candidate.
 | --- | --- | --- |
 | URL/data minimization | unit fixtures, package scan, Chromium storage checks | review sensitive real-world cases |
 | Permission boundary | manifest gate, runtime permission state | product justification and store review |
-| Message boundary | unit/source checks, lifecycle fixture | adversarial extension-security assessment |
+| DOM/message boundary | unit/source checks, lifecycle fixture | adversarial extension-security assessment |
 | Credential isolation | storage/outbound fixtures, source scan | compromised-profile risk review |
 | OpenRouter payload | canonical payload tests and preview | live provider/retention review |
 | P2P payload | consent and validation fixtures | real peer abuse/authenticity review |
