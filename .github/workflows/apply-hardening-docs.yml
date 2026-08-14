@@ -1,0 +1,151 @@
+name: Apply Hardening Documentation
+
+on:
+  push:
+    branches:
+      - "agent/extension-p0-hardening"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out exact source head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Apply asserted documentation updates
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one match, found {count}")
+              return text.replace(old, new, 1)
+
+          status_path = Path("docs/PROJECT_STATUS.md")
+          status = status_path.read_text(encoding="utf-8")
+          status = replace_once(
+              status,
+              "**Assessment date:** August 11, 2026  ",
+              "**Assessment date:** August 14, 2026  ",
+              "status date",
+          )
+          status = replace_once(
+              status,
+              "| In-page instrumentation | Experimental | Selected browser API operations are counted and thresholded. Normal API use can trigger signals. Interaction-only mouse/form storage paths were removed. |",
+              "| In-page instrumentation | Removed | The forgeable page-world event bridge and native API wrappers are no longer shipped. The content script retains isolated-world observation of attributed third-party script and iframe URLs only. |",
+              "instrumentation row",
+          )
+          status = replace_once(
+              status,
+              "| Event attribution | Implemented / incomplete | Separates visited page and resource context and records attribution/party basis and confidence. Site-key logic is approximate; CNAME cloaking, iframe ambiguity, redirects, and missing initiators remain limitations. |",
+              "| Event attribution | Implemented / incomplete | Separates visited page and resource context and records attribution/party basis and confidence. Same-site classification is backed by the maintained Public Suffix List, including private suffixes; CNAME cloaking, ownership, iframe ambiguity, redirects, and missing initiators remain limitations. |",
+              "attribution row",
+          )
+          status = replace_once(
+              status,
+              "| P2P transport | Experimental / opt-in | Versioned consent, separate connection/sharing choices, and validated aggregate sample shape. Peer identity, authenticity, representativeness, and reputation integrity are not established. |",
+              "| P2P transport | Experimental / opt-in | Versioned consent, separate connection/sharing choices, strict bounded/fresh sample parsing, score-band consistency, accepted-peer caps, throttling, duplicate suppression, and expiry pruning. Peer identity, authenticity, representativeness, and reputation integrity are not established. |",
+              "P2P row",
+          )
+          status = replace_once(
+              status,
+              "Known limits include approximate site-key logic, missing browser context,\niframes, redirects, CNAME cloaking, catalog ownership, and remaining heuristic\nfalse positives and false negatives.",
+              "Registrable-domain grouping now uses a pinned maintained Public Suffix List,\nincluding private suffixes. Missing browser context, iframes, redirects, CNAME\ncloaking, corporate/catalog ownership, list age, and remaining heuristic false\npositives and false negatives remain limitations.",
+              "P1 limits",
+          )
+          marker = "## Final automated P5 evidence"
+          insertion = """### Post-P5 — Trust-boundary hardening
+
+          The current source removes the page-world detector script, native API wrappers,
+          forgeable detector-event bridge, and webpage-posted P2P discovery path. It also
+          replaces the hand-written suffix table with Public Suffix List-backed
+          registrable-domain grouping and adds strict canonical validation, freshness,
+          peer caps, throttling, duplicate suppression, and expiry pruning to the P2P
+          sample boundary.
+
+          These changes close specific integrity and compatibility defects. They do not
+          close the real-site accuracy, live P2P, independent security/privacy, human
+          accessibility, long-duration lifecycle, legal, external-copy, or final release
+          approval gates.
+
+          """.replace("          ", "")
+          if insertion.strip() not in status:
+              status = replace_once(status, marker, insertion + marker, "post-P5 section")
+          status_path.write_text(status, encoding="utf-8")
+
+          threat_path = Path("docs/THREAT-MODEL.md")
+          threat = threat_path.read_text(encoding="utf-8")
+          replacements = [
+              (
+                  "**Version:** P5 development model  \n**Last updated:** August 11, 2026  ",
+                  "**Version:** P5 plus trust-boundary hardening  \n**Last updated:** August 14, 2026  ",
+                  "threat header",
+              ),
+              (
+                  "Phantom Trail is a Manifest V3 Chrome extension that observes HTTP(S) request\nmetadata and selected browser API operations, stores minimized detector events,\nshows local summaries, and optionally sends aggregate summaries to OpenRouter or\naggregate samples to unauthenticated peers.",
+                  "Phantom Trail is a Manifest V3 Chrome extension that observes HTTP(S) request\nmetadata and attributed third-party script or iframe URLs from an isolated\ncontent script, stores minimized detector events, shows local summaries, and\noptionally sends aggregate summaries to OpenRouter or aggregate samples to\nunauthenticated peers.",
+                  "system overview",
+              ),
+              (
+                  "- **Isolated content script:** DOM-resource observation, page messaging, and\n  injection of the main-world detector.\n- **Main-world detector:** wraps selected page APIs and posts bounded detector\n  signals to the isolated content script.",
+                  "- **Isolated content script:** attributed DOM-resource observation and bounded\n  extension-runtime responses. It does not inject page-world code or trust\n  page-posted detector messages.",
+                  "components",
+              ),
+              (
+                  "### Page ↔ main-world detector\n\nThe page controls JavaScript objects, arguments, prototypes, DOM state, timing,\nand events. The detector must assume every value can be malformed, adversarial,\nrecursive, or designed to trigger excessive work.\n\n### Main-world detector ↔ isolated content script\n\n`window.postMessage` traffic is observable and forgeable by page scripts. The\nisolated script must validate message type, shape, source, size, and supported\nmethods. A page message is evidence input—not authorization.",
+                  "### Page DOM ↔ isolated content script\n\nThe page controls DOM nodes, resource attributes, mutation timing, and navigation.\nThe isolated content script treats those values as untrusted, parses only HTTP(S)\nscript and iframe URLs, requires attributed third-party context, applies a narrow\nlow-confidence token rule, and sends a canonical extension-owned event shape. It\ndoes not accept page-posted detector messages or inject native API wrappers.",
+                  "page boundary",
+              ),
+              (
+                  "### Forged detector events\n\n**Threat:** A page emits messages that look like Phantom Trail detector output.\n\n**Controls:** strict message schemas, supported detector IDs, sender attribution,\nsize limits, source labels, confidence labels, and no privileged action based on\none detector message.\n\n**Remaining risk:** a page can still influence heuristic evidence and create\nnoise or denial of service within configured limits.",
+                  "### Forged or noisy DOM evidence\n\n**Threat:** A page creates script or iframe elements whose URLs are designed to\ntrigger a low-confidence DOM token rule or excessive mutation work.\n\n**Controls:** isolated-world observation, HTTP(S)-only parsing, third-party\nattribution, a narrow rule set, deduplication, source/confidence labels, and no\nprivileged action based on one detector event.\n\n**Remaining risk:** a page can still influence heuristic evidence and create\nnoise or resource pressure within configured limits.",
+                  "DOM abuse case",
+              ),
+              (
+                  "**Threat:** remotely hosted scripts/styles, unsafe HTML construction, forged\npage messages, or dynamic evaluation execute with extension privilege.\n\n**Controls:** Manifest V3 CSP, no project-owned `eval`/`new Function`, no remote\nexecutable assets, message validation, bounded strings, and source/package\nsecurity gates.\n\n**Remaining risk:** dependencies and the intentionally injected main-world\nscript require continued review.",
+                  "**Threat:** remotely hosted scripts/styles, unsafe HTML construction, malformed\nruntime messages, or dynamic evaluation execute with extension privilege.\n\n**Controls:** Manifest V3 CSP, no project-owned `eval`/`new Function`, no remote\nexecutable assets, no page-world injection, bounded message handling, and\nsource/package security gates.\n\n**Remaining risk:** dependencies, broad host access, and content/background\nmessage handling require continued review.",
+                  "remote code",
+              ),
+              (
+                  "**Controls:** P2P off by default, versioned consent, aggregate payload only,\nbounded connections, strict sample validation, no domain reputation, and\nunverified labels.",
+                  "**Controls:** P2P off by default, versioned consent, aggregate payload only,\nstrict byte/shape/range/freshness validation, score-band consistency, accepted-\npeer caps, per-peer throttling, duplicate suppression, expiry pruning, no domain\nreputation, and unverified labels.",
+                  "P2P controls",
+              ),
+              (
+                  "**Threat:** pages generate large request volumes, DOM mutations, API calls, or\nmessages that consume memory or CPU.\n\n**Controls:** event deduplication, occurrence aggregation, row caps, thresholded\nAPI signals, storage retention, bounded arrays/strings, and performance budgets.",
+                  "**Threat:** pages generate large request volumes or DOM mutations, and peers send\nrepeated payloads that consume memory or CPU.\n\n**Controls:** event deduplication, occurrence aggregation, row caps, narrow DOM\nresource filtering, storage retention, bounded arrays/strings, peer throttling,\nand performance budgets.",
+                  "resource exhaustion",
+              ),
+              (
+                  "| Message boundary | unit/source checks, lifecycle fixture | adversarial extension-security assessment |",
+                  "| DOM/message boundary | unit/source checks, lifecycle fixture | adversarial extension-security assessment |",
+                  "verification map",
+              ),
+          ]
+          for old, new, label in replacements:
+              threat = replace_once(threat, old, new, label)
+          threat_path.write_text(threat.rstrip() + "\n", encoding="utf-8")
+          PY
+
+      - name: Commit documentation and remove helper workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/apply-hardening-docs.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/PROJECT_STATUS.md docs/THREAT-MODEL.md .github/workflows
+          git commit -m "docs: align hardening boundaries"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
