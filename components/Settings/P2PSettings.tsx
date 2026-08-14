@@ -234,7 +234,7 @@ export function P2PSettingsComponent({
 
             <div>
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">
-                Requested connection limit: {settings.maxConnections}
+                Accepted peer limit: {settings.maxConnections}
               </label>
               <input
                 type="range"
@@ -251,19 +251,10 @@ export function P2PSettingsComponent({
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
               />
               <p className="text-[10px] text-[var(--text-tertiary)] mt-1">
-                The transport may not enforce or reach this requested number.
+                Only this many peers can contribute samples or receive local
+                broadcasts.
               </p>
             </div>
-
-            <ToggleRow
-              label="Attempt automatic reconnection"
-              description="Ask the experimental transport to reconnect after a dropped session. Consent is checked again before any local sample is broadcast."
-              checked={settings.autoReconnect}
-              disabled={loading}
-              onChange={checked =>
-                void updateSetting('autoReconnect', checked)
-              }
-            />
           </div>
         )}
       </div>
@@ -274,7 +265,9 @@ export function P2PSettingsComponent({
         </h4>
         <ul className="text-xs text-[var(--text-secondary)] space-y-1 leading-relaxed">
           <li>• Peer identity and sample authenticity are not established.</li>
-          <li>• No domain-reputation request or domain exchange exists in P3.</li>
+          <li>
+            • No domain-reputation request or domain exchange exists in P3.
+          </li>
           <li>• A connected group is not a population benchmark.</li>
           <li>• Disconnecting clears the current in-memory peer session.</li>
           <li>• Clear All Data also revokes stored P2P consent.</li>

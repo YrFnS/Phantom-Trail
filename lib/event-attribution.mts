@@ -8,22 +8,9 @@ import type {
   TrackingEvent,
   TrackingEventContext,
 } from './types.ts';
+import { getDomain } from 'tldts';
 
 const HTTP_PROTOCOLS = new Set(['http:', 'https:']);
-const COMMON_TWO_LEVEL_SUFFIXES = new Set([
-  'co.uk',
-  'org.uk',
-  'ac.uk',
-  'com.au',
-  'net.au',
-  'org.au',
-  'co.jp',
-  'co.nz',
-  'com.br',
-  'com.cn',
-  'com.sg',
-  'com.tr',
-]);
 
 export interface NetworkAttributionInput {
   requestUrl: string;
@@ -51,7 +38,9 @@ export function parseHttpUrl(value?: string): URL | null {
 
   try {
     const parsed = new URL(value);
-    return HTTP_PROTOCOLS.has(parsed.protocol) && parsed.hostname ? parsed : null;
+    return HTTP_PROTOCOLS.has(parsed.protocol) && parsed.hostname
+      ? parsed
+      : null;
   } catch {
     return null;
   }
@@ -59,31 +48,31 @@ export function parseHttpUrl(value?: string): URL | null {
 
 export function normalizeDomain(value?: string): string {
   if (!value) return '';
-  return value.trim().toLowerCase().replace(/^\.+|\.+$/g, '');
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+|\.+$/g, '');
 }
 
 export function getDomainFromUrl(value?: string): string {
   return normalizeDomain(parseHttpUrl(value)?.hostname);
 }
 
-function getApproximateSiteKey(domainValue?: string): string {
+function getRegistrableSiteKey(domainValue?: string): string {
   const domain = normalizeDomain(domainValue);
   if (
     !domain ||
     domain === 'localhost' ||
     domain.includes(':') ||
-    /^\d+(?:\.\d+){3}$/.test(domain)
+    /^\d+(?:\.\d+){3}$/u.test(domain)
   ) {
     return domain;
   }
 
-  const labels = domain.split('.').filter(Boolean);
-  if (labels.length <= 2) return domain;
-
-  const lastTwo = labels.slice(-2).join('.');
-  return COMMON_TWO_LEVEL_SUFFIXES.has(lastTwo) && labels.length >= 3
-    ? labels.slice(-3).join('.')
-    : lastTwo;
+  // tldts is backed by the maintained Public Suffix List. Private suffixes
+  // are enabled so unrelated tenants such as a.github.io and b.github.io
+  // are never collapsed into the same first-party site.
+  return getDomain(domain, { allowPrivateDomains: true }) || domain;
 }
 
 export function classifyPartyRelationship(
@@ -116,7 +105,9 @@ export function classifyPartyRelationship(
     return { party: 'first-party', basis: 'subdomain', confidence: 'high' };
   }
 
-  if (getApproximateSiteKey(pageDomain) === getApproximateSiteKey(resourceDomain)) {
+  if (
+    getRegistrableSiteKey(pageDomain) === getRegistrableSiteKey(resourceDomain)
+  ) {
     return {
       party: 'first-party',
       basis: 'same-site-heuristic',
@@ -270,8 +261,7 @@ export function normalizeTrackingEvent(event: TrackingEvent): TrackingEvent {
             existingContext.resourceDomain
           ).confidence,
         attributionBasis: existingContext.attributionBasis || 'unknown',
-        attributionConfidence:
-          existingContext.attributionConfidence || 'low',
+        attributionConfidence: existingContext.attributionConfidence || 'low',
       }
     : inferredInPage
       ? createContentAttribution({
@@ -292,10 +282,14 @@ export function normalizeTrackingEvent(event: TrackingEvent): TrackingEvent {
         };
 
   const detector: DetectorEvidence = event.detector || {
-    id: inferredInPage ? `legacy-${event.inPageTracking?.method}` : 'legacy-event',
+    id: inferredInPage
+      ? `legacy-${event.inPageTracking?.method}`
+      : 'legacy-event',
     matchType: 'legacy',
     confidence: 'low',
-    evidence: ['Migrated from the pre-P1 event shape; attribution is incomplete'],
+    evidence: [
+      'Migrated from the pre-P1 event shape; attribution is incomplete',
+    ],
   };
 
   return {
@@ -322,7 +316,9 @@ export function getResourceDomain(event: TrackingEvent): string {
   const normalized = normalizeTrackingEvent(event);
   return (
     normalizeDomain(normalized.context?.resourceDomain) ||
-    (normalized.context?.source === 'legacy' ? normalizeDomain(event.domain) : '')
+    (normalized.context?.source === 'legacy'
+      ? normalizeDomain(event.domain)
+      : '')
   );
 }
 
@@ -333,11 +329,15 @@ export function getResourceUrl(event: TrackingEvent): string {
 
 export function getDisplayDomain(event: TrackingEvent): string {
   return (
-    getResourceDomain(event) || getPageDomain(event) || normalizeDomain(event.domain)
+    getResourceDomain(event) ||
+    getPageDomain(event) ||
+    normalizeDomain(event.domain)
   );
 }
 
-export function getDetectorConfidence(event: TrackingEvent): DetectionConfidence {
+export function getDetectorConfidence(
+  event: TrackingEvent
+): DetectionConfidence {
   return normalizeTrackingEvent(event).detector?.confidence || 'low';
 }
 

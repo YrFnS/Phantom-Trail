@@ -63,9 +63,10 @@ Before persistence, P3 sanitizes URL-like substrings inside:
 - in-page API-call labels; and
 - compatibility fields.
 
-Raw serialized main-world detail objects are replaced by a bounded,
-human-readable minimization notice. Phantom Trail retains operation names and
-counts, not arbitrary arguments or page-supplied values.
+When legacy rows from earlier prototype builds contain serialized main-world
+detail objects, migration replaces them with a bounded, human-readable
+minimization notice. The current build does not inject the old page-world
+detector or create new browser-API rows.
 
 ### Migration
 

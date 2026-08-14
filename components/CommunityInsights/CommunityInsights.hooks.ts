@@ -84,7 +84,8 @@ export const useCommunityInsights = () => {
 
     try {
       const settings = await P2PStorage.getSettings();
-      const { AnonymizationService } = await import('../../lib/anonymization');
+      const { AnonymizationService } =
+        await import('../../lib/anonymization.mts');
       const anonymizedData = AnonymizationService.anonymizeForP2P(
         privacyData,
         settings

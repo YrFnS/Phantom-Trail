@@ -1,5 +1,4 @@
 import { joinRoom } from 'trystero';
-import { AnonymizationService } from './anonymization';
 import { P2PStorage } from './storage/p2p-storage';
 import {
   hasCurrentP2PConsent,
@@ -7,6 +6,7 @@ import {
   P2P_ROOM_ID,
   P2P_STATS_ACTION,
 } from './p2p-consent.mts';
+import { parseAnonymousPrivacyData } from './p2p-payload-policy.mts';
 import type {
   AnonymousPrivacyData,
   CommunityStats,
@@ -21,28 +21,33 @@ interface TrysteroAction<T> {
 interface TrysteroRoom {
   makeAction: <T>(
     name: string
-  ) => [
-    TrysteroAction<T>,
-    (cb: (data: T, peerId: string) => void) => void,
-  ];
+  ) => [TrysteroAction<T>, (cb: (data: T, peerId: string) => void) => void];
   onPeerJoin: (cb: (peerId: string) => void) => void;
   onPeerLeave: (cb: (peerId: string) => void) => void;
   leave: () => void;
 }
 
+interface PeerInputState {
+  lastAttemptAt: number;
+  lastAcceptedSignature?: string;
+}
+
 /**
  * Experimental aggregate sample transport.
  *
- * P3 removes domain-reputation requests because they transmitted domain labels
- * and could be mistaken for an authenticated reputation service. Only the
- * canonical minimized aggregate payload remains.
+ * Peers are unauthenticated. Every inbound value is therefore parsed into a
+ * fresh bounded canonical object before it can affect UI state, and accepted
+ * peers are capped by the configured local limit.
  */
 export class P2PPrivacyNetwork {
   private static instance: P2PPrivacyNetwork | null = null;
+  private static readonly MIN_PEER_MESSAGE_INTERVAL_MS = 5000;
+  private static readonly MAX_PEER_ID_LENGTH = 128;
   private room: TrysteroRoom | null = null;
   private sendStats: TrysteroAction<AnonymousPrivacyData> | null = null;
   private peers: Map<string, PeerConnection> = new Map();
   private peerStats: Map<string, AnonymousPrivacyData> = new Map();
+  private peerInputState: Map<string, PeerInputState> = new Map();
   private isInitialized = false;
   private initializationFailed = false;
   private communityStats: CommunityStats | null = null;
@@ -80,11 +85,17 @@ export class P2PPrivacyNetwork {
         P2P_ROOM_ID
       ) as unknown as TrysteroRoom;
 
-      const [sendStats, getStats] =
-        this.room.makeAction<AnonymousPrivacyData>(P2P_STATS_ACTION);
-      this.sendStats = sendStats;
+      const [sendUnknownStats, getStats] =
+        this.room.makeAction<unknown>(P2P_STATS_ACTION);
+      this.sendStats = (data, targetId) => sendUnknownStats(data, targetId);
 
       this.room.onPeerJoin((peerId: string) => {
+        if (!this.isAcceptablePeerId(peerId) || this.peers.has(peerId)) return;
+        if (this.peers.size >= this.config.maxConnections) {
+          console.warn('Ignored peer: local accepted-peer limit reached');
+          return;
+        }
+
         this.peers.set(peerId, {
           id: peerId,
           connection: null as unknown as RTCPeerConnection,
@@ -93,23 +104,17 @@ export class P2PPrivacyNetwork {
           isActive: true,
         });
 
-        if (
-          this.localStats &&
-          this.sendStats &&
-          this.config.shareAnonymousData &&
-          hasCurrentP2PConsent(this.config)
-        ) {
-          this.sendStats(this.localStats, peerId);
-        }
+        this.sendLocalStatsToPeer(peerId);
       });
 
       this.room.onPeerLeave((peerId: string) => {
         this.peers.delete(peerId);
         this.peerStats.delete(peerId);
+        this.peerInputState.delete(peerId);
         this.updateCommunityStats();
       });
 
-      getStats((data: AnonymousPrivacyData, peerId: string) => {
+      getStats((data: unknown, peerId: string) => {
         this.processPeerPrivacyData(data, peerId);
       });
 
@@ -127,27 +132,24 @@ export class P2PPrivacyNetwork {
       } catch {
         // Ignore teardown errors after a partial connection.
       }
-      this.room = null;
-      this.sendStats = null;
-      this.isInitialized = false;
+      this.clearSessionState();
     }
   }
 
   async shareAnonymousData(data: AnonymousPrivacyData): Promise<void> {
     await this.reloadSettings();
+    const canonical = parseAnonymousPrivacyData(data);
     if (
       !this.isInitialized ||
       !this.config.joinPrivacyNetwork ||
       !this.config.shareAnonymousData ||
       !hasCurrentP2PConsent(this.config) ||
-      !AnonymizationService.validateAnonymization(data)
+      !canonical
     ) {
       return;
     }
 
-    this.localStats = AnonymizationService.sanitizeForSharing(
-      data as unknown as Record<string, unknown>
-    ) as unknown as AnonymousPrivacyData;
+    this.localStats = canonical;
     await this.broadcastLocalStats();
   }
 
@@ -156,8 +158,8 @@ export class P2PPrivacyNetwork {
     if (!this.config.joinPrivacyNetwork) return 'Disabled';
     if (this.initializationFailed) return 'Unavailable in this session';
     if (!this.isInitialized) return 'Connecting...';
-    if (this.peers.size === 0) return 'Searching for peers...';
-    return `Connected to ${this.peers.size} peer${this.peers.size === 1 ? '' : 's'}`;
+    if (this.peers.size === 0) return 'Searching for accepted peers...';
+    return `Connected to ${this.peers.size} accepted peer${this.peers.size === 1 ? '' : 's'}`;
   }
 
   /** Compatibility API: domain reputation exchange was removed in P3. */
@@ -187,32 +189,76 @@ export class P2PPrivacyNetwork {
   private async broadcastLocalStats(): Promise<void> {
     await this.reloadSettings();
     if (
-      this.localStats &&
-      this.sendStats &&
-      this.config.joinPrivacyNetwork &&
-      this.config.shareAnonymousData &&
-      hasCurrentP2PConsent(this.config)
+      !this.localStats ||
+      !this.sendStats ||
+      !this.config.joinPrivacyNetwork ||
+      !this.config.shareAnonymousData ||
+      !hasCurrentP2PConsent(this.config)
     ) {
-      this.sendStats(this.localStats);
-    }
-  }
-
-  private processPeerPrivacyData(
-    data: AnonymousPrivacyData,
-    peerId: string
-  ): void {
-    if (!AnonymizationService.validateAnonymization(data)) {
-      console.warn(`Ignored invalid or legacy P2P sample from ${peerId}`);
       return;
     }
 
+    const canonical = parseAnonymousPrivacyData(this.localStats);
+    if (!canonical) {
+      this.localStats = null;
+      return;
+    }
+    this.localStats = canonical;
+
+    // Never broadcast to every room participant. Only peers admitted under the
+    // local cap receive the canonical minimized sample.
+    for (const peerId of this.peers.keys()) {
+      this.sendStats(canonical, peerId);
+    }
+  }
+
+  private processPeerPrivacyData(data: unknown, peerId: string): void {
     const peer = this.peers.get(peerId);
-    if (peer) peer.lastSeen = Date.now();
-    this.peerStats.set(peerId, data);
+    if (!peer) return;
+
+    const now = Date.now();
+    const previous = this.peerInputState.get(peerId);
+    if (
+      previous &&
+      now - previous.lastAttemptAt <
+        P2PPrivacyNetwork.MIN_PEER_MESSAGE_INTERVAL_MS
+    ) {
+      return;
+    }
+    this.peerInputState.set(peerId, {
+      lastAttemptAt: now,
+      lastAcceptedSignature: previous?.lastAcceptedSignature,
+    });
+
+    const canonical = parseAnonymousPrivacyData(data, now);
+    if (!canonical) {
+      console.warn('Ignored malformed P2P sample from an accepted peer');
+      return;
+    }
+
+    const signature = JSON.stringify(canonical);
+    if (previous?.lastAcceptedSignature === signature) return;
+
+    peer.lastSeen = now;
+    this.peerInputState.set(peerId, {
+      lastAttemptAt: now,
+      lastAcceptedSignature: signature,
+    });
+    this.peerStats.set(peerId, canonical);
     this.updateCommunityStats();
   }
 
   private updateCommunityStats(): void {
+    const now = Date.now();
+    for (const [peerId, sample] of this.peerStats) {
+      const canonical = parseAnonymousPrivacyData(sample, now);
+      if (!canonical) {
+        this.peerStats.delete(peerId);
+        continue;
+      }
+      this.peerStats.set(peerId, canonical);
+    }
+
     const samples = Array.from(this.peerStats.values());
     if (samples.length === 0) {
       this.communityStats = null;
@@ -224,8 +270,7 @@ export class P2PPrivacyNetwork {
       samples.length;
     const scoreDistribution = samples.reduce<Record<string, number>>(
       (distribution, sample) => {
-        const grade = this.normalizeGrade(sample.grade);
-        distribution[grade] = (distribution[grade] || 0) + 1;
+        distribution[sample.grade] = (distribution[sample.grade] || 0) + 1;
         return distribution;
       },
       {}
@@ -241,34 +286,72 @@ export class P2PPrivacyNetwork {
     };
   }
 
-  private normalizeGrade(grade: string): string {
-    const normalized = grade.toUpperCase();
-    return ['A', 'B', 'C', 'D', 'F'].includes(normalized)
-      ? normalized
-      : 'Unknown';
-  }
-
   private async reloadSettings(): Promise<void> {
     this.config = await P2PStorage.getSettings();
+    while (this.peers.size > this.config.maxConnections) {
+      const peerId = this.peers.keys().next().value as string | undefined;
+      if (!peerId) break;
+      this.peers.delete(peerId);
+      this.peerStats.delete(peerId);
+      this.peerInputState.delete(peerId);
+    }
+    this.updateCommunityStats();
   }
 
-  async disconnectFromNetwork(): Promise<void> {
+  private sendLocalStatsToPeer(peerId: string): void {
+    if (
+      !this.localStats ||
+      !this.sendStats ||
+      !this.config.joinPrivacyNetwork ||
+      !this.config.shareAnonymousData ||
+      !hasCurrentP2PConsent(this.config)
+    ) {
+      return;
+    }
+
+    const canonical = parseAnonymousPrivacyData(this.localStats);
+    if (!canonical) {
+      this.localStats = null;
+      return;
+    }
+    this.localStats = canonical;
+    this.sendStats(canonical, peerId);
+  }
+
+  private isAcceptablePeerId(peerId: string): boolean {
+    return (
+      peerId.length > 0 &&
+      peerId.length <= P2PPrivacyNetwork.MAX_PEER_ID_LENGTH &&
+      !Array.from(peerId).some(character => {
+        const code = character.charCodeAt(0);
+        return code <= 31 || code === 127;
+      })
+    );
+  }
+
+  private clearSessionState(): void {
     if (this.broadcastInterval) {
       clearInterval(this.broadcastInterval);
       this.broadcastInterval = null;
     }
-
-    if (this.room) {
-      this.room.leave();
-      this.room = null;
-    }
-
+    this.room = null;
     this.sendStats = null;
     this.peers.clear();
     this.peerStats.clear();
+    this.peerInputState.clear();
     this.communityStats = null;
     this.localStats = null;
-    this.initializationFailed = false;
     this.isInitialized = false;
+  }
+
+  async disconnectFromNetwork(): Promise<void> {
+    try {
+      this.room?.leave();
+    } catch (error) {
+      console.warn('P2P room teardown failed:', error);
+    } finally {
+      this.clearSessionState();
+      this.initializationFailed = false;
+    }
   }
 }

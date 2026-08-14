@@ -396,14 +396,47 @@ async function getTargets(cdp) {
   return (await cdp.send('Target.getTargets')).targetInfos || [];
 }
 
-async function waitForExtensionTarget(cdp) {
+function getExpectedExtensionWorkerPath() {
+  try {
+    const manifest = JSON.parse(
+      readFileSync(join(extensionPath, 'manifest.json'), 'utf8')
+    );
+    const worker = manifest.background?.service_worker;
+    return typeof worker === 'string'
+      ? `/${worker.replace(/^\/+/, '')}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function waitForExtensionTarget(cdp, expectedExtensionId) {
+  const expectedWorkerPath = getExpectedExtensionWorkerPath();
   return waitFor(async () => {
     const targets = await getTargets(cdp);
-    return targets.find(
-      target =>
-        ['service_worker', 'background_page'].includes(target.type) &&
-        target.url.startsWith('chrome-extension://')
-    );
+    return targets.find(target => {
+      if (!['service_worker', 'background_page'].includes(target.type)) {
+        return false;
+      }
+
+      try {
+        const url = new URL(target.url);
+        if (url.protocol !== 'chrome-extension:') return false;
+        if (expectedExtensionId && url.hostname !== expectedExtensionId) {
+          return false;
+        }
+        if (
+          target.type === 'service_worker' &&
+          expectedWorkerPath &&
+          url.pathname !== expectedWorkerPath
+        ) {
+          return false;
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    });
   }, { timeout: 20_000 });
 }
 
@@ -460,6 +493,38 @@ async function evaluate(cdp, sessionId, expression) {
     );
   }
   return response.result?.value;
+}
+
+async function waitForExtensionRuntime(
+  cdp,
+  sessionId,
+  expectedExtensionId
+) {
+  return waitFor(
+    async () => {
+      const runtime = await evaluate(
+        cdp,
+        sessionId,
+        `(() => {
+          if (typeof chrome === 'undefined' || !chrome.runtime?.id) return null;
+          const manifest = chrome.runtime.getManifest();
+          return {
+            extensionId: chrome.runtime.id,
+            manifest
+          };
+        })()`
+      );
+      if (!runtime || runtime.manifest?.name !== 'Phantom Trail') return null;
+      if (
+        expectedExtensionId &&
+        runtime.extensionId !== expectedExtensionId
+      ) {
+        return null;
+      }
+      return runtime;
+    },
+    { timeout: 20_000, interval: 100 }
+  );
 }
 
 async function waitForDocumentReady(cdp, sessionId) {
@@ -560,18 +625,15 @@ async function firstRun(chromeExecutable, fixture) {
   const instance = await launchChrome(chromeExecutable, 'first run');
   phase('attaching to first-run extension worker');
   const workerTarget = await waitForExtensionTarget(instance.cdp);
-  const extensionId = new URL(workerTarget.url).hostname;
   const workerSession = await attach(
     instance.cdp,
     workerTarget.targetId,
     'background-worker:first-run'
   );
-
-  const manifest = await evaluate(
-    instance.cdp,
-    workerSession,
-    'chrome.runtime.getManifest()'
-  );
+  const runtime = await waitForExtensionRuntime(instance.cdp, workerSession);
+  const extensionId = runtime.extensionId;
+  const manifest = runtime.manifest;
+  measurements.firstRunWorkerTarget = workerTarget.url;
   record(
     'manifest-version',
     manifest.manifest_version === 3 && manifest.version === '0.1.0',
@@ -983,25 +1045,37 @@ async function firstRun(chromeExecutable, fixture) {
 async function secondRun(chromeExecutable, expectedExtensionId) {
   const instance = await launchChrome(chromeExecutable, 'restart');
   phase('attaching to restarted extension worker');
-  let workerTarget = await waitForExtensionTarget(instance.cdp).catch(() => null);
+  let workerTarget = await waitForExtensionTarget(
+    instance.cdp,
+    expectedExtensionId
+  ).catch(() => null);
   if (!workerTarget) {
     await instance.cdp.send('Target.createTarget', {
       url: `chrome-extension://${expectedExtensionId}/popup.html`,
     });
-    workerTarget = await waitForExtensionTarget(instance.cdp);
+    workerTarget = await waitForExtensionTarget(
+      instance.cdp,
+      expectedExtensionId
+    );
   }
 
-  const extensionId = new URL(workerTarget.url).hostname;
+  const workerSession = await attach(
+    instance.cdp,
+    workerTarget.targetId,
+    'background-worker:restart'
+  );
+  const runtime = await waitForExtensionRuntime(
+    instance.cdp,
+    workerSession,
+    expectedExtensionId
+  );
+  const extensionId = runtime.extensionId;
+  measurements.restartWorkerTarget = workerTarget.url;
   record(
     'extension-id-stable-across-restart',
     extensionId === expectedExtensionId,
     `first=${expectedExtensionId}; second=${extensionId}`,
     { expectedExtensionId, extensionId }
-  );
-  const workerSession = await attach(
-    instance.cdp,
-    workerTarget.targetId,
-    'background-worker:restart'
   );
   const probe = await evaluate(
     instance.cdp,

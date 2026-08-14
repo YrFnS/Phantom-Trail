@@ -16,7 +16,6 @@ export const DEFAULT_P2P_SETTINGS: P2PSettings = {
   shareAnonymousData: false,
   shareRegionalData: false,
   maxConnections: 10,
-  autoReconnect: true,
 };
 
 export function hasCurrentP2PConsent(settings: P2PSettings): boolean {
@@ -39,7 +38,6 @@ export function normalizeP2PSettings(value: unknown): P2PSettings {
       1,
       Math.min(20, Number(candidate.maxConnections) || 10)
     ),
-    autoReconnect: candidate.autoReconnect !== false,
     consentVersion: candidate.consentVersion,
     consentAcknowledgedAt: candidate.consentAcknowledgedAt,
   };

@@ -3,7 +3,7 @@
  */
 
 import { P2PPrivacyNetwork } from '../lib/p2p-privacy-network';
-import { AnonymizationService } from '../lib/anonymization';
+import { AnonymizationService } from '../lib/anonymization.mts';
 import {
   P2P_CONSENT_VERSION,
   P2P_PAYLOAD_VERSION,
@@ -15,7 +15,6 @@ const consentedSettings: P2PSettings = {
   shareAnonymousData: true,
   shareRegionalData: false,
   maxConnections: 10,
-  autoReconnect: true,
   consentVersion: P2P_CONSENT_VERSION,
   consentAcknowledgedAt: Date.now(),
 };
@@ -57,7 +56,9 @@ describe('P2P Privacy Network', () => {
   });
 
   test('should not provide domain reputation in P3', async () => {
-    await expect(network.getDomainReputation('example.com')).resolves.toBeNull();
+    await expect(
+      network.getDomainReputation('example.com')
+    ).resolves.toBeNull();
   });
 });
 
@@ -140,7 +141,11 @@ describe('Anonymization Service', () => {
       trackerCount: 25,
       riskDistribution: { low: 10, medium: 20, high: 5, critical: 0 },
       websiteCategories: ['advertising', 'analytics'],
-      timestamp: new Date('2024-01-01T12:00:00.000Z').getTime(),
+      timestamp: (() => {
+        const value = new Date();
+        value.setMinutes(0, 0, 0);
+        return value.getTime();
+      })(),
     };
 
     expect(AnonymizationService.validateAnonymization(validData)).toBe(true);

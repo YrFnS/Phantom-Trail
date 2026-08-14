@@ -51,7 +51,7 @@ test('falls back from an unusable initiator to the tab URL', () => {
   assert.equal(context.party, 'third-party');
 });
 
-test('uses a disclosed site-key heuristic for sibling subdomains', () => {
+test('uses the registrable domain for sibling subdomains', () => {
   const relationship = classifyPartyRelationship(
     'shop.example.com',
     'cdn.example.com'
@@ -62,7 +62,7 @@ test('uses a disclosed site-key heuristic for sibling subdomains', () => {
   assert.equal(relationship.confidence, 'medium');
 });
 
-test('handles common two-level suffixes in the site-key heuristic', () => {
+test('handles common multi-label public suffixes', () => {
   const relationship = classifyPartyRelationship(
     'shop.example.co.uk',
     'cdn.example.co.uk'
@@ -141,4 +141,42 @@ test('dedupe keys keep identical resources on different pages separate', () => {
     buildEventDeduplicationKey(first),
     buildEventDeduplicationKey(second)
   );
+});
+
+test('does not collapse unrelated Iraqi com.iq registrants', () => {
+  const relationship = classifyPartyRelationship(
+    'hospital-a.com.iq',
+    'tracker-company.com.iq'
+  );
+
+  assert.equal(relationship.party, 'third-party');
+  assert.equal(relationship.basis, 'different-site-heuristic');
+});
+
+test('does not collapse unrelated Indian co.in registrants', () => {
+  const relationship = classifyPartyRelationship(
+    'shop-one.co.in',
+    'cdn-two.co.in'
+  );
+
+  assert.equal(relationship.party, 'third-party');
+});
+
+test('treats unrelated private-suffix tenants as separate sites', () => {
+  const relationship = classifyPartyRelationship(
+    'alpha.github.io',
+    'beta.github.io'
+  );
+
+  assert.equal(relationship.party, 'third-party');
+});
+
+test('keeps sibling Iraqi registrable-domain hosts first-party', () => {
+  const relationship = classifyPartyRelationship(
+    'shop.example.com.iq',
+    'cdn.example.com.iq'
+  );
+
+  assert.equal(relationship.party, 'first-party');
+  assert.equal(relationship.basis, 'same-site-heuristic');
 });
