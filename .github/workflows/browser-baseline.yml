@@ -64,6 +64,7 @@ jobs:
         run: xvfb-run -a pnpm evidence:normal-chrome
 
       - name: Initial representative real-site observation sweep
+        if: always()
         env:
           CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
         run: xvfb-run -a pnpm evidence:real-sites

@@ -43,9 +43,13 @@ async function main() {
   const consoleErrors = [];
   let instance;
   let report;
+  let keyboardError = null;
 
   try {
-    instance = await launchChrome({ label: 'normal-chrome' });
+    instance = await launchChrome({
+      label: 'normal-chrome',
+      initialUrl: 'https://example.com/'
+    });
     const worker = await findPhantomWorker(instance.cdp);
     const commands = await evaluate(
       instance.cdp,
@@ -53,11 +57,40 @@ async function main() {
       'chrome.commands.getAll()'
     );
     const toggleCommand = commands.find(command => command.name === 'toggle-popup');
+    const browserWindow = await evaluate(
+      instance.cdp,
+      worker.sessionId,
+      `(async () => {
+        let windows = await chrome.windows.getAll({ populate: true });
+        let target = windows.find(window => window.type === 'normal');
+        if (!target?.id) {
+          target = await chrome.windows.create({
+            url: 'https://example.com/',
+            focused: true,
+            type: 'normal'
+          });
+        }
+        if (!target?.id) return null;
+        await chrome.windows.update(target.id, { focused: true });
+        const tabs = target.tabs || await chrome.tabs.query({ windowId: target.id });
+        const tab = tabs.find(candidate => candidate.active) || tabs[0];
+        if (tab?.id) await chrome.tabs.update(tab.id, { active: true });
+        return { windowId: target.id, tabId: tab?.id || null };
+      })()`
+    );
+    if (!browserWindow?.windowId) {
+      throw new Error('Could not establish an active normal Chrome window.');
+    }
+    const pageTarget = (await getTargets(instance.cdp)).find(
+      target => target.type === 'page' && /^https:\/\/example\.com\/?/u.test(target.url)
+    );
+    if (pageTarget) {
+      await instance.cdp.send('Target.activateTarget', { targetId: pageTarget.targetId });
+    }
     const windowId = await findChromeWindow();
 
     let invocationMethod = 'keyboard-command';
     let popupTarget;
-    let keyboardError = null;
     try {
       const shortcut = toggleCommand?.shortcut || 'ctrl+shift+p';
       const xdotoolShortcut = shortcut
@@ -210,7 +243,8 @@ async function main() {
       invocation: {
         method: invocationMethod,
         command: toggleCommand || null,
-        keyboardError
+        keyboardError,
+        browserWindow
       },
       popup: {
         url: popupTarget.url,
@@ -239,6 +273,7 @@ async function main() {
       humanToolbarGateClosed: false,
       humanAccessibilityGateClosed: false,
       fatalError: error instanceof Error ? error.stack || error.message : String(error),
+      keyboardError: typeof keyboardError === 'string' ? keyboardError : null,
       runtimeErrors,
       consoleErrors
     };
