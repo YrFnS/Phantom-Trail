@@ -1,0 +1,283 @@
+name: Apply Chromium Harness Fix
+
+on:
+  push:
+    branches:
+      - "agent/extension-p0-hardening"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out exact source head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Harden extension-worker selection and runtime readiness
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('scripts/chromium-lifecycle.mjs')
+          source = path.read_text(encoding='utf-8')
+
+          def replace_once(old: str, new: str, label: str) -> None:
+              global source
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one match, found {count}')
+              source = source.replace(old, new, 1)
+
+          replace_once(
+              """async function waitForExtensionTarget(cdp) {
+            return waitFor(async () => {
+              const targets = await getTargets(cdp);
+              return targets.find(
+                target =>
+                  ['service_worker', 'background_page'].includes(target.type) &&
+                  target.url.startsWith('chrome-extension://')
+              );
+            }, { timeout: 20_000 });
+          }
+          """,
+              """function getExpectedExtensionWorkerPath() {
+            try {
+              const manifest = JSON.parse(
+                readFileSync(join(extensionPath, 'manifest.json'), 'utf8')
+              );
+              const worker = manifest.background?.service_worker;
+              return typeof worker === 'string'
+                ? `/${worker.replace(/^\\/+/, '')}`
+                : null;
+            } catch {
+              return null;
+            }
+          }
+
+          async function waitForExtensionTarget(cdp, expectedExtensionId) {
+            const expectedWorkerPath = getExpectedExtensionWorkerPath();
+            return waitFor(async () => {
+              const targets = await getTargets(cdp);
+              return targets.find(target => {
+                if (!['service_worker', 'background_page'].includes(target.type)) {
+                  return false;
+                }
+
+                try {
+                  const url = new URL(target.url);
+                  if (url.protocol !== 'chrome-extension:') return false;
+                  if (expectedExtensionId && url.hostname !== expectedExtensionId) {
+                    return false;
+                  }
+                  if (
+                    target.type === 'service_worker' &&
+                    expectedWorkerPath &&
+                    url.pathname !== expectedWorkerPath
+                  ) {
+                    return false;
+                  }
+                  return true;
+                } catch {
+                  return false;
+                }
+              });
+            }, { timeout: 20_000 });
+          }
+          """,
+              'worker target selection',
+          )
+
+          evaluate_block = """async function evaluate(cdp, sessionId, expression) {
+            const response = await cdp.send(
+              'Runtime.evaluate',
+              { expression, awaitPromise: true, returnByValue: true, userGesture: true },
+              sessionId
+            );
+            if (response.exceptionDetails) {
+              throw new Error(
+                response.exceptionDetails.exception?.description ||
+                  response.exceptionDetails.text ||
+                  'Runtime evaluation failed'
+              );
+            }
+            return response.result?.value;
+          }
+          """
+          replace_once(
+              evaluate_block,
+              evaluate_block + """
+          async function waitForExtensionRuntime(
+            cdp,
+            sessionId,
+            expectedExtensionId
+          ) {
+            return waitFor(
+              async () => {
+                const runtime = await evaluate(
+                  cdp,
+                  sessionId,
+                  `(() => {
+                    if (typeof chrome === 'undefined' || !chrome.runtime?.id) return null;
+                    const manifest = chrome.runtime.getManifest();
+                    return {
+                      extensionId: chrome.runtime.id,
+                      manifest
+                    };
+                  })()`
+                );
+                if (!runtime || runtime.manifest?.name !== 'Phantom Trail') return null;
+                if (
+                  expectedExtensionId &&
+                  runtime.extensionId !== expectedExtensionId
+                ) {
+                  return null;
+                }
+                return runtime;
+              },
+              { timeout: 20_000, interval: 100 }
+            );
+          }
+          """,
+              'runtime readiness helper',
+          )
+
+          replace_once(
+              """  const workerTarget = await waitForExtensionTarget(instance.cdp);
+            const extensionId = new URL(workerTarget.url).hostname;
+            const workerSession = await attach(
+              instance.cdp,
+              workerTarget.targetId,
+              'background-worker:first-run'
+            );
+
+            const manifest = await evaluate(
+              instance.cdp,
+              workerSession,
+              'chrome.runtime.getManifest()'
+            );
+          """,
+              """  const workerTarget = await waitForExtensionTarget(instance.cdp);
+            const workerSession = await attach(
+              instance.cdp,
+              workerTarget.targetId,
+              'background-worker:first-run'
+            );
+            const runtime = await waitForExtensionRuntime(instance.cdp, workerSession);
+            const extensionId = runtime.extensionId;
+            const manifest = runtime.manifest;
+            measurements.firstRunWorkerTarget = workerTarget.url;
+          """,
+              'first-run runtime wait',
+          )
+
+          replace_once(
+              """  let workerTarget = await waitForExtensionTarget(instance.cdp).catch(() => null);
+            if (!workerTarget) {
+              await instance.cdp.send('Target.createTarget', {
+                url: `chrome-extension://${expectedExtensionId}/popup.html`,
+              });
+              workerTarget = await waitForExtensionTarget(instance.cdp);
+            }
+
+            const extensionId = new URL(workerTarget.url).hostname;
+            record(
+              'extension-id-stable-across-restart',
+              extensionId === expectedExtensionId,
+              `first=${expectedExtensionId}; second=${extensionId}`,
+              { expectedExtensionId, extensionId }
+            );
+            const workerSession = await attach(
+              instance.cdp,
+              workerTarget.targetId,
+              'background-worker:restart'
+            );
+          """,
+              """  let workerTarget = await waitForExtensionTarget(
+              instance.cdp,
+              expectedExtensionId
+            ).catch(() => null);
+            if (!workerTarget) {
+              await instance.cdp.send('Target.createTarget', {
+                url: `chrome-extension://${expectedExtensionId}/popup.html`,
+              });
+              workerTarget = await waitForExtensionTarget(
+                instance.cdp,
+                expectedExtensionId
+              );
+            }
+
+            const workerSession = await attach(
+              instance.cdp,
+              workerTarget.targetId,
+              'background-worker:restart'
+            );
+            const runtime = await waitForExtensionRuntime(
+              instance.cdp,
+              workerSession,
+              expectedExtensionId
+            );
+            const extensionId = runtime.extensionId;
+            measurements.restartWorkerTarget = workerTarget.url;
+            record(
+              'extension-id-stable-across-restart',
+              extensionId === expectedExtensionId,
+              `first=${expectedExtensionId}; second=${extensionId}`,
+              { expectedExtensionId, extensionId }
+            );
+          """,
+              'restart runtime wait',
+          )
+
+          path.write_text(source, encoding='utf-8')
+
+          Path('tests/chromium-harness.test.mts').write_text(
+              """import test from 'node:test';
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { resolve } from 'node:path';
+
+          const source = readFileSync(
+            resolve(import.meta.dirname, '../scripts/chromium-lifecycle.mjs'),
+            'utf8'
+          );
+
+          test('Chromium harness selects the packaged service-worker path', () => {
+            assert.match(source, /manifest\\.background\\?\\.service_worker/u);
+            assert.match(source, /url\\.pathname !== expectedWorkerPath/u);
+          });
+
+          test('Chromium harness waits for the extension runtime before using chrome APIs', () => {
+            assert.match(source, /typeof chrome === 'undefined'/u);
+            assert.match(source, /waitForExtensionRuntime\\(instance\\.cdp, workerSession/u);
+            assert.match(source, /runtime\\.manifest/u);
+          });
+          """.replace('          ', ''),
+              encoding='utf-8',
+          )
+          PY
+
+      - name: Validate patched harness source
+        shell: bash
+        run: |
+          node --check scripts/chromium-lifecycle.mjs
+          node --experimental-strip-types --test tests/chromium-harness.test.mts
+
+      - name: Commit patch and remove helper workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/apply-chromium-harness-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/chromium-lifecycle.mjs tests/chromium-harness.test.mts .github/workflows
+          git commit -m "test: wait for the packaged extension runtime"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
