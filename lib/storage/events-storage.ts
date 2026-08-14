@@ -8,6 +8,7 @@ import {
   sanitizeTrackingEventForStorage,
   sanitizeTrackingEventsForStorage,
 } from '../data-protection-policy.mts';
+import { isControlledBrowserShutdown } from '../browser-lifecycle-errors.mts';
 import { DataProtectionStorage } from './data-protection-storage';
 
 export interface EventPolicyApplicationResult {
@@ -188,7 +189,9 @@ export class EventsStorage {
 
       return retained;
     } catch (error) {
-      console.error('Failed to read protected detector events:', error);
+      if (!isControlledBrowserShutdown(error)) {
+        console.error('Failed to read protected detector events:', error);
+      }
       return [];
     }
   }

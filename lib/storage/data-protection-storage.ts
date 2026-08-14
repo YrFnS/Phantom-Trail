@@ -3,6 +3,7 @@ import {
   DEFAULT_DATA_PROTECTION_SETTINGS,
   normalizeDataProtectionSettings,
 } from '../data-protection-policy.mts';
+import { isControlledBrowserShutdown } from '../browser-lifecycle-errors.mts';
 
 export interface StorageAreaInventory {
   area: 'local' | 'session' | 'sync';
@@ -17,13 +18,6 @@ export interface StorageInventory {
   areas: StorageAreaInventory[];
   totalKeys: number;
   totalKnownBytes: number;
-}
-
-function isControlledBrowserShutdown(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return /browser is shutting down|extension context (?:was )?invalidated/iu.test(
-    message
-  );
 }
 
 /**

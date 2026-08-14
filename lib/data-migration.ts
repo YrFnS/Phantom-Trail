@@ -2,13 +2,7 @@ import { ReportsStorage } from './storage/reports-storage';
 import { SettingsStorage } from './storage/settings-storage';
 import { DataProtectionStorage } from './storage/data-protection-storage';
 import { EventsStorage } from './storage/events-storage';
-
-function isControlledBrowserShutdown(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return /browser is shutting down|extension context (?:was )?invalidated/iu.test(
-    message
-  );
-}
+import { isControlledBrowserShutdown } from './browser-lifecycle-errors.mts';
 
 /**
  * Versioned compatibility and minimization migrations.
