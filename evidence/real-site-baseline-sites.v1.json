@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "datasetVersion": "2026-08-14.1",
+  "purpose": "Initial bounded observation sweep. Inclusion does not imply endorsement, tracking, safety, or expected detector outcome.",
+  "sites": [
+    {
+      "id": "negative-example",
+      "url": "https://example.com/",
+      "cohort": "negative-control",
+      "manualReviewStatus": "pending",
+      "rationale": "Small standards-reserved page used as a low-complexity negative control."
+    },
+    {
+      "id": "knowledge-wikipedia",
+      "url": "https://www.wikipedia.org/",
+      "cohort": "knowledge-reference",
+      "manualReviewStatus": "pending",
+      "rationale": "High-traffic public knowledge landing page."
+    },
+    {
+      "id": "developer-npm",
+      "url": "https://www.npmjs.com/",
+      "cohort": "developer-platform",
+      "manualReviewStatus": "pending",
+      "rationale": "Modern JavaScript application and package-discovery platform."
+    },
+    {
+      "id": "iraq-government-ur",
+      "url": "https://ur.gov.iq/",
+      "cohort": "iraq-government",
+      "manualReviewStatus": "pending",
+      "rationale": "Iraq Unified Electronic Portal and an Iraqi public-sector domain."
+    },
+    {
+      "id": "iraq-education-hadba",
+      "url": "https://www.hu.edu.iq/",
+      "cohort": "iraq-education",
+      "manualReviewStatus": "pending",
+      "rationale": "Public Iraqi university website on edu.iq."
+    },
+    {
+      "id": "news-bbc",
+      "url": "https://www.bbc.com/",
+      "cohort": "news-media",
+      "manualReviewStatus": "pending",
+      "rationale": "Large international news and media landing page."
+    }
+  ]
+}

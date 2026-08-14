@@ -1,0 +1,79 @@
+name: Browser Baseline Evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "agent/post-hardening-validation"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_SHA: ${{ github.sha }}
+
+jobs:
+  browser-baseline:
+    name: Normal Chrome and initial real-site evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out exact source head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install stable Chrome for Testing
+        id: chrome
+        uses: browser-actions/setup-chrome@v2.1.2
+        with:
+          chrome-version: stable
+          install-dependencies: true
+
+      - name: Install desktop automation helpers
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends xdotool scrot
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build exact extension
+        run: pnpm build
+
+      - name: Create browser evidence directory
+        run: mkdir -p .artifacts/browser-baseline
+
+      - name: Normal Chrome popup baseline
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: xvfb-run -a pnpm evidence:normal-chrome
+
+      - name: Initial representative real-site observation sweep
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: xvfb-run -a pnpm evidence:real-sites
+
+      - name: Upload browser baseline evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: phantom-trail-browser-baseline-${{ env.SOURCE_SHA }}
+          path: .artifacts/browser-baseline
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
