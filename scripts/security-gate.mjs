@@ -43,6 +43,9 @@ const retiredPaths = [
   'components/PrivacyCoaching',
   'lib/privacy-coach.ts',
   'lib/ai-coaching.ts',
+  'public/content-main-world.js',
+  'lib/content-messaging.ts',
+  'lib/in-page-detector.ts',
 ];
 
 const staleEvidencePaths = [
@@ -89,7 +92,8 @@ function scanSource() {
     {
       id: 'request-body-collection',
       expression: /\brequestBody\b/gu,
-      message: 'Project-owned source must not request or retain request bodies.',
+      message:
+        'Project-owned source must not request or retain request bodies.',
     },
     {
       id: 'dynamic-eval',
@@ -132,7 +136,20 @@ function scanSource() {
     {
       id: 'sensitive-key-diagnostic',
       expression: /API key length|key prefix|openRouterApiKey\s*[,)]/giu,
-      message: 'Credential values or derived key diagnostics must not be logged.',
+      message:
+        'Credential values or derived key diagnostics must not be logged.',
+    },
+    {
+      id: 'page-world-detector-bridge',
+      expression: /phantom-trail-detection/giu,
+      message:
+        'The forgeable page-world detector event bridge was retired and must not return.',
+    },
+    {
+      id: 'page-posted-p2p-discovery',
+      expression: /PHANTOM_TRAIL_P2P_DISCOVERY/gu,
+      message:
+        'The obsolete webpage-posted P2P discovery channel was retired and must not return.',
     },
   ];
 
@@ -288,6 +305,18 @@ function scanManifest() {
     );
   }
 
+  const accessibleResources = JSON.stringify(
+    manifest.web_accessible_resources || []
+  );
+  if (/content-main-world\.js/iu.test(accessibleResources)) {
+    addFailure(
+      failures,
+      'manifest-page-world-detector',
+      'The retired page-world detector script must not be web-accessible.',
+      'manifest.json'
+    );
+  }
+
   return { manifest, failures };
 }
 
@@ -314,6 +343,17 @@ function scanPackage() {
       failures,
       'license-mismatch',
       `Expected MIT but received ${String(packageJson.license)}.`,
+      'package.json'
+    );
+  }
+
+  if (packageJson.dependencies?.tldts !== '7.4.9') {
+    addFailure(
+      failures,
+      'public-suffix-dependency',
+      `Expected exact tldts 7.4.9 but received ${String(
+        packageJson.dependencies?.tldts
+      )}.`,
       'package.json'
     );
   }

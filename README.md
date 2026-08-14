@@ -7,9 +7,10 @@
 > scanner, privacy certification, anonymity product, or legal-compliance tool.
 
 Phantom Trail is a Manifest V3 Chrome extension prototype for inspecting
-**possible web-tracking signals**. It records bounded request and browser-API
-rule matches, separates visited-page and resource attribution, stores minimized
-local evidence, and exposes cautious local summaries.
+**possible web-tracking signals**. It records bounded network-request and
+isolated-world DOM-resource rule matches, separates visited-page and resource
+attribution, stores minimized local evidence, and exposes cautious local
+summaries.
 
 A detector signal can be wrong. It does **not** prove that a company collected,
 retained, shared, sold, or intentionally used personal data.
@@ -42,12 +43,12 @@ The published implementation contains:
 
 - a WXT/React popup with **Feed, Map, Stats, Explore, Reports, and Peers** views;
 - a manually maintained catalog of **56 domains across five source categories**;
-- explicit page/resource attribution, first/third-party classification,
-  detector identity, evidence, and confidence;
+- explicit page/resource attribution, Public Suffix List-backed first/third-
+  party classification, detector identity, evidence, and confidence;
 - duplicate aggregation with occurrence and first/last-seen timestamps;
 - origin-only event URL retention by default, with queries, fragments,
-  credentials, raw API arguments, and sensitive path details removed before
-  persistence;
+  credentials, legacy raw detector details, and sensitive path details removed
+  before persistence;
 - a seven-day default event-retention policy and a 1,000-row cap;
 - an evidence index with a real **N/A / insufficient-evidence** state rather than
   invented favorable defaults;
@@ -58,7 +59,8 @@ The published implementation contains:
 - optional, permission-gated evidence notifications;
 - manual CSV, JSON, and plain-text exports;
 - personal site annotations that do not alter detection or scores;
-- an optional experimental P2P aggregate-sample exchange with versioned consent;
+- an optional experimental P2P aggregate-sample exchange with versioned
+  consent, strict bounded parsing, freshness checks, peer caps, and throttling;
 - an opt-in toolbar evidence badge; and
 - a visible typed-confirmation **Clear All Data** workflow.
 
@@ -76,20 +78,42 @@ non-working controls:
 - background export shortcut;
 - generic AI chat or arbitrary-question routing;
 - link-destination prediction;
-- generated coaching goals; and
-- peer domain-reputation requests.
+- generated coaching goals;
+- peer domain-reputation requests;
+- page-world browser-API monkey-patching and its forgeable DOM event bridge; and
+- webpage-posted P2P discovery messages.
 
 The historical export path named `pdf` still produces a clearly labeled
 plain-text `.txt` file. Phantom Trail does not claim to generate PDF reports.
+
+## Post-P5 trust-boundary hardening
+
+The current source further narrows two high-risk boundaries:
+
+- party classification uses the maintained Public Suffix List rather than a
+  hand-written suffix table; and
+- page-world detector injection, native browser-API monkey-patching, and
+  webpage-posted P2P discovery were removed because page code is untrusted.
+
+The P2P sample path now accepts only a fresh, bounded canonical aggregate and
+limits how frequently accepted peers can update community state. These changes
+reduce false attribution, forged local evidence, page interference, and peer
+sample poisoning. They do not make the detector model accurate or P2P peers
+trusted.
 
 ## Detection and scoring limits
 
 ### Detection
 
-Network, DOM-resource, and selected browser-API rules can still produce false
-positives or false negatives. Page attribution, site-key classification,
-iframe context, CNAME cloaking, ownership, and tracker intent can remain
-ambiguous.
+Network and isolated-world DOM-resource rules can still produce false
+positives or false negatives. Page attribution, Public-Suffix-List-based site
+classification, iframe context, CNAME cloaking, ownership, and tracker intent
+can remain ambiguous.
+
+The former injected main-world API instrumentation was removed because page
+scripts could forge its event bridge and native API wrappers could change page
+behavior. The current build does not claim canvas, audio, WebGL, WebRTC, font,
+battery, sensor, mouse, or form-monitoring detection.
 
 The tracker catalog is source data, not proof that every request to a listed
 root domain is tracking. P1 reduces broad matches and interaction-only signals,
@@ -115,9 +139,9 @@ request metadata, category/severity labels, and minimized detector evidence.
 Origins and timing can still reveal browsing patterns.
 
 Default event URL handling keeps origins only. The optional path mode retains a
-redacted pathname. Query strings, fragments, URL credentials, raw detector
-arguments, and identifier-like path segments are removed under the active
-policy.
+redacted pathname. Query strings, fragments, URL credentials, legacy raw
+detector arguments, and identifier-like path segments are removed under the
+active policy. The active build does not inject page-world API wrappers.
 
 ### OpenRouter
 
@@ -139,9 +163,11 @@ not validated by the default automated suite.
 ### P2P
 
 The experimental peer network is off by default. Connection and local aggregate
-sharing are separate choices under versioned consent. Peer identity, sample
-authenticity, representativeness, and reputation integrity are not established.
-WebRTC and supporting infrastructure can expose ordinary connection metadata.
+sharing are separate choices under versioned consent. Inbound samples are
+strictly type-, size-, range-, grade-, freshness-, and shape-checked; accepted
+peers are capped and throttled. These controls do not establish peer identity,
+sample authenticity, representativeness, or reputation integrity. WebRTC and
+supporting infrastructure can expose ordinary connection metadata.
 
 Read [Privacy and Data Disclosure](docs/PRIVACY_POLICY.md) and
 [Threat Model](docs/THREAT-MODEL.md) before enabling optional external flows.
@@ -214,7 +240,7 @@ The validation workflow produces machine-readable evidence for:
 - a bounded popup DOM/accessibility-tree contract; and
 - commit-bound artifact hashes and release evidence.
 
-The final P5 run recorded:
+The original P5 publication run recorded:
 
 - 51 passing unit/contract tests;
 - 141 of 141 passing curated detector cases;
@@ -223,9 +249,11 @@ The final P5 run recorded:
 - passing source/package security and performance budgets; and
 - a release status of `blocked` because manual and independent gates remain.
 
-These checks are bounded regression evidence. They are **not** real-world
-detection accuracy, WCAG certification, penetration testing, production
-performance, privacy protection, or legal compliance.
+Those figures are a historical P5 baseline, not the current candidate's test
+count. Exact-commit CI evidence is authoritative for later changes. All of these
+checks remain bounded regression evidence; they are **not** real-world detection
+accuracy, WCAG certification, penetration testing, production performance,
+privacy protection, or legal compliance.
 
 Detailed final evidence is in
 [P5 Runtime Evidence](docs/P5-RUNTIME-EVIDENCE.md).

@@ -423,7 +423,6 @@ export interface P2PSettings {
   shareAnonymousData: boolean;
   shareRegionalData: boolean;
   maxConnections: number;
-  autoReconnect: boolean;
   consentVersion?: number;
   consentAcknowledgedAt?: number;
 }

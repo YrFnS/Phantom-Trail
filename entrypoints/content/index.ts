@@ -41,17 +41,10 @@ export default defineContentScript({
       setupMessaging();
       setupDOMMonitoring();
 
-      if (document.documentElement && isContextValid()) {
-        const script = document.createElement('script');
-        script.src = chrome.runtime.getURL('content-main-world.js');
-        script.onload = () => script.remove();
-        script.onerror = () => {
-          console.warn('[Phantom Trail] Failed to load main world script');
-          script.remove();
-        };
-        (document.head || document.documentElement).appendChild(script);
-      }
-
+      // Page-world API monkey-patching was intentionally removed. A webpage can
+      // forge DOM events and native API wrappers can change page behavior, so only
+      // isolated-world DOM-resource observations and background network evidence
+      // are retained until a trustworthy browser-supported boundary exists.
       const cleanupInterval = setInterval(() => {
         if (isContextValid()) {
           cleanupExpiredSignatures();

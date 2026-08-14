@@ -1,10 +1,10 @@
 # Privacy and Data Disclosure
 
 **Product version:** 0.1.0  
-**Disclosure updated:** August 11, 2026  
+**Disclosure updated:** August 14, 2026  
 **Status:** Experimental development disclosure
 
-This document describes the current stacked P0–P5 source behavior. It is not a
+This document describes the current P0–P5 source behavior plus post-P5 trust-boundary hardening. It is not a
 certification of GDPR, CCPA, WCAG, security, privacy, or any other legal or
 technical standard, and it is not legal advice.
 
@@ -33,9 +33,8 @@ The extension can observe or derive:
 - visited-page and requested-resource origins/domains;
 - tab, frame, initiator, request type, and request method when available;
 - first-party, third-party, or unknown party classification;
-- DOM resource URLs;
-- selected browser-API operation counts or thresholds from the injected
-  main-world detector; and
+- attributed third-party script and iframe resource URLs observed from the
+  isolated content-script world; and
 - detector rule, evidence, confidence, category, and prototype severity labels.
 
 Phantom Trail does not request web request bodies.
@@ -67,9 +66,14 @@ Before event persistence, Phantom Trail removes:
 - URL usernames and passwords;
 - query strings;
 - fragments;
-- raw browser-API arguments and in-page detail strings;
+- raw browser-API arguments and in-page detail strings from legacy rows;
 - URL-like sensitive text in descriptions and detector evidence; and
 - pathname details in origin-only mode.
+
+Earlier prototype builds could create minimized browser-API rows. The current
+build does not inject page-world API wrappers or create new rows from canvas,
+audio, WebGL, WebRTC, font, battery, sensor, mouse, or form activity. Existing
+legacy rows remain subject to the active retention policy and Clear All Data.
 
 The optional origin-plus-path mode keeps a redacted pathname. Identifier-like
 segments, long numbers, UUIDs, emails, tokens, and similar values are replaced or
@@ -179,7 +183,11 @@ can still be inaccurate.
 P2P is off by default. The user must acknowledge the current disclosure before
 connection or sharing can be enabled.
 
-Connection and local-sample sharing are separate controls.
+Connection and local-sample sharing are separate controls. Inbound values are
+accepted only after strict type, byte-size, range, score/grade consistency,
+category, timestamp-rounding, and freshness validation. The extension caps
+accepted peers, rate-limits updates per peer, ignores duplicate samples, and
+removes expired samples from the local community aggregate.
 
 A shared sample can contain:
 
@@ -203,8 +211,8 @@ P2P excludes:
 - personal annotations; and
 - storage keys.
 
-Peer identity and sample authenticity are not established. Values can be false,
-replayed, manipulated, or unrepresentative. Peer data is not a reputation
+Peer identity and sample authenticity are not established. A well-formed, fresh
+sample can still be false, coordinated, manipulated, or unrepresentative. Peer data is not a reputation
 service, population benchmark, safety verdict, or adoption measurement.
 
 Trystero/WebRTC can depend on signaling, relay, and NAT-traversal infrastructure.

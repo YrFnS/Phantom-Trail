@@ -10,12 +10,17 @@ import {
   P2P_CONSENT_VERSION,
   P2P_PAYLOAD_VERSION,
 } from './p2p-consent.mts';
+import {
+  getP2PGradeForScore,
+  parseAnonymousPrivacyData,
+} from './p2p-payload-policy.mts';
 
 export class AnonymizationService {
   /**
    * Build the canonical minimized peer payload.
    *
-   * N/A results, absent sharing consent, and disabled sharing all return null.
+   * N/A results, invalid local aggregates, absent sharing consent, and disabled
+   * sharing all fail closed with null.
    */
   static anonymizeForP2P(
     rawData: PrivacyData,
@@ -27,31 +32,43 @@ export class AnonymizationService {
       !settings.shareAnonymousData ||
       rawData.scoreStatus !== 'estimated' ||
       rawData.averageScore === null ||
-      rawData.grade === 'N/A'
+      !Number.isFinite(rawData.averageScore) ||
+      rawData.averageScore < 0 ||
+      rawData.averageScore > 100 ||
+      !Number.isFinite(rawData.trackerCount) ||
+      rawData.trackerCount < 0 ||
+      rawData.grade === 'N/A' ||
+      (rawData.events !== undefined && !Array.isArray(rawData.events))
     ) {
       return null;
     }
 
-    return {
+    const privacyScore = this.roundScore(rawData.averageScore);
+    const events = rawData.events || [];
+    const candidate: AnonymousPrivacyData = {
       payloadVersion: P2P_PAYLOAD_VERSION,
       consentVersion: P2P_CONSENT_VERSION,
-      privacyScore: this.roundScore(rawData.averageScore),
+      privacyScore,
       scoreStatus: 'estimated',
       scoreConfidence:
         rawData.scoreConfidence && rawData.scoreConfidence !== 'none'
           ? rawData.scoreConfidence
           : 'low',
-      grade: rawData.grade,
+      grade: getP2PGradeForScore(privacyScore),
       trackerCount: this.capTrackerCount(rawData.trackerCount),
-      riskDistribution: this.aggregateRiskData(rawData.events || []),
-      websiteCategories: this.getTopCategories(rawData.events || [], 3),
+      riskDistribution: this.aggregateRiskData(events),
+      websiteCategories: this.getTopCategories(events, 3),
       timestamp: this.roundToHour(Date.now()),
       region: settings.shareRegionalData ? this.getGeneralRegion() : undefined,
     };
+
+    // Apply the same strict parser used at the unauthenticated inbound boundary
+    // so the extension never broadcasts a shape it would reject itself.
+    return parseAnonymousPrivacyData(candidate);
   }
 
   private static roundScore(score: number): number {
-    return Math.round(score / 5) * 5;
+    return Math.max(0, Math.min(100, Math.round(score / 5) * 5));
   }
 
   private static capTrackerCount(count: number): number {
@@ -119,36 +136,15 @@ export class AnonymizationService {
     return undefined;
   }
 
-  static validateAnonymization(data: AnonymousPrivacyData): boolean {
-    if (data.payloadVersion !== P2P_PAYLOAD_VERSION) return false;
-    if (data.consentVersion !== P2P_CONSENT_VERSION) return false;
-    if (data.scoreStatus !== 'estimated') return false;
-    if (!Number.isFinite(data.privacyScore) || data.privacyScore % 5 !== 0) {
-      return false;
-    }
-    if (
-      !Number.isFinite(data.trackerCount) ||
-      data.trackerCount < 0 ||
-      data.trackerCount > 50
-    ) {
-      return false;
-    }
+  static parseAnonymousPrivacyData(
+    data: unknown,
+    now = Date.now()
+  ): AnonymousPrivacyData | null {
+    return parseAnonymousPrivacyData(data, now);
+  }
 
-    const date = new Date(data.timestamp);
-    if (
-      date.getMinutes() !== 0 ||
-      date.getSeconds() !== 0 ||
-      date.getMilliseconds() !== 0
-    ) {
-      return false;
-    }
-
-    return (
-      data.websiteCategories.length <= 3 &&
-      !Object.prototype.hasOwnProperty.call(data, 'url') &&
-      !Object.prototype.hasOwnProperty.call(data, 'domain') &&
-      !Object.prototype.hasOwnProperty.call(data, 'events')
-    );
+  static validateAnonymization(data: unknown): data is AnonymousPrivacyData {
+    return parseAnonymousPrivacyData(data) !== null;
   }
 
   static generateAnonymousPeerId(): string {

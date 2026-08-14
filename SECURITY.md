@@ -14,7 +14,7 @@ required before release claims change. It does not certify the current code.
 Covered code includes:
 
 - the Manifest V3 background service worker;
-- content scripts and the injected main-world detector script;
+- isolated content scripts and DOM-resource observation;
 - the popup, settings, reports, exports, and local Evidence Explorer;
 - local, session, and sync storage used by the extension;
 - optional OpenRouter aggregate summaries;
@@ -77,9 +77,10 @@ The following properties must hold:
 6. **Permission minimization.** Optional feature permissions must not become
    required install-time permissions without a reviewed threat-model and user
    experience change.
-7. **Untrusted page messages.** Messages from page/content contexts must be
-   validated and must not authorize arbitrary storage, network, file, or browser
-   actions.
+7. **Untrusted page boundary.** Page-controlled DOM values and content-script
+   messages must be validated and must not authorize arbitrary storage, network,
+   file, browser actions, or detector evidence. No page-world detector bridge is
+   approved.
 8. **No remotely hosted executable code.** Project-owned extension pages must
    not load executable JavaScript, CSS, fonts, WebAssembly, or HTML from remote
    origins.
@@ -94,6 +95,19 @@ The following properties must hold:
 12. **Deletion integrity.** The visible deletion workflow must clear all storage
     areas controlled by the extension and accurately disclose what cannot be
     recalled.
+
+## Active trust-boundary hardening
+
+The active source intentionally does not inject page-world detector code, wrap
+page-native browser APIs, or accept webpage-posted detector/P2P discovery events.
+Those paths were removed because visited pages are attacker-controlled and could
+forge evidence or experience compatibility breakage.
+
+Unauthenticated P2P input is accepted only after strict canonical parsing of the
+complete aggregate shape, byte size, ranges, score/grade consistency, timestamp
+freshness, categories, and optional region. Accepted peers are locally capped
+and rate-limited. These controls reduce poisoning and resource-exhaustion risk;
+they do not authenticate a peer or prove a sample is truthful.
 
 ## Reportable findings and severity context
 
@@ -121,8 +135,11 @@ The following are known limitations, not proof that related findings are safe:
 - broad HTTP(S) host access remains required by the prototype's continuous
   request-attribution design;
 - detector rules can produce false positives and false negatives;
-- site-key classification does not use a complete Public Suffix List;
-- P2P identity and payload authenticity are not established;
+- registrable-domain grouping uses a pinned Public Suffix List dependency, but
+  list age, CNAME cloaking, corporate ownership, and iframe attribution remain
+  unresolved;
+- P2P payloads are strictly bounded and freshness-checked, but peer identity and
+  payload authenticity are not established;
 - OpenRouter retention and provider-side processing are outside this repository;
 - Chrome extension storage is not independently encrypted by Phantom Trail;
 - project dependencies can contain code paths not exercised by the prototype;
