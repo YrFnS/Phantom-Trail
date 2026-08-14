@@ -20,6 +20,7 @@ test('does not expose or inject a page-world detector bridge', () => {
     /phantom-trail-detection|new\s+CustomEvent/u
   );
   assert.doesNotMatch(read('wxt.config.ts'), /web_accessible_resources/u);
+  assert.doesNotMatch(read('.wxt/types/paths.d.ts'), /content-main-world/u);
   assert.equal(existsSync(resolve(root, 'lib/content-messaging.ts')), false);
   assert.equal(existsSync(resolve(root, 'lib/in-page-detector.ts')), false);
 });
